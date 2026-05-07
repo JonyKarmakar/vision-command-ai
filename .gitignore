@@ -13,3 +13,6 @@ venv/
 # VS Code
 .vscode/
 backend/vision-env/
+
+# Testing
+.pytest_cache/
