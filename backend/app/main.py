@@ -3,6 +3,7 @@ from uuid import uuid4
 import shutil
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from PIL import Image, UnidentifiedImageError
 
 app = FastAPI(
     title="VisionCommand AI Backend",
@@ -41,10 +42,22 @@ def upload_media(file: UploadFile = File(...)):
     with storage_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    try:
+        with Image.open(storage_path) as image:
+            width, height = image.size
+    except UnidentifiedImageError:
+        storage_path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is not a valid image",
+        )
+
     return {
         "message": "Image uploaded successfully",
         "original_filename": original_filename,
         "stored_filename": stored_filename,
         "content_type": file.content_type,
+        "width": width,
+        "height": height,
         "storage_path": str(storage_path),
     }
