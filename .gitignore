@@ -16,3 +16,4 @@ backend/vision-env/
 
 # Testing
 .pytest_cache/
+backend/storage/
