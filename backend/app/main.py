@@ -13,6 +13,7 @@ app = FastAPI(
 )
 
 UPLOAD_DIR = Path("storage/uploads")
+MODEL_NAME = "yolo26n.pt"
 
 
 @app.get("/")
@@ -76,3 +77,59 @@ def get_uploaded_media(filename: str):
         )
 
     return FileResponse(file_path)
+
+
+def get_yolo_model():
+    from ultralytics import YOLO
+
+    return YOLO(MODEL_NAME)
+
+
+@app.post("/vision/detect/{filename}")
+def detect_objects(filename: str):
+    image_path = UPLOAD_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded image not found",
+        )
+
+    model = get_yolo_model()
+    results = model(str(image_path))
+
+    detections = []
+
+    if not results:
+        return {
+            "filename": filename,
+            "detections": detections,
+            "detection_count": 0,
+        }
+
+    result = results[0]
+
+    for box in result.boxes:
+        class_id = int(box.cls[0])
+        confidence = float(box.conf[0])
+        x1, y1, x2, y2 = [float(value) for value in box.xyxy[0].tolist()]
+
+        detections.append(
+            {
+                "class_id": class_id,
+                "class_name": result.names[class_id],
+                "confidence": round(confidence, 4),
+                "bbox": {
+                    "x1": round(x1, 2),
+                    "y1": round(y1, 2),
+                    "x2": round(x2, 2),
+                    "y2": round(y2, 2),
+                },
+            }
+        )
+
+    return {
+        "filename": filename,
+        "detections": detections,
+        "detection_count": len(detections),
+    }
