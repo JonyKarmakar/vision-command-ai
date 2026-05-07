@@ -3,6 +3,7 @@ from uuid import uuid4
 import shutil
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 
 app = FastAPI(
@@ -60,4 +61,18 @@ def upload_media(file: UploadFile = File(...)):
         "width": width,
         "height": height,
         "storage_path": str(storage_path),
+        "file_url": f"/media/uploads/{stored_filename}",
     }
+
+
+@app.get("/media/uploads/{filename}")
+def get_uploaded_media(filename: str):
+    file_path = UPLOAD_DIR / filename
+
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded file not found",
+        )
+
+    return FileResponse(file_path)

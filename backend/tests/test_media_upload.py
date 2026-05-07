@@ -38,9 +38,37 @@ def test_upload_image_success(tmp_path, monkeypatch):
     assert data["stored_filename"].endswith(".png")
     assert data["width"] == 100
     assert data["height"] == 50
+    assert data["file_url"] == f"/media/uploads/{data['stored_filename']}"
 
     saved_file_path = test_upload_dir / data["stored_filename"]
     assert saved_file_path.exists()
+
+
+def test_get_uploaded_media_success(tmp_path, monkeypatch):
+    test_upload_dir = tmp_path / "uploads"
+    test_upload_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(main, "UPLOAD_DIR", test_upload_dir)
+
+    image_bytes = create_test_image_bytes(width=80, height=40)
+    file_path = test_upload_dir / "sample.png"
+
+    with file_path.open("wb") as file:
+        file.write(image_bytes.getvalue())
+
+    response = client.get("/media/uploads/sample.png")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert len(response.content) > 0
+
+
+def test_get_uploaded_media_not_found():
+    response = client.get("/media/uploads/missing-image.png")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": "Uploaded file not found"
+    }
 
 
 def test_upload_rejects_non_image_file():
