@@ -4,7 +4,7 @@ import shutil
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageDraw, UnidentifiedImageError
 
 app = FastAPI(
     title="VisionCommand AI Backend",
@@ -13,6 +13,7 @@ app = FastAPI(
 )
 
 UPLOAD_DIR = Path("storage/uploads")
+OUTPUT_DIR = Path("storage/outputs")
 MODEL_NAME = "yolo26n.pt"
 
 
@@ -79,33 +80,33 @@ def get_uploaded_media(filename: str):
     return FileResponse(file_path)
 
 
+@app.get("/media/outputs/{filename}")
+def get_output_media(filename: str):
+    file_path = OUTPUT_DIR / filename
+
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Output file not found",
+        )
+
+    return FileResponse(file_path)
+
+
 def get_yolo_model():
     from ultralytics import YOLO
 
     return YOLO(MODEL_NAME)
 
 
-@app.post("/vision/detect/{filename}")
-def detect_objects(filename: str):
-    image_path = UPLOAD_DIR / filename
-
-    if not image_path.exists() or not image_path.is_file():
-        raise HTTPException(
-            status_code=404,
-            detail="Uploaded image not found",
-        )
-
+def run_yolo_detection(image_path: Path):
     model = get_yolo_model()
     results = model(str(image_path))
 
     detections = []
 
     if not results:
-        return {
-            "filename": filename,
-            "detections": detections,
-            "detection_count": 0,
-        }
+        return detections
 
     result = results[0]
 
@@ -128,8 +129,77 @@ def detect_objects(filename: str):
             }
         )
 
+    return detections
+
+
+@app.post("/vision/detect/{filename}")
+def detect_objects(filename: str):
+    image_path = UPLOAD_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded image not found",
+        )
+
+    detections = run_yolo_detection(image_path)
+
     return {
         "filename": filename,
         "detections": detections,
         "detection_count": len(detections),
+    }
+
+
+@app.post("/vision/detect/{filename}/annotated")
+def detect_objects_with_annotation(filename: str):
+    image_path = UPLOAD_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded image not found",
+        )
+
+    detections = run_yolo_detection(image_path)
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    file_extension = image_path.suffix or ".png"
+    annotated_filename = f"annotated_{image_path.stem}_{uuid4().hex}{file_extension}"
+    annotated_path = OUTPUT_DIR / annotated_filename
+
+    with Image.open(image_path).convert("RGB") as image:
+        draw = ImageDraw.Draw(image)
+
+        for detection in detections:
+            bbox = detection["bbox"]
+            x1 = bbox["x1"]
+            y1 = bbox["y1"]
+            x2 = bbox["x2"]
+            y2 = bbox["y2"]
+
+            label = f"{detection['class_name']} {detection['confidence']:.2f}"
+
+            draw.rectangle(
+                [(x1, y1), (x2, y2)],
+                outline="red",
+                width=3,
+            )
+
+            text_y = y1 - 12 if y1 >= 12 else y1 + 4
+            draw.text(
+                (x1, text_y),
+                label,
+                fill="red",
+            )
+
+        image.save(annotated_path)
+
+    return {
+        "filename": filename,
+        "detections": detections,
+        "detection_count": len(detections),
+        "annotated_filename": annotated_filename,
+        "annotated_file_url": f"/media/outputs/{annotated_filename}",
     }
