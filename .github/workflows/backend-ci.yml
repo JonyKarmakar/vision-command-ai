@@ -10,6 +10,7 @@ on:
 
 jobs:
   backend-tests:
+    name: Run backend tests
     runs-on: ubuntu-latest
 
     steps:
@@ -31,3 +32,15 @@ jobs:
         working-directory: backend
         run: |
           python -m pytest
+
+  backend-docker-build:
+    name: Build backend Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build backend Docker image
+        run: |
+          docker build -t vision-command-backend ./backend
