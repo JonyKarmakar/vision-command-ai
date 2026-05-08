@@ -38,7 +38,9 @@ function App() {
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [confidenceThreshold, setConfidenceThreshold] = useState(30)
   const [selectedClass, setSelectedClass] = useState('all')
+  const [classOptions, setClassOptions] = useState<string[]>([])
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
+  const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -50,7 +52,9 @@ function App() {
     setUploadResult(null)
     setDetectionResult(null)
     setSelectedClass('all')
+    setClassOptions([])
     setLastDetectionThreshold(null)
+    setLastDetectionClass(null)
     setError(null)
     setStatusMessage(file ? `Selected ${file.name}. Ready to upload.` : 'Ready to upload an image.')
   }
@@ -68,6 +72,10 @@ function App() {
       setIsUploading(true)
       setError(null)
       setDetectionResult(null)
+      setSelectedClass('all')
+      setClassOptions([])
+      setLastDetectionThreshold(null)
+      setLastDetectionClass(null)
       setStatusMessage('Uploading image to backend...')
 
       const response = await fetch('/api/media/upload', {
@@ -103,9 +111,16 @@ function App() {
       setStatusMessage('Running YOLO detection. This may take a few seconds...')
 
       const backendThreshold = confidenceThreshold / 100
+      const queryParams = new URLSearchParams({
+        confidence_threshold: String(backendThreshold),
+      })
+
+      if (selectedClass !== 'all') {
+        queryParams.set('class_filter', selectedClass)
+      }
 
       const response = await fetch(
-        `/api/vision/detect/${uploadResult.stored_filename}/annotated?confidence_threshold=${backendThreshold}`,
+        `/api/vision/detect/${uploadResult.stored_filename}/annotated?${queryParams.toString()}`,
         {
           method: 'POST',
         },
@@ -119,6 +134,15 @@ function App() {
       const data: DetectionResponse = await response.json()
       setDetectionResult(data)
       setLastDetectionThreshold(confidenceThreshold)
+      setLastDetectionClass(selectedClass)
+      setClassOptions((previousClasses) =>
+        Array.from(
+          new Set([
+            ...previousClasses,
+            ...data.detections.map((detection) => detection.class_name),
+          ]),
+        ).sort(),
+      )
       setStatusMessage(`Detection complete. Found ${data.detection_count} object(s).`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -134,9 +158,7 @@ function App() {
     ? `/api${detectionResult.annotated_file_url}`
     : null
 
-  const availableClasses = detectionResult
-    ? Array.from(new Set(detectionResult.detections.map((detection) => detection.class_name))).sort()
-    : []
+  const availableClasses = classOptions
 
   const filteredDetections = detectionResult
     ? detectionResult.detections.filter(
@@ -152,6 +174,14 @@ function App() {
     detectionResult !== null &&
     lastDetectionThreshold !== null &&
     confidenceThreshold !== lastDetectionThreshold
+
+  const classChangedAfterDetection =
+    detectionResult !== null &&
+    lastDetectionClass !== null &&
+    selectedClass !== lastDetectionClass
+
+  const filtersChangedAfterDetection =
+    thresholdChangedAfterDetection || classChangedAfterDetection
 
   return (
     <main className="page">
@@ -257,9 +287,9 @@ function App() {
                 <span>Show stronger detections</span>
               </div>
 
-              {thresholdChangedAfterDetection && (
+              {filtersChangedAfterDetection && (
                 <p className="rerun-hint">
-                  Confidence threshold changed. Run YOLO Detection again to update the annotated image.
+                  Filter changed. Run YOLO Detection again to update the annotated image.
                 </p>
               )}
             </div>
@@ -306,7 +336,7 @@ function App() {
           <div className="card">
             <h2>Annotated Output</h2>
             <p className="small-note">
-              The annotated image is generated using the selected confidence threshold.
+              The annotated image is generated using the selected confidence threshold and class filter.
             </p>
             {annotatedImageUrl && (
               <img

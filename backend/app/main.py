@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 import shutil
 
@@ -99,7 +100,11 @@ def get_yolo_model():
     return YOLO(MODEL_NAME)
 
 
-def run_yolo_detection(image_path: Path, confidence_threshold: float = 0.25):
+def run_yolo_detection(
+    image_path: Path,
+    confidence_threshold: float = 0.25,
+    class_filter: Optional[str] = None,
+):
     model = get_yolo_model()
     results = model(str(image_path))
 
@@ -112,9 +117,13 @@ def run_yolo_detection(image_path: Path, confidence_threshold: float = 0.25):
 
     for box in result.boxes:
         class_id = int(box.cls[0])
+        class_name = result.names[class_id]
         confidence = float(box.conf[0])
 
         if confidence < confidence_threshold:
+            continue
+
+        if class_filter and class_name != class_filter:
             continue
 
         x1, y1, x2, y2 = [float(value) for value in box.xyxy[0].tolist()]
@@ -122,7 +131,7 @@ def run_yolo_detection(image_path: Path, confidence_threshold: float = 0.25):
         detections.append(
             {
                 "class_id": class_id,
-                "class_name": result.names[class_id],
+                "class_name": class_name,
                 "confidence": round(confidence, 4),
                 "bbox": {
                     "x1": round(x1, 2),
@@ -140,6 +149,7 @@ def run_yolo_detection(image_path: Path, confidence_threshold: float = 0.25):
 def detect_objects(
     filename: str,
     confidence_threshold: float = Query(0.25, ge=0.0, le=1.0),
+    class_filter: Optional[str] = Query(None),
 ):
     image_path = UPLOAD_DIR / filename
 
@@ -149,11 +159,16 @@ def detect_objects(
             detail="Uploaded image not found",
         )
 
-    detections = run_yolo_detection(image_path, confidence_threshold)
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=confidence_threshold,
+        class_filter=class_filter,
+    )
 
     return {
         "filename": filename,
         "confidence_threshold": confidence_threshold,
+        "class_filter": class_filter,
         "detections": detections,
         "detection_count": len(detections),
     }
@@ -163,6 +178,7 @@ def detect_objects(
 def detect_objects_with_annotation(
     filename: str,
     confidence_threshold: float = Query(0.25, ge=0.0, le=1.0),
+    class_filter: Optional[str] = Query(None),
 ):
     image_path = UPLOAD_DIR / filename
 
@@ -172,7 +188,11 @@ def detect_objects_with_annotation(
             detail="Uploaded image not found",
         )
 
-    detections = run_yolo_detection(image_path, confidence_threshold)
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=confidence_threshold,
+        class_filter=class_filter,
+    )
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -210,6 +230,7 @@ def detect_objects_with_annotation(
     return {
         "filename": filename,
         "confidence_threshold": confidence_threshold,
+        "class_filter": class_filter,
         "detections": detections,
         "detection_count": len(detections),
         "annotated_filename": annotated_filename,
