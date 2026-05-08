@@ -297,3 +297,55 @@ def crop_uploaded_image(filename: str, crop: CropRequest):
             "y2": bottom,
         },
     }
+
+
+class CropByClassRequest(BaseModel):
+    class_name: str
+    confidence_threshold: float = 0.25
+
+
+@app.post("/vision/crop-by-class/{filename}")
+def crop_best_object_by_class(filename: str, request: CropByClassRequest):
+    image_path = UPLOAD_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded image not found",
+        )
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=request.confidence_threshold,
+        class_filter=request.class_name,
+    )
+
+    if not detections:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No object found for class '{request.class_name}'",
+        )
+
+    best_detection = max(
+        detections,
+        key=lambda detection: detection["confidence"],
+    )
+
+    crop_response = crop_uploaded_image(
+        filename,
+        CropRequest(**best_detection["bbox"]),
+    )
+
+    return {
+        "filename": filename,
+        "class_name": request.class_name,
+        "confidence_threshold": request.confidence_threshold,
+        "selected_detection": best_detection,
+        **crop_response,
+    }
