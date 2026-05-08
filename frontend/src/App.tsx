@@ -49,6 +49,16 @@ type CropResponse = {
   }
 }
 
+type CommandResponse = {
+  command: string
+  parsed_command: {
+    action: string
+    class_name: string | null
+  }
+  result_type: 'annotated_detection' | 'crop_by_class'
+  result: DetectionResponse | CropResponse
+}
+
 function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
@@ -59,12 +69,16 @@ function App() {
   const [selectedClass, setSelectedClass] = useState('all')
   const [classOptions, setClassOptions] = useState<string[]>([])
 
+  const [commandText, setCommandText] = useState('')
+  const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
+
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
 
   const [isUploading, setIsUploading] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
+  const [isRunningCommand, setIsRunningCommand] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
   const [error, setError] = useState<string | null>(null)
@@ -75,6 +89,7 @@ function App() {
     setUploadResult(null)
     setDetectionResult(null)
     setCropResult(null)
+    setCommandResult(null)
     setSelectedClass('all')
     setClassOptions([])
     setLastDetectionThreshold(null)
@@ -97,6 +112,7 @@ function App() {
       setError(null)
       setDetectionResult(null)
       setCropResult(null)
+      setCommandResult(null)
       setSelectedClass('all')
       setClassOptions([])
       setLastDetectionThreshold(null)
@@ -115,7 +131,7 @@ function App() {
 
       const data: UploadResponse = await response.json()
       setUploadResult(data)
-      setStatusMessage('Upload complete. You can now run YOLO detection.')
+      setStatusMessage('Upload complete. You can now run YOLO detection or type a command.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Upload failed.')
@@ -134,6 +150,7 @@ function App() {
       setIsDetecting(true)
       setError(null)
       setCropResult(null)
+      setCommandResult(null)
       setStatusMessage('Running YOLO detection. This may take a few seconds...')
 
       const backendThreshold = confidenceThreshold / 100
@@ -187,6 +204,7 @@ function App() {
     try {
       setIsCropping(true)
       setError(null)
+      setCommandResult(null)
       setStatusMessage(`Cropping selected ${detection.class_name}...`)
 
       const response = await fetch(
@@ -230,6 +248,7 @@ function App() {
     try {
       setIsCropping(true)
       setError(null)
+      setCommandResult(null)
       setStatusMessage(`Cropping best ${selectedClass} by class...`)
 
       const response = await fetch(
@@ -262,6 +281,73 @@ function App() {
     }
   }
 
+  const handleCommand = async () => {
+    if (!uploadResult) {
+      setError('Please upload an image before running a command.')
+      return
+    }
+
+    if (!commandText.trim()) {
+      setError('Please type a command, for example: crop person.')
+      return
+    }
+
+    try {
+      setIsRunningCommand(true)
+      setError(null)
+      setStatusMessage(`Running command: "${commandText}"...`)
+
+      const response = await fetch('/api/commands/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: uploadResult.stored_filename,
+          command: commandText,
+          confidence_threshold: confidenceThreshold / 100,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Command failed')
+      }
+
+      const data: CommandResponse = await response.json()
+      setCommandResult(data)
+
+      if (data.result_type === 'annotated_detection') {
+        const result = data.result as DetectionResponse
+        setDetectionResult(result)
+        setCropResult(null)
+        setSelectedClass('all')
+        setLastDetectionThreshold(confidenceThreshold)
+        setLastDetectionClass('all')
+        setClassOptions((previousClasses) =>
+          Array.from(
+            new Set([
+              ...previousClasses,
+              ...result.detections.map((detection) => detection.class_name),
+            ]),
+          ).sort(),
+        )
+      }
+
+      if (data.result_type === 'crop_by_class') {
+        const result = data.result as CropResponse
+        setCropResult(result)
+      }
+
+      setStatusMessage(`Command complete: "${commandText}".`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Command failed.')
+    } finally {
+      setIsRunningCommand(false)
+    }
+  }
+
   const uploadedImageUrl = uploadResult ? `/api${uploadResult.file_url}` : null
 
   const annotatedImageUrl = detectionResult
@@ -282,7 +368,7 @@ function App() {
       )
     : []
 
-  const isBusy = isUploading || isDetecting || isCropping
+  const isBusy = isUploading || isDetecting || isCropping || isRunningCommand
 
   const thresholdChangedAfterDetection =
     detectionResult !== null &&
@@ -303,7 +389,7 @@ function App() {
         <p className="eyebrow">VisionCommand AI</p>
         <h1>AI Vision Detection Studio</h1>
         <p className="subtitle">
-          Upload an image, run YOLO object detection, view annotated results, and crop detected objects.
+          Upload an image, run YOLO object detection, crop detected objects, or use simple text commands.
         </p>
       </section>
 
@@ -345,6 +431,40 @@ function App() {
 
         {error && <p className="error">{error}</p>}
       </section>
+
+      {uploadResult && (
+        <section className="card command-card">
+          <h2>Command Box</h2>
+          <p className="small-note">
+            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, or <strong>crop bottle</strong>.
+          </p>
+
+          <div className="command-row">
+            <input
+              className="command-input"
+              type="text"
+              value={commandText}
+              placeholder="Type a command, for example: crop person"
+              onChange={(event) => setCommandText(event.target.value)}
+              disabled={isBusy}
+            />
+
+            <button onClick={handleCommand} disabled={isBusy || !commandText.trim()}>
+              {isRunningCommand ? 'Running...' : 'Run Command'}
+            </button>
+          </div>
+
+          {commandResult && (
+            <div className="command-result">
+              <p><strong>Parsed action:</strong> {commandResult.parsed_command.action}</p>
+              {commandResult.parsed_command.class_name && (
+                <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
+              )}
+              <p><strong>Result type:</strong> {commandResult.result_type}</p>
+            </div>
+          )}
+        </section>
+      )}
 
       {uploadResult && (
         <section className="result-grid">
