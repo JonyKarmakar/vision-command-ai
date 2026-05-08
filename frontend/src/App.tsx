@@ -37,6 +37,7 @@ function App() {
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [confidenceThreshold, setConfidenceThreshold] = useState(30)
+  const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -47,6 +48,7 @@ function App() {
     setSelectedFile(file)
     setUploadResult(null)
     setDetectionResult(null)
+    setLastDetectionThreshold(null)
     setError(null)
     setStatusMessage(file ? `Selected ${file.name}. Ready to upload.` : 'Ready to upload an image.')
   }
@@ -114,6 +116,7 @@ function App() {
 
       const data: DetectionResponse = await response.json()
       setDetectionResult(data)
+      setLastDetectionThreshold(confidenceThreshold)
       setStatusMessage(`Detection complete. Found ${data.detection_count} object(s).`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -136,6 +139,11 @@ function App() {
     : []
 
   const isBusy = isUploading || isDetecting
+
+  const thresholdChangedAfterDetection =
+    detectionResult !== null &&
+    lastDetectionThreshold !== null &&
+    confidenceThreshold !== lastDetectionThreshold
 
   return (
     <main className="page">
@@ -240,6 +248,12 @@ function App() {
                 <span>Show more</span>
                 <span>Show stronger detections</span>
               </div>
+
+              {thresholdChangedAfterDetection && (
+                <p className="rerun-hint">
+                  Confidence threshold changed. Run YOLO Detection again to update the annotated image.
+                </p>
+              )}
             </div>
 
             {filteredDetections.length > 0 ? (
