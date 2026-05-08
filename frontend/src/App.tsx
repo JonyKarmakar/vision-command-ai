@@ -313,11 +313,22 @@ function App() {
           <div className="card">
             <h2>Original Preview</h2>
             {uploadedImageUrl && (
-              <img
-                className="preview-image"
-                src={uploadedImageUrl}
-                alt={uploadResult.original_filename}
-              />
+              <>
+                <img
+                  className="preview-image"
+                  src={uploadedImageUrl}
+                  alt={uploadResult.original_filename}
+                />
+
+                <div className="output-actions">
+                  <a href={uploadedImageUrl} target="_blank" rel="noreferrer">
+                    Open original
+                  </a>
+                  <a href={uploadedImageUrl} download={uploadResult.original_filename}>
+                    Download original
+                  </a>
+                </div>
+              </>
             )}
           </div>
         </section>
@@ -410,12 +421,23 @@ function App() {
             <p className="small-note">
               The annotated image is generated using the selected confidence threshold and class filter.
             </p>
-            {annotatedImageUrl && (
-              <img
-                className="preview-image"
-                src={annotatedImageUrl}
-                alt="YOLO annotated output"
-              />
+            {annotatedImageUrl && detectionResult && (
+              <>
+                <img
+                  className="preview-image"
+                  src={annotatedImageUrl}
+                  alt="YOLO annotated output"
+                />
+
+                <div className="output-actions">
+                  <a href={annotatedImageUrl} target="_blank" rel="noreferrer">
+                    Open annotated
+                  </a>
+                  <a href={annotatedImageUrl} download={detectionResult.annotated_filename}>
+                    Download annotated
+                  </a>
+                </div>
+              </>
             )}
           </div>
         </section>
@@ -435,12 +457,23 @@ function App() {
 
           <div className="card">
             <h2>Cropped Output</h2>
-            {croppedImageUrl && (
-              <img
-                className="preview-image"
-                src={croppedImageUrl}
-                alt="Cropped object output"
-              />
+            {croppedImageUrl && cropResult && (
+              <>
+                <img
+                  className="preview-image"
+                  src={croppedImageUrl}
+                  alt="Cropped object output"
+                />
+
+                <div className="output-actions">
+                  <a href={croppedImageUrl} target="_blank" rel="noreferrer">
+                    Open crop
+                  </a>
+                  <a href={croppedImageUrl} download={cropResult.cropped_filename}>
+                    Download crop
+                  </a>
+                </div>
+              </>
             )}
           </div>
         </section>
