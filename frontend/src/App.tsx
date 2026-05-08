@@ -38,6 +38,7 @@ function App() {
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
+  const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
   const [error, setError] = useState<string | null>(null)
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,6 +47,7 @@ function App() {
     setUploadResult(null)
     setDetectionResult(null)
     setError(null)
+    setStatusMessage(file ? `Selected ${file.name}. Ready to upload.` : 'Ready to upload an image.')
   }
 
   const handleUpload = async () => {
@@ -61,6 +63,7 @@ function App() {
       setIsUploading(true)
       setError(null)
       setDetectionResult(null)
+      setStatusMessage('Uploading image to backend...')
 
       const response = await fetch('/api/media/upload', {
         method: 'POST',
@@ -74,8 +77,10 @@ function App() {
 
       const data: UploadResponse = await response.json()
       setUploadResult(data)
+      setStatusMessage('Upload complete. You can now run YOLO detection.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Upload failed.')
     } finally {
       setIsUploading(false)
     }
@@ -90,6 +95,7 @@ function App() {
     try {
       setIsDetecting(true)
       setError(null)
+      setStatusMessage('Running YOLO detection. This may take a few seconds...')
 
       const response = await fetch(
         `/api/vision/detect/${uploadResult.stored_filename}/annotated`,
@@ -105,8 +111,10 @@ function App() {
 
       const data: DetectionResponse = await response.json()
       setDetectionResult(data)
+      setStatusMessage(`Detection complete. Found ${data.detection_count} object(s).`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Detection failed.')
     } finally {
       setIsDetecting(false)
     }
@@ -118,15 +126,21 @@ function App() {
     ? `/api${detectionResult.annotated_file_url}`
     : null
 
+  const isBusy = isUploading || isDetecting
+
   return (
     <main className="page">
       <section className="hero">
         <p className="eyebrow">VisionCommand AI</p>
         <h1>AI Vision Detection Studio</h1>
         <p className="subtitle">
-          Upload an image, send it to the FastAPI backend, run YOLO object detection,
-          and view the annotated result.
+          Upload an image, run YOLO object detection, and view the annotated result.
         </p>
+      </section>
+
+      <section className="status-card">
+        <span className={isBusy ? 'status-dot active' : 'status-dot'} />
+        <p>{statusMessage}</p>
       </section>
 
       <section className="card">
@@ -137,6 +151,7 @@ function App() {
           type="file"
           accept="image/*"
           onChange={handleFileChange}
+          disabled={isBusy}
         />
 
         {selectedFile && (
@@ -146,14 +161,14 @@ function App() {
         )}
 
         <div className="button-row">
-          <button onClick={handleUpload} disabled={isUploading}>
+          <button onClick={handleUpload} disabled={isBusy || !selectedFile}>
             {isUploading ? 'Uploading...' : 'Upload Image'}
           </button>
 
           <button
             className="secondary-button"
             onClick={handleDetection}
-            disabled={!uploadResult || isDetecting}
+            disabled={!uploadResult || isBusy}
           >
             {isDetecting ? 'Detecting...' : 'Run YOLO Detection'}
           </button>
@@ -165,12 +180,14 @@ function App() {
       {uploadResult && (
         <section className="result-grid">
           <div className="card">
-            <h2>Upload Result</h2>
-            <p><strong>Original filename:</strong> {uploadResult.original_filename}</p>
-            <p><strong>Stored filename:</strong> {uploadResult.stored_filename}</p>
-            <p><strong>Content type:</strong> {uploadResult.content_type}</p>
-            <p><strong>Width:</strong> {uploadResult.width}px</p>
-            <p><strong>Height:</strong> {uploadResult.height}px</p>
+            <h2>2. Upload Result</h2>
+            <div className="metadata-list">
+              <p><strong>Original filename:</strong> {uploadResult.original_filename}</p>
+              <p><strong>Stored filename:</strong> {uploadResult.stored_filename}</p>
+              <p><strong>Content type:</strong> {uploadResult.content_type}</p>
+              <p><strong>Width:</strong> {uploadResult.width}px</p>
+              <p><strong>Height:</strong> {uploadResult.height}px</p>
+            </div>
           </div>
 
           <div className="card">
@@ -189,16 +206,23 @@ function App() {
       {detectionResult && (
         <section className="result-grid">
           <div className="card">
-            <h2>Detection Result</h2>
-            <p><strong>Detection count:</strong> {detectionResult.detection_count}</p>
-            <p><strong>Annotated filename:</strong> {detectionResult.annotated_filename}</p>
+            <h2>3. Detection Result</h2>
+
+            <div className="summary-box">
+              <p><strong>Detection count:</strong> {detectionResult.detection_count}</p>
+              <p><strong>Annotated filename:</strong> {detectionResult.annotated_filename}</p>
+            </div>
 
             {detectionResult.detections.length > 0 ? (
               <div className="detections-list">
                 {detectionResult.detections.map((detection, index) => (
                   <div className="detection-item" key={`${detection.class_name}-${index}`}>
-                    <strong>{index + 1}. {detection.class_name}</strong>
-                    <span>Confidence: {(detection.confidence * 100).toFixed(1)}%</span>
+                    <div className="detection-header">
+                      <strong>{index + 1}. {detection.class_name}</strong>
+                      <span className="confidence-badge">
+                        {(detection.confidence * 100).toFixed(1)}%
+                      </span>
+                    </div>
                     <span>
                       Box: x1 {detection.bbox.x1}, y1 {detection.bbox.y1}, x2 {detection.bbox.x2}, y2 {detection.bbox.y2}
                     </span>
