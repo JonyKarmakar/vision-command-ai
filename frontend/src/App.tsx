@@ -26,23 +26,43 @@ type Detection = {
 
 type DetectionResponse = {
   filename: string
+  confidence_threshold: number
+  class_filter: string | null
   detections: Detection[]
   detection_count: number
   annotated_filename: string
   annotated_file_url: string
 }
 
+type CropResponse = {
+  filename: string
+  cropped_filename: string
+  cropped_file_url: string
+  crop_box: {
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+  }
+}
+
 function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
+  const [cropResult, setCropResult] = useState<CropResponse | null>(null)
+
   const [confidenceThreshold, setConfidenceThreshold] = useState(30)
   const [selectedClass, setSelectedClass] = useState('all')
   const [classOptions, setClassOptions] = useState<string[]>([])
+
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
+
   const [isUploading, setIsUploading] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
+  const [isCropping, setIsCropping] = useState(false)
+
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
   const [error, setError] = useState<string | null>(null)
 
@@ -51,6 +71,7 @@ function App() {
     setSelectedFile(file)
     setUploadResult(null)
     setDetectionResult(null)
+    setCropResult(null)
     setSelectedClass('all')
     setClassOptions([])
     setLastDetectionThreshold(null)
@@ -72,6 +93,7 @@ function App() {
       setIsUploading(true)
       setError(null)
       setDetectionResult(null)
+      setCropResult(null)
       setSelectedClass('all')
       setClassOptions([])
       setLastDetectionThreshold(null)
@@ -108,6 +130,7 @@ function App() {
     try {
       setIsDetecting(true)
       setError(null)
+      setCropResult(null)
       setStatusMessage('Running YOLO detection. This may take a few seconds...')
 
       const backendThreshold = confidenceThreshold / 100
@@ -152,10 +175,52 @@ function App() {
     }
   }
 
+  const handleCrop = async (detection: Detection) => {
+    if (!uploadResult) {
+      setError('Please upload an image first.')
+      return
+    }
+
+    try {
+      setIsCropping(true)
+      setError(null)
+      setStatusMessage(`Cropping selected ${detection.class_name}...`)
+
+      const response = await fetch(
+        `/api/vision/crop/${uploadResult.stored_filename}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(detection.bbox),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Crop failed')
+      }
+
+      const data: CropResponse = await response.json()
+      setCropResult(data)
+      setStatusMessage('Crop complete. Cropped output is ready.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Crop failed.')
+    } finally {
+      setIsCropping(false)
+    }
+  }
+
   const uploadedImageUrl = uploadResult ? `/api${uploadResult.file_url}` : null
 
   const annotatedImageUrl = detectionResult
     ? `/api${detectionResult.annotated_file_url}`
+    : null
+
+  const croppedImageUrl = cropResult
+    ? `/api${cropResult.cropped_file_url}`
     : null
 
   const availableClasses = classOptions
@@ -168,7 +233,7 @@ function App() {
       )
     : []
 
-  const isBusy = isUploading || isDetecting
+  const isBusy = isUploading || isDetecting || isCropping
 
   const thresholdChangedAfterDetection =
     detectionResult !== null &&
@@ -189,7 +254,7 @@ function App() {
         <p className="eyebrow">VisionCommand AI</p>
         <h1>AI Vision Detection Studio</h1>
         <p className="subtitle">
-          Upload an image, run YOLO object detection, and view the annotated result.
+          Upload an image, run YOLO object detection, view annotated results, and crop detected objects.
         </p>
       </section>
 
@@ -325,6 +390,13 @@ function App() {
                     <span>
                       Box: x1 {detection.bbox.x1}, y1 {detection.bbox.y1}, x2 {detection.bbox.x2}, y2 {detection.bbox.y2}
                     </span>
+                    <button
+                      className="crop-button"
+                      onClick={() => handleCrop(detection)}
+                      disabled={isBusy}
+                    >
+                      {isCropping ? 'Cropping...' : 'Crop this object'}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -343,6 +415,31 @@ function App() {
                 className="preview-image"
                 src={annotatedImageUrl}
                 alt="YOLO annotated output"
+              />
+            )}
+          </div>
+        </section>
+      )}
+
+      {cropResult && (
+        <section className="result-grid">
+          <div className="card">
+            <h2>4. Crop Result</h2>
+            <div className="summary-box">
+              <p><strong>Cropped filename:</strong> {cropResult.cropped_filename}</p>
+              <p>
+                <strong>Crop box:</strong> x1 {cropResult.crop_box.x1}, y1 {cropResult.crop_box.y1}, x2 {cropResult.crop_box.x2}, y2 {cropResult.crop_box.y2}
+              </p>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2>Cropped Output</h2>
+            {croppedImageUrl && (
+              <img
+                className="preview-image"
+                src={croppedImageUrl}
+                alt="Cropped object output"
               />
             )}
           </div>

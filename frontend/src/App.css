@@ -259,3 +259,13 @@ input[type="file"]::file-selector-button:hover {
   padding: 10px 12px;
   font-size: 15px;
 }
+
+.crop-button {
+  align-self: flex-start;
+  background: #16a34a;
+  margin-top: 6px;
+}
+
+.crop-button:hover {
+  background: #15803d;
+}
