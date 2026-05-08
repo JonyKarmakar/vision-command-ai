@@ -37,6 +37,7 @@ function App() {
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [confidenceThreshold, setConfidenceThreshold] = useState(30)
+  const [selectedClass, setSelectedClass] = useState('all')
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
@@ -48,6 +49,7 @@ function App() {
     setSelectedFile(file)
     setUploadResult(null)
     setDetectionResult(null)
+    setSelectedClass('all')
     setLastDetectionThreshold(null)
     setError(null)
     setStatusMessage(file ? `Selected ${file.name}. Ready to upload.` : 'Ready to upload an image.')
@@ -132,9 +134,15 @@ function App() {
     ? `/api${detectionResult.annotated_file_url}`
     : null
 
+  const availableClasses = detectionResult
+    ? Array.from(new Set(detectionResult.detections.map((detection) => detection.class_name))).sort()
+    : []
+
   const filteredDetections = detectionResult
     ? detectionResult.detections.filter(
-        (detection) => detection.confidence * 100 >= confidenceThreshold,
+        (detection) =>
+          detection.confidence * 100 >= confidenceThreshold &&
+          (selectedClass === 'all' || detection.class_name === selectedClass),
       )
     : []
 
@@ -256,6 +264,24 @@ function App() {
               )}
             </div>
 
+            <div className="filter-box">
+              <label htmlFor="class-filter">
+                Class filter
+              </label>
+              <select
+                id="class-filter"
+                value={selectedClass}
+                onChange={(event) => setSelectedClass(event.target.value)}
+              >
+                <option value="all">All classes</option>
+                {availableClasses.map((className) => (
+                  <option key={className} value={className}>
+                    {className}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {filteredDetections.length > 0 ? (
               <div className="detections-list">
                 {filteredDetections.map((detection, index) => (
@@ -273,7 +299,7 @@ function App() {
                 ))}
               </div>
             ) : (
-              <p>No detections meet the selected confidence threshold.</p>
+              <p>No detections match the selected confidence threshold and class filter.</p>
             )}
           </div>
 
