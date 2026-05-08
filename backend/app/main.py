@@ -2,7 +2,7 @@ from pathlib import Path
 from uuid import uuid4
 import shutil
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from PIL import Image, ImageDraw, UnidentifiedImageError
 
@@ -99,7 +99,7 @@ def get_yolo_model():
     return YOLO(MODEL_NAME)
 
 
-def run_yolo_detection(image_path: Path):
+def run_yolo_detection(image_path: Path, confidence_threshold: float = 0.25):
     model = get_yolo_model()
     results = model(str(image_path))
 
@@ -113,6 +113,10 @@ def run_yolo_detection(image_path: Path):
     for box in result.boxes:
         class_id = int(box.cls[0])
         confidence = float(box.conf[0])
+
+        if confidence < confidence_threshold:
+            continue
+
         x1, y1, x2, y2 = [float(value) for value in box.xyxy[0].tolist()]
 
         detections.append(
@@ -133,7 +137,10 @@ def run_yolo_detection(image_path: Path):
 
 
 @app.post("/vision/detect/{filename}")
-def detect_objects(filename: str):
+def detect_objects(
+    filename: str,
+    confidence_threshold: float = Query(0.25, ge=0.0, le=1.0),
+):
     image_path = UPLOAD_DIR / filename
 
     if not image_path.exists() or not image_path.is_file():
@@ -142,17 +149,21 @@ def detect_objects(filename: str):
             detail="Uploaded image not found",
         )
 
-    detections = run_yolo_detection(image_path)
+    detections = run_yolo_detection(image_path, confidence_threshold)
 
     return {
         "filename": filename,
+        "confidence_threshold": confidence_threshold,
         "detections": detections,
         "detection_count": len(detections),
     }
 
 
 @app.post("/vision/detect/{filename}/annotated")
-def detect_objects_with_annotation(filename: str):
+def detect_objects_with_annotation(
+    filename: str,
+    confidence_threshold: float = Query(0.25, ge=0.0, le=1.0),
+):
     image_path = UPLOAD_DIR / filename
 
     if not image_path.exists() or not image_path.is_file():
@@ -161,7 +172,7 @@ def detect_objects_with_annotation(filename: str):
             detail="Uploaded image not found",
         )
 
-    detections = run_yolo_detection(image_path)
+    detections = run_yolo_detection(image_path, confidence_threshold)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -198,6 +209,7 @@ def detect_objects_with_annotation(filename: str):
 
     return {
         "filename": filename,
+        "confidence_threshold": confidence_threshold,
         "detections": detections,
         "detection_count": len(detections),
         "annotated_filename": annotated_filename,
