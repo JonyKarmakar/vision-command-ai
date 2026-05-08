@@ -4,6 +4,7 @@ from uuid import uuid4
 import shutil
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from pydantic import BaseModel
 from fastapi.responses import FileResponse
 from PIL import Image, ImageDraw, UnidentifiedImageError
 
@@ -16,6 +17,13 @@ app = FastAPI(
 UPLOAD_DIR = Path("storage/uploads")
 OUTPUT_DIR = Path("storage/outputs")
 MODEL_NAME = "yolo26n.pt"
+
+
+class CropRequest(BaseModel):
+    x1: float
+    y1: float
+    x2: float
+    y2: float
 
 
 @app.get("/")
@@ -235,4 +243,57 @@ def detect_objects_with_annotation(
         "detection_count": len(detections),
         "annotated_filename": annotated_filename,
         "annotated_file_url": f"/media/outputs/{annotated_filename}",
+    }
+
+
+@app.post("/vision/crop/{filename}")
+def crop_uploaded_image(filename: str, crop: CropRequest):
+    image_path = UPLOAD_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded image not found",
+        )
+
+    if crop.x2 <= crop.x1 or crop.y2 <= crop.y1:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid crop coordinates",
+        )
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    with Image.open(image_path).convert("RGB") as image:
+        width, height = image.size
+
+        left = max(0, min(int(crop.x1), width))
+        top = max(0, min(int(crop.y1), height))
+        right = max(0, min(int(crop.x2), width))
+        bottom = max(0, min(int(crop.y2), height))
+
+        if right <= left or bottom <= top:
+            raise HTTPException(
+                status_code=400,
+                detail="Crop coordinates are outside the image bounds",
+            )
+
+        cropped_image = image.crop((left, top, right, bottom))
+
+        file_extension = image_path.suffix or ".png"
+        cropped_filename = f"crop_{image_path.stem}_{uuid4().hex}{file_extension}"
+        cropped_path = OUTPUT_DIR / cropped_filename
+
+        cropped_image.save(cropped_path)
+
+    return {
+        "filename": filename,
+        "cropped_filename": cropped_filename,
+        "cropped_file_url": f"/media/outputs/{cropped_filename}",
+        "crop_box": {
+            "x1": left,
+            "y1": top,
+            "x2": right,
+            "y2": bottom,
+        },
     }
