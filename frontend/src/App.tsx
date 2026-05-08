@@ -36,6 +36,7 @@ function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
+  const [confidenceThreshold, setConfidenceThreshold] = useState(30)
   const [isUploading, setIsUploading] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -126,6 +127,12 @@ function App() {
     ? `/api${detectionResult.annotated_file_url}`
     : null
 
+  const filteredDetections = detectionResult
+    ? detectionResult.detections.filter(
+        (detection) => detection.confidence * 100 >= confidenceThreshold,
+      )
+    : []
+
   const isBusy = isUploading || isDetecting
 
   return (
@@ -209,13 +216,33 @@ function App() {
             <h2>3. Detection Result</h2>
 
             <div className="summary-box">
-              <p><strong>Detection count:</strong> {detectionResult.detection_count}</p>
+              <p><strong>Total detections:</strong> {detectionResult.detection_count}</p>
+              <p><strong>Visible after filter:</strong> {filteredDetections.length}</p>
               <p><strong>Annotated filename:</strong> {detectionResult.annotated_filename}</p>
             </div>
 
-            {detectionResult.detections.length > 0 ? (
+            <div className="filter-box">
+              <label htmlFor="confidence-threshold">
+                Confidence threshold: <strong>{confidenceThreshold}%</strong>
+              </label>
+              <input
+                id="confidence-threshold"
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={confidenceThreshold}
+                onChange={(event) => setConfidenceThreshold(Number(event.target.value))}
+              />
+              <div className="filter-hints">
+                <span>Show more</span>
+                <span>Show stronger detections</span>
+              </div>
+            </div>
+
+            {filteredDetections.length > 0 ? (
               <div className="detections-list">
-                {detectionResult.detections.map((detection, index) => (
+                {filteredDetections.map((detection, index) => (
                   <div className="detection-item" key={`${detection.class_name}-${index}`}>
                     <div className="detection-header">
                       <strong>{index + 1}. {detection.class_name}</strong>
@@ -230,12 +257,15 @@ function App() {
                 ))}
               </div>
             ) : (
-              <p>No objects detected.</p>
+              <p>No detections meet the selected confidence threshold.</p>
             )}
           </div>
 
           <div className="card">
             <h2>Annotated Output</h2>
+            <p className="small-note">
+              The annotated image currently shows all backend detections. The filter only changes the list on the left.
+            </p>
             {annotatedImageUrl && (
               <img
                 className="preview-image"
