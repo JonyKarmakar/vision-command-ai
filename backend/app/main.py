@@ -349,3 +349,92 @@ def crop_best_object_by_class(filename: str, request: CropByClassRequest):
         "selected_detection": best_detection,
         **crop_response,
     }
+
+
+class CommandRequest(BaseModel):
+    filename: str
+    command: str
+    confidence_threshold: float = 0.25
+
+
+def parse_command(command: str):
+    normalized_command = command.lower().strip()
+
+    if "detect" in normalized_command:
+        return {
+            "action": "detect",
+            "class_name": None,
+        }
+
+    if "crop" in normalized_command:
+        words = normalized_command.split()
+        ignored_words = {"crop", "the", "a", "an", "object", "best", "detected"}
+
+        class_words = [
+            word for word in words
+            if word not in ignored_words
+        ]
+
+        if not class_words:
+            raise HTTPException(
+                status_code=400,
+                detail="Please specify which class to crop, for example: crop person",
+            )
+
+        return {
+            "action": "crop_by_class",
+            "class_name": " ".join(class_words),
+        }
+
+    raise HTTPException(
+        status_code=400,
+        detail="Unsupported command. Try commands like: detect objects, crop person, crop bottle",
+    )
+
+
+@app.post("/commands/execute")
+def execute_command(request: CommandRequest):
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    parsed_command = parse_command(request.command)
+
+    if parsed_command["action"] == "detect":
+        result = detect_objects_with_annotation(
+            filename=request.filename,
+            confidence_threshold=request.confidence_threshold,
+            class_filter=None,
+        )
+
+        return {
+            "command": request.command,
+            "parsed_command": parsed_command,
+            "result_type": "annotated_detection",
+            "result": result,
+        }
+
+    if parsed_command["action"] == "crop_by_class":
+        class_name = parsed_command["class_name"]
+
+        result = crop_best_object_by_class(
+            filename=request.filename,
+            request=CropByClassRequest(
+                class_name=class_name,
+                confidence_threshold=request.confidence_threshold,
+            ),
+        )
+
+        return {
+            "command": request.command,
+            "parsed_command": parsed_command,
+            "result_type": "crop_by_class",
+            "result": result,
+        }
+
+    raise HTTPException(
+        status_code=400,
+        detail="Unsupported command action",
+    )
