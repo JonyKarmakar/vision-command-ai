@@ -36,6 +36,9 @@ type DetectionResponse = {
 
 type CropResponse = {
   filename: string
+  class_name?: string
+  confidence_threshold?: number
+  selected_detection?: Detection
   cropped_filename: string
   cropped_file_url: string
   crop_box: {
@@ -208,6 +211,52 @@ function App() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Crop failed.')
+    } finally {
+      setIsCropping(false)
+    }
+  }
+
+  const handleCropByClass = async () => {
+    if (!uploadResult) {
+      setError('Please upload an image first.')
+      return
+    }
+
+    if (selectedClass === 'all') {
+      setError('Please select a specific class before using crop by class.')
+      return
+    }
+
+    try {
+      setIsCropping(true)
+      setError(null)
+      setStatusMessage(`Cropping best ${selectedClass} by class...`)
+
+      const response = await fetch(
+        `/api/vision/crop-by-class/${uploadResult.stored_filename}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            class_name: selectedClass,
+            confidence_threshold: confidenceThreshold / 100,
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Crop by class failed')
+      }
+
+      const data: CropResponse = await response.json()
+      setCropResult(data)
+      setStatusMessage(`Crop by class complete. Best ${selectedClass} crop is ready.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Crop by class failed.')
     } finally {
       setIsCropping(false)
     }
@@ -386,6 +435,20 @@ function App() {
                   </option>
                 ))}
               </select>
+
+              <button
+                className="class-crop-button"
+                onClick={handleCropByClass}
+                disabled={isBusy || selectedClass === 'all'}
+              >
+                {isCropping ? 'Cropping...' : 'Crop best selected class'}
+              </button>
+
+              {selectedClass === 'all' && (
+                <p className="small-note">
+                  Select a specific class to crop the best object of that class.
+                </p>
+              )}
             </div>
 
             {filteredDetections.length > 0 ? (
@@ -448,6 +511,16 @@ function App() {
           <div className="card">
             <h2>4. Crop Result</h2>
             <div className="summary-box">
+              {cropResult.class_name && (
+                <p><strong>Crop by class:</strong> {cropResult.class_name}</p>
+              )}
+
+              {cropResult.selected_detection && (
+                <p>
+                  <strong>Selected confidence:</strong> {(cropResult.selected_detection.confidence * 100).toFixed(1)}%
+                </p>
+              )}
+
               <p><strong>Cropped filename:</strong> {cropResult.cropped_filename}</p>
               <p>
                 <strong>Crop box:</strong> x1 {cropResult.crop_box.x1}, y1 {cropResult.crop_box.y1}, x2 {cropResult.crop_box.x2}, y2 {cropResult.crop_box.y2}
