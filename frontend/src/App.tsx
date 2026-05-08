@@ -98,8 +98,10 @@ function App() {
       setError(null)
       setStatusMessage('Running YOLO detection. This may take a few seconds...')
 
+      const backendThreshold = confidenceThreshold / 100
+
       const response = await fetch(
-        `/api/vision/detect/${uploadResult.stored_filename}/annotated`,
+        `/api/vision/detect/${uploadResult.stored_filename}/annotated?confidence_threshold=${backendThreshold}`,
         {
           method: 'POST',
         },
@@ -264,7 +266,7 @@ function App() {
           <div className="card">
             <h2>Annotated Output</h2>
             <p className="small-note">
-              The annotated image currently shows all backend detections. The filter only changes the list on the left.
+              The annotated image is generated using the selected confidence threshold.
             </p>
             {annotatedImageUrl && (
               <img
