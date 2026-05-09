@@ -342,3 +342,48 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.command-history-actions {
+  margin-top: 14px;
+}
+
+.command-history {
+  margin-top: 18px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.command-history h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.command-log-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.command-log-item p {
+  margin: 4px 0 0;
+  color: #a1a1aa;
+  font-size: 13px;
+}
+
+.command-log-item span {
+  color: #d4d4d8;
+  font-size: 14px;
+}
+
+@media (max-width: 800px) {
+  .command-log-item {
+    flex-direction: column;
+  }
+}
