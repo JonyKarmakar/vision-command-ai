@@ -492,3 +492,33 @@ def execute_command(request: CommandRequest):
         status_code=400,
         detail="Unsupported command action",
     )
+
+
+@app.get("/commands/logs")
+def get_command_logs(limit: int = Query(20, ge=1, le=100)):
+    if not COMMAND_LOG_FILE.exists():
+        return {
+            "count": 0,
+            "logs": [],
+        }
+
+    logs = []
+
+    with COMMAND_LOG_FILE.open("r", encoding="utf-8") as log_file:
+        lines = log_file.readlines()
+
+    for line in lines[-limit:]:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        try:
+            logs.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+
+    return {
+        "count": len(logs),
+        "logs": logs,
+    }
