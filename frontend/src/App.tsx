@@ -59,6 +59,16 @@ type CommandResponse = {
   result: DetectionResponse | CropResponse
 }
 
+type CommandLog = {
+  timestamp: string
+  filename: string
+  command: string
+  confidence_threshold: number
+  parsed_action: string
+  parsed_class: string | null
+  result_type: string
+}
+
 function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
@@ -71,6 +81,7 @@ function App() {
 
   const [commandText, setCommandText] = useState('')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
+  const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
 
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
@@ -79,6 +90,7 @@ function App() {
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
   const [isRunningCommand, setIsRunningCommand] = useState(false)
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
   const [error, setError] = useState<string | null>(null)
@@ -281,6 +293,30 @@ function App() {
     }
   }
 
+  const handleLoadCommandLogs = async () => {
+    try {
+      setIsLoadingLogs(true)
+      setError(null)
+      setStatusMessage('Loading command history...')
+
+      const response = await fetch('/api/commands/logs?limit=10')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load command history')
+      }
+
+      const data: { count: number; logs: CommandLog[] } = await response.json()
+      setCommandLogs(data.logs)
+      setStatusMessage(`Loaded ${data.count} recent command log(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load command history.')
+    } finally {
+      setIsLoadingLogs(false)
+    }
+  }
+
   const handleCommand = async () => {
     if (!uploadResult) {
       setError('Please upload an image before running a command.')
@@ -368,7 +404,7 @@ function App() {
       )
     : []
 
-  const isBusy = isUploading || isDetecting || isCropping || isRunningCommand
+  const isBusy = isUploading || isDetecting || isCropping || isRunningCommand || isLoadingLogs
 
   const thresholdChangedAfterDetection =
     detectionResult !== null &&
@@ -454,6 +490,16 @@ function App() {
             </button>
           </div>
 
+          <div className="button-row command-history-actions">
+            <button
+              className="secondary-button"
+              onClick={handleLoadCommandLogs}
+              disabled={isBusy}
+            >
+              {isLoadingLogs ? 'Loading history...' : 'Load Command History'}
+            </button>
+          </div>
+
           {commandResult && (
             <div className="command-result">
               <p><strong>Parsed action:</strong> {commandResult.parsed_command.action}</p>
@@ -461,6 +507,26 @@ function App() {
                 <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
               )}
               <p><strong>Result type:</strong> {commandResult.result_type}</p>
+            </div>
+          )}
+
+          {commandLogs.length > 0 && (
+            <div className="command-history">
+              <h3>Recent Command History</h3>
+
+              {commandLogs.map((log, index) => (
+                <div className="command-log-item" key={`${log.timestamp}-${index}`}>
+                  <div>
+                    <strong>{log.command}</strong>
+                    <p>{new Date(log.timestamp).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <span>{log.parsed_action}</span>
+                    {log.parsed_class && <span> · {log.parsed_class}</span>}
+                    <span> · {(log.confidence_threshold * 100).toFixed(0)}%</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </section>
