@@ -20,11 +20,15 @@ def create_test_image_bytes(width=120, height=80, image_format="PNG"):
 def test_execute_detect_command_success(tmp_path, monkeypatch):
     test_upload_dir = tmp_path / "uploads"
     test_output_dir = tmp_path / "outputs"
+    test_log_dir = tmp_path / "logs"
+    test_log_file = test_log_dir / "command_logs.jsonl"
 
     test_upload_dir.mkdir(parents=True, exist_ok=True)
 
     monkeypatch.setattr(main, "UPLOAD_DIR", test_upload_dir)
     monkeypatch.setattr(main, "OUTPUT_DIR", test_output_dir)
+    monkeypatch.setattr(main, "LOG_DIR", test_log_dir)
+    monkeypatch.setattr(main, "COMMAND_LOG_FILE", test_log_file)
     monkeypatch.setattr(
         main,
         "run_yolo_detection",
@@ -55,15 +59,24 @@ def test_execute_detect_command_success(tmp_path, monkeypatch):
     assert data["result"]["filename"] == "sample.png"
     assert data["result"]["confidence_threshold"] == 0.3
 
+    assert test_log_file.exists()
+    log_content = test_log_file.read_text()
+    assert "detect objects" in log_content
+    assert "annotated_detection" in log_content
+
 
 def test_execute_crop_command_success(tmp_path, monkeypatch):
     test_upload_dir = tmp_path / "uploads"
     test_output_dir = tmp_path / "outputs"
+    test_log_dir = tmp_path / "logs"
+    test_log_file = test_log_dir / "command_logs.jsonl"
 
     test_upload_dir.mkdir(parents=True, exist_ok=True)
 
     monkeypatch.setattr(main, "UPLOAD_DIR", test_upload_dir)
     monkeypatch.setattr(main, "OUTPUT_DIR", test_output_dir)
+    monkeypatch.setattr(main, "LOG_DIR", test_log_dir)
+    monkeypatch.setattr(main, "COMMAND_LOG_FILE", test_log_file)
 
     fake_detections = [
         {
@@ -109,6 +122,11 @@ def test_execute_crop_command_success(tmp_path, monkeypatch):
     assert data["result_type"] == "crop_by_class"
     assert data["result"]["class_name"] == "person"
     assert data["result"]["cropped_filename"].endswith(".png")
+
+    assert test_log_file.exists()
+    log_content = test_log_file.read_text()
+    assert "crop person" in log_content
+    assert "crop_by_class" in log_content
 
 
 def test_execute_crop_command_without_class_fails():

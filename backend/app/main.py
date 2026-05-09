@@ -1,6 +1,8 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
+import json
 import shutil
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
@@ -16,6 +18,8 @@ app = FastAPI(
 
 UPLOAD_DIR = Path("storage/uploads")
 OUTPUT_DIR = Path("storage/outputs")
+LOG_DIR = Path("storage/logs")
+COMMAND_LOG_FILE = LOG_DIR / "command_logs.jsonl"
 MODEL_NAME = "yolo26n.pt"
 
 
@@ -392,6 +396,50 @@ def parse_command(command: str):
     )
 
 
+
+def log_command_execution(
+    request: CommandRequest,
+    parsed_command: dict,
+    result_type: str,
+):
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+    log_entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "filename": request.filename,
+        "command": request.command,
+        "confidence_threshold": request.confidence_threshold,
+        "parsed_action": parsed_command.get("action"),
+        "parsed_class": parsed_command.get("class_name"),
+        "result_type": result_type,
+    }
+
+    with COMMAND_LOG_FILE.open("a", encoding="utf-8") as log_file:
+        log_file.write(json.dumps(log_entry) + "\n")
+
+
+
+def log_command_execution(
+    request: CommandRequest,
+    parsed_command: dict,
+    result_type: str,
+):
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+    log_entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "filename": request.filename,
+        "command": request.command,
+        "confidence_threshold": request.confidence_threshold,
+        "parsed_action": parsed_command.get("action"),
+        "parsed_class": parsed_command.get("class_name"),
+        "result_type": result_type,
+    }
+
+    with COMMAND_LOG_FILE.open("a", encoding="utf-8") as log_file:
+        log_file.write(json.dumps(log_entry) + "\n")
+
+
 @app.post("/commands/execute")
 def execute_command(request: CommandRequest):
     if request.confidence_threshold < 0 or request.confidence_threshold > 1:
@@ -409,10 +457,13 @@ def execute_command(request: CommandRequest):
             class_filter=None,
         )
 
+        result_type = "annotated_detection"
+        log_command_execution(request, parsed_command, result_type)
+
         return {
             "command": request.command,
             "parsed_command": parsed_command,
-            "result_type": "annotated_detection",
+            "result_type": result_type,
             "result": result,
         }
 
@@ -427,10 +478,13 @@ def execute_command(request: CommandRequest):
             ),
         )
 
+        result_type = "crop_by_class"
+        log_command_execution(request, parsed_command, result_type)
+
         return {
             "command": request.command,
             "parsed_command": parsed_command,
-            "result_type": "crop_by_class",
+            "result_type": result_type,
             "result": result,
         }
 
