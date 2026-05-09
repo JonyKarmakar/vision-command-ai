@@ -69,6 +69,35 @@ type CommandLog = {
   result_type: string
 }
 
+type SpeechRecognitionEventLike = {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string
+      }
+    }
+  }
+}
+
+type SpeechRecognitionLike = {
+  lang: string
+  interimResults: boolean
+  maxAlternatives: number
+  start: () => void
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null
+  onerror: (() => void) | null
+  onend: (() => void) | null
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor
+    webkitSpeechRecognition?: SpeechRecognitionConstructor
+  }
+}
+
 function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
@@ -91,6 +120,7 @@ function App() {
   const [isCropping, setIsCropping] = useState(false)
   const [isRunningCommand, setIsRunningCommand] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
+  const [isListening, setIsListening] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
   const [error, setError] = useState<string | null>(null)
@@ -293,6 +323,42 @@ function App() {
     }
   }
 
+  const handleVoiceCommand = () => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition
+
+    if (!SpeechRecognition) {
+      setError('Voice command is not supported in this browser. Please type the command instead.')
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'en-US'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+
+    setIsListening(true)
+    setError(null)
+    setStatusMessage('Listening for a voice command...')
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript
+      setCommandText(transcript)
+      setStatusMessage(`Heard: "${transcript}". You can now run the command.`)
+    }
+
+    recognition.onerror = () => {
+      setError('Could not recognize the voice command. Please try again or type the command.')
+      setStatusMessage('Voice command failed.')
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognition.start()
+  }
+
   const handleLoadCommandLogs = async () => {
     try {
       setIsLoadingLogs(true)
@@ -404,7 +470,7 @@ function App() {
       )
     : []
 
-  const isBusy = isUploading || isDetecting || isCropping || isRunningCommand || isLoadingLogs
+  const isBusy = isUploading || isDetecting || isCropping || isRunningCommand || isLoadingLogs || isListening
 
   const thresholdChangedAfterDetection =
     detectionResult !== null &&
@@ -487,6 +553,14 @@ function App() {
 
             <button onClick={handleCommand} disabled={isBusy || !commandText.trim()}>
               {isRunningCommand ? 'Running...' : 'Run Command'}
+            </button>
+
+            <button
+              className="voice-button"
+              onClick={handleVoiceCommand}
+              disabled={isBusy}
+            >
+              {isListening ? 'Listening...' : 'Voice Command'}
             </button>
           </div>
 

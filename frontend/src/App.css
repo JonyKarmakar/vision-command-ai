@@ -311,7 +311,7 @@ input[type="file"]::file-selector-button:hover {
 
 .command-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   gap: 12px;
   align-items: center;
 }
@@ -386,4 +386,12 @@ input[type="file"]::file-selector-button:hover {
   .command-log-item {
     flex-direction: column;
   }
+}
+
+.voice-button {
+  background: #9333ea;
+}
+
+.voice-button:hover {
+  background: #7e22ce;
 }
