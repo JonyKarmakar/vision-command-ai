@@ -522,3 +522,61 @@ def get_command_logs(limit: int = Query(20, ge=1, le=100)):
         "count": len(logs),
         "logs": logs,
     }
+
+
+@app.post("/vision/blur/{filename}")
+def blur_uploaded_image_object(filename: str, crop: CropRequest):
+    image_path = UPLOAD_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded image not found",
+        )
+
+    if crop.x2 <= crop.x1 or crop.y2 <= crop.y1:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid blur coordinates",
+        )
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    with Image.open(image_path).convert("RGB") as image:
+        width, height = image.size
+
+        left = max(0, min(int(crop.x1), width))
+        top = max(0, min(int(crop.y1), height))
+        right = max(0, min(int(crop.x2), width))
+        bottom = max(0, min(int(crop.y2), height))
+
+        if right <= left or bottom <= top:
+            raise HTTPException(
+                status_code=400,
+                detail="Blur coordinates are outside the image bounds",
+            )
+
+        object_region = image.crop((left, top, right, bottom))
+
+        from PIL import ImageFilter
+
+        blurred_region = object_region.filter(ImageFilter.GaussianBlur(radius=18))
+        image.paste(blurred_region, (left, top))
+
+        file_extension = image_path.suffix or ".png"
+        blurred_filename = f"blur_{image_path.stem}_{uuid4().hex}{file_extension}"
+        blurred_path = OUTPUT_DIR / blurred_filename
+
+        image.save(blurred_path)
+
+    return {
+        "filename": filename,
+        "blurred_filename": blurred_filename,
+        "blurred_file_url": f"/media/outputs/{blurred_filename}",
+        "blur_box": {
+            "x1": left,
+            "y1": top,
+            "x2": right,
+            "y2": bottom,
+        },
+    }
