@@ -49,6 +49,18 @@ type CropResponse = {
   }
 }
 
+type BlurResponse = {
+  filename: string
+  blurred_filename: string
+  blurred_file_url: string
+  blur_box: {
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+  }
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
@@ -103,6 +115,7 @@ function App() {
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
+  const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
 
   const [confidenceThreshold, setConfidenceThreshold] = useState(30)
   const [selectedClass, setSelectedClass] = useState('all')
@@ -118,6 +131,7 @@ function App() {
   const [isUploading, setIsUploading] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
+  const [isBlurring, setIsBlurring] = useState(false)
   const [isRunningCommand, setIsRunningCommand] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isListening, setIsListening] = useState(false)
@@ -131,6 +145,7 @@ function App() {
     setUploadResult(null)
     setDetectionResult(null)
     setCropResult(null)
+    setBlurResult(null)
     setCommandResult(null)
     setSelectedClass('all')
     setClassOptions([])
@@ -154,6 +169,7 @@ function App() {
       setError(null)
       setDetectionResult(null)
       setCropResult(null)
+      setBlurResult(null)
       setCommandResult(null)
       setSelectedClass('all')
       setClassOptions([])
@@ -192,6 +208,7 @@ function App() {
       setIsDetecting(true)
       setError(null)
       setCropResult(null)
+      setBlurResult(null)
       setCommandResult(null)
       setStatusMessage('Running YOLO detection. This may take a few seconds...')
 
@@ -273,6 +290,45 @@ function App() {
       setStatusMessage('Crop failed.')
     } finally {
       setIsCropping(false)
+    }
+  }
+
+  const handleBlur = async (detection: Detection) => {
+    if (!uploadResult) {
+      setError('Please upload an image first.')
+      return
+    }
+
+    try {
+      setIsBlurring(true)
+      setError(null)
+      setCommandResult(null)
+      setStatusMessage(`Blurring selected ${detection.class_name}...`)
+
+      const response = await fetch(
+        `/api/vision/blur/${uploadResult.stored_filename}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(detection.bbox),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Blur failed')
+      }
+
+      const data: BlurResponse = await response.json()
+      setBlurResult(data)
+      setStatusMessage('Blur complete. Blurred output is ready.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Blur failed.')
+    } finally {
+      setIsBlurring(false)
     }
   }
 
@@ -423,6 +479,7 @@ function App() {
         const result = data.result as DetectionResponse
         setDetectionResult(result)
         setCropResult(null)
+        setBlurResult(null)
         setSelectedClass('all')
         setLastDetectionThreshold(confidenceThreshold)
         setLastDetectionClass('all')
@@ -460,6 +517,10 @@ function App() {
     ? `/api${cropResult.cropped_file_url}`
     : null
 
+  const blurredImageUrl = blurResult
+    ? `/api${blurResult.blurred_file_url}`
+    : null
+
   const availableClasses = classOptions
 
   const filteredDetections = detectionResult
@@ -470,7 +531,14 @@ function App() {
       )
     : []
 
-  const isBusy = isUploading || isDetecting || isCropping || isRunningCommand || isLoadingLogs || isListening
+  const isBusy =
+    isUploading ||
+    isDetecting ||
+    isCropping ||
+    isBlurring ||
+    isRunningCommand ||
+    isLoadingLogs ||
+    isListening
 
   const thresholdChangedAfterDetection =
     detectionResult !== null &&
@@ -491,7 +559,7 @@ function App() {
         <p className="eyebrow">VisionCommand AI</p>
         <h1>AI Vision Detection Studio</h1>
         <p className="subtitle">
-          Upload an image, run YOLO object detection, crop detected objects, or use simple text commands.
+          Upload an image, run YOLO object detection, crop or blur detected objects, and use text or voice commands.
         </p>
       </section>
 
@@ -724,13 +792,23 @@ function App() {
                     <span>
                       Box: x1 {detection.bbox.x1}, y1 {detection.bbox.y1}, x2 {detection.bbox.x2}, y2 {detection.bbox.y2}
                     </span>
-                    <button
-                      className="crop-button"
-                      onClick={() => handleCrop(detection)}
-                      disabled={isBusy}
-                    >
-                      {isCropping ? 'Cropping...' : 'Crop this object'}
-                    </button>
+                    <div className="detection-actions">
+                      <button
+                        className="crop-button"
+                        onClick={() => handleCrop(detection)}
+                        disabled={isBusy}
+                      >
+                        {isCropping ? 'Cropping...' : 'Crop this object'}
+                      </button>
+
+                      <button
+                        className="blur-button"
+                        onClick={() => handleBlur(detection)}
+                        disabled={isBusy}
+                      >
+                        {isBlurring ? 'Blurring...' : 'Blur this object'}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -804,6 +882,42 @@ function App() {
                   </a>
                   <a href={croppedImageUrl} download={cropResult.cropped_filename}>
                     Download crop
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      {blurResult && (
+        <section className="result-grid">
+          <div className="card">
+            <h2>5. Blur Result</h2>
+            <div className="summary-box">
+              <p><strong>Blurred filename:</strong> {blurResult.blurred_filename}</p>
+              <p>
+                <strong>Blur box:</strong> x1 {blurResult.blur_box.x1}, y1 {blurResult.blur_box.y1}, x2 {blurResult.blur_box.x2}, y2 {blurResult.blur_box.y2}
+              </p>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2>Blurred Output</h2>
+            {blurredImageUrl && blurResult && (
+              <>
+                <img
+                  className="preview-image"
+                  src={blurredImageUrl}
+                  alt="Blurred object output"
+                />
+
+                <div className="output-actions">
+                  <a href={blurredImageUrl} target="_blank" rel="noreferrer">
+                    Open blurred
+                  </a>
+                  <a href={blurredImageUrl} download={blurResult.blurred_filename}>
+                    Download blurred
                   </a>
                 </div>
               </>

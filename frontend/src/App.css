@@ -395,3 +395,20 @@ input[type="file"]::file-selector-button:hover {
 .voice-button:hover {
   background: #7e22ce;
 }
+
+.detection-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.blur-button {
+  align-self: flex-start;
+  background: #dc2626;
+  margin-top: 6px;
+}
+
+.blur-button:hover {
+  background: #b91c1c;
+}
