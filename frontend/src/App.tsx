@@ -67,8 +67,8 @@ type CommandResponse = {
     action: string
     class_name: string | null
   }
-  result_type: 'annotated_detection' | 'crop_by_class'
-  result: DetectionResponse | CropResponse
+  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class'
+  result: DetectionResponse | CropResponse | BlurResponse
 }
 
 type CommandLog = {
@@ -496,6 +496,13 @@ function App() {
       if (data.result_type === 'crop_by_class') {
         const result = data.result as CropResponse
         setCropResult(result)
+        setBlurResult(null)
+      }
+
+      if (data.result_type === 'blur_by_class') {
+        const result = data.result as BlurResponse
+        setBlurResult(result)
+        setCropResult(null)
       }
 
       setStatusMessage(`Command complete: "${commandText}".`)
@@ -606,7 +613,7 @@ function App() {
         <section className="card command-card">
           <h2>Command Box</h2>
           <p className="small-note">
-            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, or <strong>crop bottle</strong>.
+            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, <strong>crop bottle</strong>, or <strong>blur person</strong>.
           </p>
 
           <div className="command-row">
