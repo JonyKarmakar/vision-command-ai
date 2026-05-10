@@ -361,8 +361,26 @@ class CommandRequest(BaseModel):
     confidence_threshold: float = 0.25
 
 
+def normalize_requested_class_name(class_name: str):
+    normalized = class_name.lower().strip()
+
+    aliases = {
+        "people": "person",
+        "persons": "person",
+    }
+
+    if normalized in aliases:
+        return aliases[normalized]
+
+    if normalized.endswith("s") and len(normalized) > 1:
+        return normalized[:-1]
+
+    return normalized
+
+
 def parse_command(command: str):
     normalized_command = command.lower().strip()
+    words = normalized_command.split()
 
     if "detect" in normalized_command:
         return {
@@ -371,8 +389,7 @@ def parse_command(command: str):
         }
 
     if "crop" in normalized_command:
-        words = normalized_command.split()
-        ignored_words = {"crop", "the", "a", "an", "object", "best", "detected"}
+        ignored_words = {"crop", "the", "a", "an", "object", "objects", "best", "detected"}
 
         class_words = [
             word for word in words
@@ -387,12 +404,13 @@ def parse_command(command: str):
 
         return {
             "action": "crop_by_class",
-            "class_name": " ".join(class_words),
+            "class_name": normalize_requested_class_name(" ".join(class_words)),
         }
 
     if "blur" in normalized_command:
-        words = normalized_command.split()
-        ignored_words = {"blur", "the", "a", "an", "object", "best", "detected"}
+        blur_all = "all" in words
+
+        ignored_words = {"blur", "the", "a", "an", "object", "objects", "best", "detected", "all"}
 
         class_words = [
             word for word in words
@@ -406,8 +424,8 @@ def parse_command(command: str):
             )
 
         return {
-            "action": "blur_by_class",
-            "class_name": " ".join(class_words),
+            "action": "blur_all_by_class" if blur_all else "blur_by_class",
+            "class_name": normalize_requested_class_name(" ".join(class_words)),
         }
 
     raise HTTPException(
@@ -520,6 +538,27 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "blur_by_class"
+        log_command_execution(request, parsed_command, result_type)
+
+        return {
+            "command": request.command,
+            "parsed_command": parsed_command,
+            "result_type": result_type,
+            "result": result,
+        }
+
+    if parsed_command["action"] == "blur_all_by_class":
+        class_name = parsed_command["class_name"]
+
+        result = blur_all_objects_by_class(
+            filename=request.filename,
+            request=BlurAllByClassRequest(
+                class_name=class_name,
+                confidence_threshold=request.confidence_threshold,
+            ),
+        )
+
+        result_type = "blur_all_by_class"
         log_command_execution(request, parsed_command, result_type)
 
         return {
@@ -673,4 +712,95 @@ def blur_best_object_by_class(filename: str, request: BlurByClassRequest):
         "confidence_threshold": request.confidence_threshold,
         "selected_detection": best_detection,
         **blur_response,
+    }
+
+
+
+class BlurAllByClassRequest(BaseModel):
+    class_name: str
+    confidence_threshold: float = 0.25
+
+
+@app.post("/vision/blur-all-by-class/{filename}")
+def blur_all_objects_by_class(filename: str, request: BlurAllByClassRequest):
+    image_path = UPLOAD_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded image not found",
+        )
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    class_name = normalize_requested_class_name(request.class_name)
+
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=request.confidence_threshold,
+        class_filter=class_name,
+    )
+
+    if not detections:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No object found for class '{class_name}'",
+        )
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    from PIL import ImageFilter
+
+    with Image.open(image_path).convert("RGB") as image:
+        width, height = image.size
+
+        union_left = width
+        union_top = height
+        union_right = 0
+        union_bottom = 0
+
+        for detection in detections:
+            bbox = detection["bbox"]
+
+            left = max(0, min(int(bbox["x1"]), width))
+            top = max(0, min(int(bbox["y1"]), height))
+            right = max(0, min(int(bbox["x2"]), width))
+            bottom = max(0, min(int(bbox["y2"]), height))
+
+            if right <= left or bottom <= top:
+                continue
+
+            object_region = image.crop((left, top, right, bottom))
+            blurred_region = object_region.filter(ImageFilter.GaussianBlur(radius=18))
+            image.paste(blurred_region, (left, top))
+
+            union_left = min(union_left, left)
+            union_top = min(union_top, top)
+            union_right = max(union_right, right)
+            union_bottom = max(union_bottom, bottom)
+
+        file_extension = image_path.suffix or ".png"
+        blurred_filename = f"blur_all_{class_name}_{image_path.stem}_{uuid4().hex}{file_extension}"
+        blurred_path = OUTPUT_DIR / blurred_filename
+
+        image.save(blurred_path)
+
+    return {
+        "filename": filename,
+        "class_name": class_name,
+        "confidence_threshold": request.confidence_threshold,
+        "detection_count": len(detections),
+        "blurred_detections": detections,
+        "blurred_filename": blurred_filename,
+        "blurred_file_url": f"/media/outputs/{blurred_filename}",
+        "blur_box": {
+            "x1": union_left,
+            "y1": union_top,
+            "x2": union_right,
+            "y2": union_bottom,
+        },
     }

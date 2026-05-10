@@ -240,3 +240,68 @@ def test_execute_blur_command_without_class_fails():
     assert response.json() == {
         "detail": "Please specify which class to blur, for example: blur person"
     }
+
+
+
+def test_execute_blur_all_command_success(tmp_path, monkeypatch):
+    test_upload_dir = tmp_path / "uploads"
+    test_output_dir = tmp_path / "outputs"
+    test_log_dir = tmp_path / "logs"
+    test_log_file = test_log_dir / "command_logs.jsonl"
+
+    test_upload_dir.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr(main, "UPLOAD_DIR", test_upload_dir)
+    monkeypatch.setattr(main, "OUTPUT_DIR", test_output_dir)
+    monkeypatch.setattr(main, "LOG_DIR", test_log_dir)
+    monkeypatch.setattr(main, "COMMAND_LOG_FILE", test_log_file)
+
+    fake_detections = [
+        {
+            "class_id": 0,
+            "class_name": "person",
+            "confidence": 0.95,
+            "bbox": {
+                "x1": 10,
+                "y1": 10,
+                "x2": 70,
+                "y2": 60,
+            },
+        }
+    ]
+
+    monkeypatch.setattr(
+        main,
+        "run_yolo_detection",
+        lambda image_path, confidence_threshold=0.25, class_filter=None: fake_detections,
+    )
+
+    image_bytes = create_test_image_bytes()
+    image_path = test_upload_dir / "sample.png"
+
+    with image_path.open("wb") as file:
+        file.write(image_bytes.getvalue())
+
+    response = client.post(
+        "/commands/execute",
+        json={
+            "filename": "sample.png",
+            "command": "blur all persons",
+            "confidence_threshold": 0.3,
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["command"] == "blur all persons"
+    assert data["parsed_command"]["action"] == "blur_all_by_class"
+    assert data["parsed_command"]["class_name"] == "person"
+    assert data["result_type"] == "blur_all_by_class"
+    assert data["result"]["class_name"] == "person"
+    assert data["result"]["blurred_filename"].endswith(".png")
+
+    assert test_log_file.exists()
+    log_content = test_log_file.read_text()
+    assert "blur all persons" in log_content
+    assert "blur_all_by_class" in log_content
