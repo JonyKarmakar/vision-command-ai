@@ -435,6 +435,136 @@ def parse_command(command: str):
 
 
 
+
+def get_database_url():
+    import os
+
+    return os.getenv("DATABASE_URL")
+
+
+def initialize_command_logs_table():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return False
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS command_logs (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TEXT NOT NULL,
+                    filename TEXT NOT NULL,
+                    command TEXT NOT NULL,
+                    confidence_threshold DOUBLE PRECISION NOT NULL,
+                    parsed_action TEXT NOT NULL,
+                    parsed_class TEXT,
+                    result_type TEXT NOT NULL
+                );
+                """
+            )
+        connection.commit()
+
+    return True
+
+
+def save_command_log_to_database(log_entry: dict):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return False
+
+    initialize_command_logs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO command_logs (
+                    timestamp,
+                    filename,
+                    command,
+                    confidence_threshold,
+                    parsed_action,
+                    parsed_class,
+                    result_type
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s);
+                """,
+                (
+                    log_entry["timestamp"],
+                    log_entry["filename"],
+                    log_entry["command"],
+                    log_entry["confidence_threshold"],
+                    log_entry["parsed_action"],
+                    log_entry["parsed_class"],
+                    log_entry["result_type"],
+                ),
+            )
+        connection.commit()
+
+    return True
+
+
+def get_database_command_logs(limit: int = 20):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "count": 0,
+            "logs": [],
+        }
+
+    initialize_command_logs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    timestamp,
+                    filename,
+                    command,
+                    confidence_threshold,
+                    parsed_action,
+                    parsed_class,
+                    result_type
+                FROM command_logs
+                ORDER BY id DESC
+                LIMIT %s;
+                """,
+                (limit,),
+            )
+            rows = cursor.fetchall()
+
+    logs = [
+        {
+            "timestamp": row[0],
+            "filename": row[1],
+            "command": row[2],
+            "confidence_threshold": row[3],
+            "parsed_action": row[4],
+            "parsed_class": row[5],
+            "result_type": row[6],
+        }
+        for row in rows
+    ]
+
+    return {
+        "status": "healthy",
+        "count": len(logs),
+        "logs": logs,
+    }
+
+
 def log_command_execution(
     request: CommandRequest,
     parsed_command: dict,
@@ -455,27 +585,12 @@ def log_command_execution(
     with COMMAND_LOG_FILE.open("a", encoding="utf-8") as log_file:
         log_file.write(json.dumps(log_entry) + "\n")
 
-
-
-def log_command_execution(
-    request: CommandRequest,
-    parsed_command: dict,
-    result_type: str,
-):
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-    log_entry = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "filename": request.filename,
-        "command": request.command,
-        "confidence_threshold": request.confidence_threshold,
-        "parsed_action": parsed_command.get("action"),
-        "parsed_class": parsed_command.get("class_name"),
-        "result_type": result_type,
-    }
-
-    with COMMAND_LOG_FILE.open("a", encoding="utf-8") as log_file:
-        log_file.write(json.dumps(log_entry) + "\n")
+    try:
+        save_command_log_to_database(log_entry)
+    except Exception:
+        # Database logging should not break command execution.
+        # JSONL logging remains as a local fallback.
+        pass
 
 
 @app.post("/commands/execute")
@@ -836,3 +951,9 @@ def database_health_check():
             status_code=503,
             detail=f"Database connection failed: {str(error)}",
         )
+
+
+
+@app.get("/db/command-logs")
+def get_postgres_command_logs(limit: int = Query(20, ge=1, le=100)):
+    return get_database_command_logs(limit)
