@@ -390,9 +390,29 @@ def parse_command(command: str):
             "class_name": " ".join(class_words),
         }
 
+    if "blur" in normalized_command:
+        words = normalized_command.split()
+        ignored_words = {"blur", "the", "a", "an", "object", "best", "detected"}
+
+        class_words = [
+            word for word in words
+            if word not in ignored_words
+        ]
+
+        if not class_words:
+            raise HTTPException(
+                status_code=400,
+                detail="Please specify which class to blur, for example: blur person",
+            )
+
+        return {
+            "action": "blur_by_class",
+            "class_name": " ".join(class_words),
+        }
+
     raise HTTPException(
         status_code=400,
-        detail="Unsupported command. Try commands like: detect objects, crop person, crop bottle",
+        detail="Unsupported command. Try commands like: detect objects, crop person, crop bottle, blur person",
     )
 
 
@@ -479,6 +499,27 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "crop_by_class"
+        log_command_execution(request, parsed_command, result_type)
+
+        return {
+            "command": request.command,
+            "parsed_command": parsed_command,
+            "result_type": result_type,
+            "result": result,
+        }
+
+    if parsed_command["action"] == "blur_by_class":
+        class_name = parsed_command["class_name"]
+
+        result = blur_best_object_by_class(
+            filename=request.filename,
+            request=BlurByClassRequest(
+                class_name=class_name,
+                confidence_threshold=request.confidence_threshold,
+            ),
+        )
+
+        result_type = "blur_by_class"
         log_command_execution(request, parsed_command, result_type)
 
         return {
@@ -579,4 +620,57 @@ def blur_uploaded_image_object(filename: str, crop: CropRequest):
             "x2": right,
             "y2": bottom,
         },
+    }
+
+
+
+class BlurByClassRequest(BaseModel):
+    class_name: str
+    confidence_threshold: float = 0.25
+
+
+@app.post("/vision/blur-by-class/{filename}")
+def blur_best_object_by_class(filename: str, request: BlurByClassRequest):
+    image_path = UPLOAD_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded image not found",
+        )
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=request.confidence_threshold,
+        class_filter=request.class_name,
+    )
+
+    if not detections:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No object found for class '{request.class_name}'",
+        )
+
+    best_detection = max(
+        detections,
+        key=lambda detection: detection["confidence"],
+    )
+
+    blur_response = blur_uploaded_image_object(
+        filename,
+        CropRequest(**best_detection["bbox"]),
+    )
+
+    return {
+        "filename": filename,
+        "class_name": request.class_name,
+        "confidence_threshold": request.confidence_threshold,
+        "selected_detection": best_detection,
+        **blur_response,
     }
