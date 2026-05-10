@@ -1,4 +1,16 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vision-command-postgres
+    environment:
+      POSTGRES_DB: vision_command
+      POSTGRES_USER: vision_user
+      POSTGRES_PASSWORD: vision_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build:
       context: ./backend
@@ -7,6 +19,9 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://vision_user:vision_password@postgres:5432/vision_command
+    depends_on:
+      - postgres
 
   frontend:
     build:
@@ -18,3 +33,6 @@ services:
       - VITE_BACKEND_URL=http://backend:8000
     depends_on:
       - backend
+
+volumes:
+  postgres_data:
