@@ -67,7 +67,7 @@ type CommandResponse = {
     action: string
     class_name: string | null
   }
-  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class'
+  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class'
   result: DetectionResponse | CropResponse | BlurResponse
 }
 
@@ -499,7 +499,7 @@ function App() {
         setBlurResult(null)
       }
 
-      if (data.result_type === 'blur_by_class') {
+      if (data.result_type === 'blur_by_class' || data.result_type === 'blur_all_by_class') {
         const result = data.result as BlurResponse
         setBlurResult(result)
         setCropResult(null)
@@ -613,7 +613,7 @@ function App() {
         <section className="card command-card">
           <h2>Command Box</h2>
           <p className="small-note">
-            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, <strong>crop bottle</strong>, or <strong>blur person</strong>.
+            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, <strong>blur person</strong>, or <strong>blur all persons</strong>.
           </p>
 
           <div className="command-row">
