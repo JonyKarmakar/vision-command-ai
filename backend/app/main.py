@@ -804,3 +804,35 @@ def blur_all_objects_by_class(filename: str, request: BlurAllByClassRequest):
             "y2": union_bottom,
         },
     }
+
+
+@app.get("/db/health")
+def database_health_check():
+    import os
+    import psycopg
+
+    database_url = os.getenv("DATABASE_URL")
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "message": "DATABASE_URL environment variable is not set",
+        }
+
+    try:
+        with psycopg.connect(database_url) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1;")
+                result = cursor.fetchone()
+
+        return {
+            "status": "healthy",
+            "database": "postgresql",
+            "result": result[0],
+        }
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database connection failed: {str(error)}",
+        )
