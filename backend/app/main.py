@@ -179,10 +179,12 @@ def detect_objects(
             detail="Uploaded image not found",
         )
 
-    detections = run_yolo_detection(
+    detections = run_yolo_detection_with_inference_logging(
+        filename=filename,
         image_path=image_path,
         confidence_threshold=confidence_threshold,
         class_filter=class_filter,
+        source_endpoint="detect",
     )
 
     try:
@@ -220,10 +222,12 @@ def detect_objects_with_annotation(
             detail="Uploaded image not found",
         )
 
-    detections = run_yolo_detection(
+    detections = run_yolo_detection_with_inference_logging(
+        filename=filename,
         image_path=image_path,
         confidence_threshold=confidence_threshold,
         class_filter=class_filter,
+        source_endpoint="annotated_detection",
     )
 
     try:
@@ -1288,6 +1292,177 @@ def get_database_detection_results(limit: int = 20):
     }
 
 
+
+def initialize_model_inference_logs_table():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return False
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS model_inference_logs (
+                    id SERIAL PRIMARY KEY,
+                    filename TEXT NOT NULL,
+                    model_name TEXT NOT NULL,
+                    source_endpoint TEXT NOT NULL,
+                    confidence_threshold DOUBLE PRECISION NOT NULL,
+                    class_filter TEXT,
+                    detection_count INTEGER NOT NULL,
+                    inference_time_ms DOUBLE PRECISION NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                """
+            )
+        connection.commit()
+
+    return True
+
+
+def save_inference_log_to_database(
+    filename: str,
+    source_endpoint: str,
+    confidence_threshold: float,
+    class_filter: Optional[str],
+    detection_count: int,
+    inference_time_ms: float,
+):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return False
+
+    initialize_model_inference_logs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO model_inference_logs (
+                    filename,
+                    model_name,
+                    source_endpoint,
+                    confidence_threshold,
+                    class_filter,
+                    detection_count,
+                    inference_time_ms,
+                    created_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                """,
+                (
+                    filename,
+                    MODEL_NAME,
+                    source_endpoint,
+                    confidence_threshold,
+                    class_filter,
+                    detection_count,
+                    inference_time_ms,
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
+        connection.commit()
+
+    return True
+
+
+def get_database_inference_logs(limit: int = 20):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "count": 0,
+            "inference_logs": [],
+        }
+
+    initialize_model_inference_logs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    filename,
+                    model_name,
+                    source_endpoint,
+                    confidence_threshold,
+                    class_filter,
+                    detection_count,
+                    inference_time_ms,
+                    created_at
+                FROM model_inference_logs
+                ORDER BY id DESC
+                LIMIT %s;
+                """,
+                (limit,),
+            )
+            rows = cursor.fetchall()
+
+    inference_logs = [
+        {
+            "filename": row[0],
+            "model_name": row[1],
+            "source_endpoint": row[2],
+            "confidence_threshold": row[3],
+            "class_filter": row[4],
+            "detection_count": row[5],
+            "inference_time_ms": row[6],
+            "created_at": row[7],
+        }
+        for row in rows
+    ]
+
+    return {
+        "status": "healthy",
+        "count": len(inference_logs),
+        "inference_logs": inference_logs,
+    }
+
+
+def run_yolo_detection_with_inference_logging(
+    filename: str,
+    image_path: Path,
+    confidence_threshold: float,
+    class_filter: Optional[str],
+    source_endpoint: str,
+):
+    from time import perf_counter
+
+    start_time = perf_counter()
+
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=confidence_threshold,
+        class_filter=class_filter,
+    )
+
+    inference_time_ms = round((perf_counter() - start_time) * 1000, 2)
+
+    try:
+        save_inference_log_to_database(
+            filename=filename,
+            source_endpoint=source_endpoint,
+            confidence_threshold=confidence_threshold,
+            class_filter=class_filter,
+            detection_count=len(detections),
+            inference_time_ms=inference_time_ms,
+        )
+    except Exception:
+        # Inference logging should not break YOLO detection.
+        pass
+
+    return detections
+
+
 def get_database_stats():
     import psycopg
 
@@ -1382,3 +1557,9 @@ def get_database_detection_summary():
 @app.get("/db/detection-summary")
 def get_postgres_detection_summary():
     return get_database_detection_summary()
+
+
+
+@app.get("/db/inference-logs")
+def get_postgres_inference_logs(limit: int = Query(20, ge=1, le=100)):
+    return get_database_inference_logs(limit)
