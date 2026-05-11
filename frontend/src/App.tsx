@@ -92,6 +92,12 @@ type MediaFileLog = {
   created_at: string
 }
 
+type DatabaseStats = {
+  status: string
+  media_files_count: number
+  command_logs_count: number
+}
+
 type SpeechRecognitionEventLike = {
   results: {
     [index: number]: {
@@ -136,6 +142,7 @@ function App() {
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
+  const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
 
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
@@ -147,6 +154,7 @@ function App() {
   const [isRunningCommand, setIsRunningCommand] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
+  const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [isListening, setIsListening] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -416,6 +424,30 @@ function App() {
     setStatusMessage(`Loaded ${mediaFile.original_filename} from media history. You can now run detection or commands.`)
   }
 
+  const handleLoadDatabaseStats = async () => {
+    try {
+      setIsLoadingStats(true)
+      setError(null)
+      setStatusMessage('Loading database statistics...')
+
+      const response = await fetch('/api/db/stats')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load database statistics')
+      }
+
+      const data: DatabaseStats = await response.json()
+      setDatabaseStats(data)
+      setStatusMessage('Database statistics loaded.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load database statistics.')
+    } finally {
+      setIsLoadingStats(false)
+    }
+  }
+
   const handleLoadMediaFiles = async () => {
     try {
       setIsLoadingMediaFiles(true)
@@ -607,6 +639,7 @@ function App() {
     isRunningCommand ||
     isLoadingLogs ||
     isLoadingMediaFiles ||
+    isLoadingStats ||
     isListening
 
   const thresholdChangedAfterDetection =
@@ -635,6 +668,44 @@ function App() {
       <section className="status-card">
         <span className={isBusy ? 'status-dot active' : 'status-dot'} />
         <p>{statusMessage}</p>
+      </section>
+
+      <section className="card database-dashboard">
+        <div className="dashboard-header">
+          <div>
+            <h2>Database Dashboard</h2>
+            <p className="small-note">
+              View PostgreSQL-backed project statistics.
+            </p>
+          </div>
+
+          <button
+            className="secondary-button"
+            onClick={handleLoadDatabaseStats}
+            disabled={isBusy}
+          >
+            {isLoadingStats ? 'Loading stats...' : 'Load Database Stats'}
+          </button>
+        </div>
+
+        {databaseStats && (
+          <div className="stats-grid">
+            <div className="stat-item">
+              <span>Status</span>
+              <strong>{databaseStats.status}</strong>
+            </div>
+
+            <div className="stat-item">
+              <span>Uploaded media</span>
+              <strong>{databaseStats.media_files_count}</strong>
+            </div>
+
+            <div className="stat-item">
+              <span>Command logs</span>
+              <strong>{databaseStats.command_logs_count}</strong>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="card">
