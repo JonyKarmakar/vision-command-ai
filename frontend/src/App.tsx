@@ -81,6 +81,17 @@ type CommandLog = {
   result_type: string
 }
 
+type MediaFileLog = {
+  original_filename: string
+  stored_filename: string
+  content_type: string
+  width: number
+  height: number
+  storage_path: string
+  file_url: string
+  created_at: string
+}
+
 type SpeechRecognitionEventLike = {
   results: {
     [index: number]: {
@@ -124,6 +135,7 @@ function App() {
   const [commandText, setCommandText] = useState('')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
+  const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
 
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
@@ -134,6 +146,7 @@ function App() {
   const [isBlurring, setIsBlurring] = useState(false)
   const [isRunningCommand, setIsRunningCommand] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
+  const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isListening, setIsListening] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -379,6 +392,30 @@ function App() {
     }
   }
 
+  const handleLoadMediaFiles = async () => {
+    try {
+      setIsLoadingMediaFiles(true)
+      setError(null)
+      setStatusMessage('Loading uploaded media history...')
+
+      const response = await fetch('/api/db/media-files?limit=10')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load uploaded media history')
+      }
+
+      const data: { count: number; media_files: MediaFileLog[] } = await response.json()
+      setMediaFiles(data.media_files)
+      setStatusMessage(`Loaded ${data.count} uploaded media file(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load uploaded media history.')
+    } finally {
+      setIsLoadingMediaFiles(false)
+    }
+  }
+
   const handleVoiceCommand = () => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition
@@ -545,6 +582,7 @@ function App() {
     isBlurring ||
     isRunningCommand ||
     isLoadingLogs ||
+    isLoadingMediaFiles ||
     isListening
 
   const thresholdChangedAfterDetection =
@@ -606,8 +644,50 @@ function App() {
           </button>
         </div>
 
+        <div className="button-row media-history-actions">
+          <button
+            className="secondary-button"
+            onClick={handleLoadMediaFiles}
+            disabled={isBusy}
+          >
+            {isLoadingMediaFiles ? 'Loading media history...' : 'Load Uploaded Media History'}
+          </button>
+        </div>
+
         {error && <p className="error">{error}</p>}
       </section>
+
+      {mediaFiles.length > 0 && (
+        <section className="card media-history">
+          <h2>Uploaded Media History</h2>
+
+          {mediaFiles.map((mediaFile) => {
+            const mediaUrl = `/api${mediaFile.file_url}`
+
+            return (
+              <div className="media-log-item" key={mediaFile.stored_filename}>
+                <div>
+                  <strong>{mediaFile.original_filename}</strong>
+                  <p>{new Date(mediaFile.created_at).toLocaleString()}</p>
+                  <p>
+                    {mediaFile.width}px × {mediaFile.height}px · {mediaFile.content_type}
+                  </p>
+                  <p className="stored-name">{mediaFile.stored_filename}</p>
+                </div>
+
+                <div className="output-actions">
+                  <a href={mediaUrl} target="_blank" rel="noreferrer">
+                    Open
+                  </a>
+                  <a href={mediaUrl} download={mediaFile.original_filename}>
+                    Download
+                  </a>
+                </div>
+              </div>
+            )
+          })}
+        </section>
+      )}
 
       {uploadResult && (
         <section className="card command-card">
