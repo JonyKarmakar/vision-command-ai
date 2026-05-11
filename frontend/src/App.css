@@ -504,3 +504,61 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.dashboard-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.detection-history {
+  margin-top: 20px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.detection-history h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.detection-log-item {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 16px;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.detection-log-item p {
+  margin: 6px 0 0;
+  color: #a1a1aa;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.detection-log-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detection-log-meta span {
+  color: #d4d4d8;
+  font-size: 14px;
+}
+
+@media (max-width: 800px) {
+  .dashboard-actions {
+    flex-direction: column;
+  }
+
+  .detection-log-item {
+    grid-template-columns: 1fr;
+  }
+}

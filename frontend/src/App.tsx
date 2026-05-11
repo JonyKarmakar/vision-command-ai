@@ -98,6 +98,23 @@ type DatabaseStats = {
   command_logs_count: number
 }
 
+type DetectionLog = {
+  filename: string
+  class_id: number
+  class_name: string
+  confidence: number
+  bbox: {
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+  }
+  confidence_threshold: number
+  class_filter: string | null
+  source_endpoint: string
+  created_at: string
+}
+
 type SpeechRecognitionEventLike = {
   results: {
     [index: number]: {
@@ -143,6 +160,7 @@ function App() {
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
+  const [detectionLogs, setDetectionLogs] = useState<DetectionLog[]>([])
 
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
@@ -155,6 +173,7 @@ function App() {
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
+  const [isLoadingDetections, setIsLoadingDetections] = useState(false)
   const [isListening, setIsListening] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -448,6 +467,30 @@ function App() {
     }
   }
 
+  const handleLoadDetectionLogs = async () => {
+    try {
+      setIsLoadingDetections(true)
+      setError(null)
+      setStatusMessage('Loading detection history from PostgreSQL...')
+
+      const response = await fetch('/api/db/detections?limit=10')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load detection history')
+      }
+
+      const data: { count: number; detections: DetectionLog[] } = await response.json()
+      setDetectionLogs(data.detections)
+      setStatusMessage(`Loaded ${data.count} recent detection result(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load detection history.')
+    } finally {
+      setIsLoadingDetections(false)
+    }
+  }
+
   const handleLoadMediaFiles = async () => {
     try {
       setIsLoadingMediaFiles(true)
@@ -640,6 +683,7 @@ function App() {
     isLoadingLogs ||
     isLoadingMediaFiles ||
     isLoadingStats ||
+    isLoadingDetections ||
     isListening
 
   const thresholdChangedAfterDetection =
@@ -679,13 +723,23 @@ function App() {
             </p>
           </div>
 
-          <button
-            className="secondary-button"
-            onClick={handleLoadDatabaseStats}
-            disabled={isBusy}
-          >
-            {isLoadingStats ? 'Loading stats...' : 'Load Database Stats'}
-          </button>
+          <div className="dashboard-actions">
+            <button
+              className="secondary-button"
+              onClick={handleLoadDatabaseStats}
+              disabled={isBusy}
+            >
+              {isLoadingStats ? 'Loading stats...' : 'Load Database Stats'}
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleLoadDetectionLogs}
+              disabled={isBusy}
+            >
+              {isLoadingDetections ? 'Loading detections...' : 'Load Detection History'}
+            </button>
+          </div>
         </div>
 
         {databaseStats && (
@@ -704,6 +758,32 @@ function App() {
               <span>Command logs</span>
               <strong>{databaseStats.command_logs_count}</strong>
             </div>
+          </div>
+        )}
+
+        {detectionLogs.length > 0 && (
+          <div className="detection-history">
+            <h3>Recent Detection History</h3>
+
+            {detectionLogs.map((detection, index) => (
+              <div className="detection-log-item" key={`${detection.filename}-${detection.created_at}-${index}`}>
+                <div>
+                  <strong>{detection.class_name}</strong>
+                  <p>{new Date(detection.created_at).toLocaleString()}</p>
+                  <p>{detection.filename}</p>
+                </div>
+
+                <div className="detection-log-meta">
+                  <span>Confidence: {(detection.confidence * 100).toFixed(1)}%</span>
+                  <span>Threshold: {(detection.confidence_threshold * 100).toFixed(0)}%</span>
+                  <span>Source: {detection.source_endpoint}</span>
+                  {detection.class_filter && <span>Filter: {detection.class_filter}</span>}
+                  <span>
+                    Box: x1 {detection.bbox.x1}, y1 {detection.bbox.y1}, x2 {detection.bbox.x2}, y2 {detection.bbox.y2}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
