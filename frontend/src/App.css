@@ -562,3 +562,75 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.detection-summary {
+  margin-top: 20px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.detection-summary h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.summary-total {
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.summary-total span {
+  display: block;
+  color: #a1a1aa;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.summary-total strong {
+  font-size: 28px;
+  color: #f8fafc;
+}
+
+.summary-class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-class-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.summary-class-item p {
+  margin: 6px 0 0;
+  color: #a1a1aa;
+  font-size: 14px;
+}
+
+.summary-class-item span {
+  display: block;
+  color: #d4d4d8;
+  font-size: 14px;
+  text-align: right;
+}
+
+@media (max-width: 800px) {
+  .summary-class-item {
+    flex-direction: column;
+  }
+
+  .summary-class-item span {
+    text-align: left;
+  }
+}
