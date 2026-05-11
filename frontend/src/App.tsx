@@ -98,6 +98,19 @@ type DatabaseStats = {
   command_logs_count: number
 }
 
+type DetectionSummaryClass = {
+  class_name: string
+  count: number
+  average_confidence: number
+  max_confidence: number
+}
+
+type DetectionSummary = {
+  status: string
+  total_detections: number
+  classes: DetectionSummaryClass[]
+}
+
 type DetectionLog = {
   filename: string
   class_id: number
@@ -161,6 +174,7 @@ function App() {
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
   const [detectionLogs, setDetectionLogs] = useState<DetectionLog[]>([])
+  const [detectionSummary, setDetectionSummary] = useState<DetectionSummary | null>(null)
 
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
@@ -174,6 +188,7 @@ function App() {
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [isLoadingDetections, setIsLoadingDetections] = useState(false)
+  const [isLoadingDetectionSummary, setIsLoadingDetectionSummary] = useState(false)
   const [isListening, setIsListening] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -467,6 +482,30 @@ function App() {
     }
   }
 
+  const handleLoadDetectionSummary = async () => {
+    try {
+      setIsLoadingDetectionSummary(true)
+      setError(null)
+      setStatusMessage('Loading detection summary from PostgreSQL...')
+
+      const response = await fetch('/api/db/detection-summary')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load detection summary')
+      }
+
+      const data: DetectionSummary = await response.json()
+      setDetectionSummary(data)
+      setStatusMessage(`Loaded detection summary with ${data.total_detections} stored detection(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load detection summary.')
+    } finally {
+      setIsLoadingDetectionSummary(false)
+    }
+  }
+
   const handleLoadDetectionLogs = async () => {
     try {
       setIsLoadingDetections(true)
@@ -684,6 +723,7 @@ function App() {
     isLoadingMediaFiles ||
     isLoadingStats ||
     isLoadingDetections ||
+    isLoadingDetectionSummary ||
     isListening
 
   const thresholdChangedAfterDetection =
@@ -739,6 +779,14 @@ function App() {
             >
               {isLoadingDetections ? 'Loading detections...' : 'Load Detection History'}
             </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleLoadDetectionSummary}
+              disabled={isBusy}
+            >
+              {isLoadingDetectionSummary ? 'Loading summary...' : 'Load Detection Summary'}
+            </button>
           </div>
         </div>
 
@@ -758,6 +806,37 @@ function App() {
               <span>Command logs</span>
               <strong>{databaseStats.command_logs_count}</strong>
             </div>
+          </div>
+        )}
+
+        {detectionSummary && (
+          <div className="detection-summary">
+            <h3>Detection Summary</h3>
+
+            <div className="summary-total">
+              <span>Total stored detections</span>
+              <strong>{detectionSummary.total_detections}</strong>
+            </div>
+
+            {detectionSummary.classes.length > 0 ? (
+              <div className="summary-class-list">
+                {detectionSummary.classes.map((item) => (
+                  <div className="summary-class-item" key={item.class_name}>
+                    <div>
+                      <strong>{item.class_name}</strong>
+                      <p>{item.count} detection(s)</p>
+                    </div>
+
+                    <div>
+                      <span>Avg: {(item.average_confidence * 100).toFixed(1)}%</span>
+                      <span>Max: {(item.max_confidence * 100).toFixed(1)}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>No detection summary available yet. Run YOLO detection first.</p>
+            )}
           </div>
         )}
 
