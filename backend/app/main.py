@@ -1100,3 +1100,38 @@ def get_postgres_command_logs(limit: int = Query(20, ge=1, le=100)):
 @app.get("/db/media-files")
 def get_postgres_media_files(limit: int = Query(20, ge=1, le=100)):
     return get_database_media_files(limit)
+
+
+def get_database_stats():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "media_files_count": 0,
+            "command_logs_count": 0,
+        }
+
+    initialize_media_files_table()
+    initialize_command_logs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM media_files;")
+            media_files_count = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM command_logs;")
+            command_logs_count = cursor.fetchone()[0]
+
+    return {
+        "status": "healthy",
+        "media_files_count": media_files_count,
+        "command_logs_count": command_logs_count,
+    }
+
+
+@app.get("/db/stats")
+def get_postgres_stats():
+    return get_database_stats()
