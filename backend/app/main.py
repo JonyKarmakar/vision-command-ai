@@ -1327,3 +1327,58 @@ def get_postgres_stats():
 @app.get("/db/detections")
 def get_postgres_detection_results(limit: int = Query(20, ge=1, le=100)):
     return get_database_detection_results(limit)
+
+
+def get_database_detection_summary():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "total_detections": 0,
+            "classes": [],
+        }
+
+    initialize_detection_results_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM detection_results;")
+            total_detections = cursor.fetchone()[0]
+
+            cursor.execute(
+                """
+                SELECT
+                    class_name,
+                    COUNT(*) AS detection_count,
+                    AVG(confidence) AS average_confidence,
+                    MAX(confidence) AS max_confidence
+                FROM detection_results
+                GROUP BY class_name
+                ORDER BY detection_count DESC, class_name ASC;
+                """
+            )
+            rows = cursor.fetchall()
+
+    classes = [
+        {
+            "class_name": row[0],
+            "count": row[1],
+            "average_confidence": round(float(row[2]), 4),
+            "max_confidence": round(float(row[3]), 4),
+        }
+        for row in rows
+    ]
+
+    return {
+        "status": "healthy",
+        "total_detections": total_detections,
+        "classes": classes,
+    }
+
+
+@app.get("/db/detection-summary")
+def get_postgres_detection_summary():
+    return get_database_detection_summary()
