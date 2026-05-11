@@ -68,7 +68,7 @@ def upload_media(file: UploadFile = File(...)):
             detail="Uploaded file is not a valid image",
         )
 
-    return {
+    response_data = {
         "message": "Image uploaded successfully",
         "original_filename": original_filename,
         "stored_filename": stored_filename,
@@ -78,6 +78,14 @@ def upload_media(file: UploadFile = File(...)):
         "storage_path": str(storage_path),
         "file_url": f"/media/uploads/{stored_filename}",
     }
+
+    try:
+        save_media_file_to_database(response_data)
+    except Exception:
+        # Database metadata logging should not break image upload.
+        pass
+
+    return response_data
 
 
 @app.get("/media/uploads/{filename}")
@@ -440,6 +448,135 @@ def get_database_url():
     import os
 
     return os.getenv("DATABASE_URL")
+
+
+
+def initialize_media_files_table():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return False
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS media_files (
+                    id SERIAL PRIMARY KEY,
+                    original_filename TEXT NOT NULL,
+                    stored_filename TEXT NOT NULL,
+                    content_type TEXT NOT NULL,
+                    width INTEGER NOT NULL,
+                    height INTEGER NOT NULL,
+                    storage_path TEXT NOT NULL,
+                    file_url TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                """
+            )
+        connection.commit()
+
+    return True
+
+
+def save_media_file_to_database(media_data: dict):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return False
+
+    initialize_media_files_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO media_files (
+                    original_filename,
+                    stored_filename,
+                    content_type,
+                    width,
+                    height,
+                    storage_path,
+                    file_url,
+                    created_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                """,
+                (
+                    media_data["original_filename"],
+                    media_data["stored_filename"],
+                    media_data["content_type"],
+                    media_data["width"],
+                    media_data["height"],
+                    media_data["storage_path"],
+                    media_data["file_url"],
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
+        connection.commit()
+
+    return True
+
+
+def get_database_media_files(limit: int = 20):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "count": 0,
+            "media_files": [],
+        }
+
+    initialize_media_files_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    original_filename,
+                    stored_filename,
+                    content_type,
+                    width,
+                    height,
+                    storage_path,
+                    file_url,
+                    created_at
+                FROM media_files
+                ORDER BY id DESC
+                LIMIT %s;
+                """,
+                (limit,),
+            )
+            rows = cursor.fetchall()
+
+    media_files = [
+        {
+            "original_filename": row[0],
+            "stored_filename": row[1],
+            "content_type": row[2],
+            "width": row[3],
+            "height": row[4],
+            "storage_path": row[5],
+            "file_url": row[6],
+            "created_at": row[7],
+        }
+        for row in rows
+    ]
+
+    return {
+        "status": "healthy",
+        "count": len(media_files),
+        "media_files": media_files,
+    }
 
 
 def initialize_command_logs_table():
@@ -957,3 +1094,9 @@ def database_health_check():
 @app.get("/db/command-logs")
 def get_postgres_command_logs(limit: int = Query(20, ge=1, le=100)):
     return get_database_command_logs(limit)
+
+
+
+@app.get("/db/media-files")
+def get_postgres_media_files(limit: int = Query(20, ge=1, le=100)):
+    return get_database_media_files(limit)
