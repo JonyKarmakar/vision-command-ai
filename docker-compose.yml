@@ -20,6 +20,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=postgresql://vision_user:vision_password@postgres:5432/vision_command
+    volumes:
+      - ./backend/storage:/app/storage
     depends_on:
       - postgres
 

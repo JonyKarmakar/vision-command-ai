@@ -392,6 +392,30 @@ function App() {
     }
   }
 
+  const handleUseMediaFile = (mediaFile: MediaFileLog) => {
+    setSelectedFile(null)
+    setUploadResult({
+      message: 'Loaded image from media history',
+      original_filename: mediaFile.original_filename,
+      stored_filename: mediaFile.stored_filename,
+      content_type: mediaFile.content_type,
+      width: mediaFile.width,
+      height: mediaFile.height,
+      storage_path: mediaFile.storage_path,
+      file_url: mediaFile.file_url,
+    })
+    setDetectionResult(null)
+    setCropResult(null)
+    setBlurResult(null)
+    setCommandResult(null)
+    setSelectedClass('all')
+    setClassOptions([])
+    setLastDetectionThreshold(null)
+    setLastDetectionClass(null)
+    setError(null)
+    setStatusMessage(`Loaded ${mediaFile.original_filename} from media history. You can now run detection or commands.`)
+  }
+
   const handleLoadMediaFiles = async () => {
     try {
       setIsLoadingMediaFiles(true)
@@ -676,6 +700,14 @@ function App() {
                 </div>
 
                 <div className="output-actions">
+                  <button
+                    className="history-use-button"
+                    onClick={() => handleUseMediaFile(mediaFile)}
+                    disabled={isBusy}
+                  >
+                    Use this image
+                  </button>
+
                   <a href={mediaUrl} target="_blank" rel="noreferrer">
                     Open
                   </a>
