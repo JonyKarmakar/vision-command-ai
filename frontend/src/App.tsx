@@ -456,9 +456,9 @@ function App() {
     try {
       setIsLoadingLogs(true)
       setError(null)
-      setStatusMessage('Loading command history...')
+      setStatusMessage('Loading command history from PostgreSQL...')
 
-      const response = await fetch('/api/commands/logs?limit=10')
+      const response = await fetch('/api/db/command-logs?limit=10')
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -467,7 +467,7 @@ function App() {
 
       const data: { count: number; logs: CommandLog[] } = await response.json()
       setCommandLogs(data.logs)
-      setStatusMessage(`Loaded ${data.count} recent command log(s).`)
+      setStatusMessage(`Loaded ${data.count} recent command log(s) from PostgreSQL.`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Could not load command history.')
