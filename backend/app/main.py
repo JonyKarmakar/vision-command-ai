@@ -13,11 +13,15 @@ from app.routers import health, model
 from app.services.command_parser import normalize_requested_class_name, parse_command
 from app.services.database_service import (
     get_database_command_logs,
+    get_database_detection_results,
+    get_database_detection_summary,
     get_database_media_files,
     get_database_url,
     initialize_command_logs_table,
+    initialize_detection_results_table,
     initialize_media_files_table,
     save_command_log_to_database,
+    save_detections_to_database,
     save_media_file_to_database,
 )
 from app.schemas import (
@@ -1104,9 +1108,6 @@ def get_postgres_media_files(limit: int = Query(20, ge=1, le=100)):
 
 
 
-def initialize_detection_results_table():
-    import psycopg
-
     database_url = get_database_url()
 
     if not database_url:
@@ -1136,133 +1137,6 @@ def initialize_detection_results_table():
         connection.commit()
 
     return True
-
-
-def save_detections_to_database(
-    filename: str,
-    detections: list,
-    confidence_threshold: float,
-    class_filter: Optional[str],
-    source_endpoint: str,
-):
-    import psycopg
-
-    database_url = get_database_url()
-
-    if not database_url:
-        return False
-
-    initialize_detection_results_table()
-
-    created_at = datetime.now(timezone.utc).isoformat()
-
-    with psycopg.connect(database_url) as connection:
-        with connection.cursor() as cursor:
-            for detection in detections:
-                bbox = detection["bbox"]
-
-                cursor.execute(
-                    """
-                    INSERT INTO detection_results (
-                        filename,
-                        class_id,
-                        class_name,
-                        confidence,
-                        bbox_x1,
-                        bbox_y1,
-                        bbox_x2,
-                        bbox_y2,
-                        confidence_threshold,
-                        class_filter,
-                        source_endpoint,
-                        created_at
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
-                    """,
-                    (
-                        filename,
-                        detection["class_id"],
-                        detection["class_name"],
-                        detection["confidence"],
-                        bbox["x1"],
-                        bbox["y1"],
-                        bbox["x2"],
-                        bbox["y2"],
-                        confidence_threshold,
-                        class_filter,
-                        source_endpoint,
-                        created_at,
-                    ),
-                )
-        connection.commit()
-
-    return True
-
-
-def get_database_detection_results(limit: int = 20):
-    import psycopg
-
-    database_url = get_database_url()
-
-    if not database_url:
-        return {
-            "status": "not_configured",
-            "count": 0,
-            "detections": [],
-        }
-
-    initialize_detection_results_table()
-
-    with psycopg.connect(database_url) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT
-                    filename,
-                    class_id,
-                    class_name,
-                    confidence,
-                    bbox_x1,
-                    bbox_y1,
-                    bbox_x2,
-                    bbox_y2,
-                    confidence_threshold,
-                    class_filter,
-                    source_endpoint,
-                    created_at
-                FROM detection_results
-                ORDER BY id DESC
-                LIMIT %s;
-                """,
-                (limit,),
-            )
-            rows = cursor.fetchall()
-
-    detections = [
-        {
-            "filename": row[0],
-            "class_id": row[1],
-            "class_name": row[2],
-            "confidence": row[3],
-            "bbox": {
-                "x1": row[4],
-                "y1": row[5],
-                "x2": row[6],
-                "y2": row[7],
-            },
-            "confidence_threshold": row[8],
-            "class_filter": row[9],
-            "source_endpoint": row[10],
-            "created_at": row[11],
-        }
-        for row in rows
-    ]
-
-    return {
-        "status": "healthy",
-        "count": len(detections),
-        "detections": detections,
-    }
 
 
 
@@ -1476,9 +1350,6 @@ def get_postgres_stats():
 def get_postgres_detection_results(limit: int = Query(20, ge=1, le=100)):
     return get_database_detection_results(limit)
 
-
-def get_database_detection_summary():
-    import psycopg
 
     database_url = get_database_url()
 
