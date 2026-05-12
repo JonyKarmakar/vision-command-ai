@@ -128,6 +128,24 @@ type DetectionLog = {
   created_at: string
 }
 
+type InferenceSummaryByEndpoint = {
+  source_endpoint: string
+  run_count: number
+  average_inference_time_ms: number
+  max_inference_time_ms: number
+  total_detections: number
+}
+
+type InferenceSummary = {
+  status: string
+  total_inferences: number
+  average_inference_time_ms: number
+  max_inference_time_ms: number
+  total_detections: number
+  average_detections_per_run: number
+  by_endpoint: InferenceSummaryByEndpoint[]
+}
+
 type InferenceLog = {
   filename: string
   model_name: string
@@ -187,6 +205,7 @@ function App() {
   const [detectionLogs, setDetectionLogs] = useState<DetectionLog[]>([])
   const [detectionSummary, setDetectionSummary] = useState<DetectionSummary | null>(null)
   const [inferenceLogs, setInferenceLogs] = useState<InferenceLog[]>([])
+  const [inferenceSummary, setInferenceSummary] = useState<InferenceSummary | null>(null)
 
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
@@ -202,6 +221,7 @@ function App() {
   const [isLoadingDetections, setIsLoadingDetections] = useState(false)
   const [isLoadingDetectionSummary, setIsLoadingDetectionSummary] = useState(false)
   const [isLoadingInferenceLogs, setIsLoadingInferenceLogs] = useState(false)
+  const [isLoadingInferenceSummary, setIsLoadingInferenceSummary] = useState(false)
   const [isListening, setIsListening] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -495,6 +515,30 @@ function App() {
     }
   }
 
+  const handleLoadInferenceSummary = async () => {
+    try {
+      setIsLoadingInferenceSummary(true)
+      setError(null)
+      setStatusMessage('Loading inference summary from PostgreSQL...')
+
+      const response = await fetch('/api/db/inference-summary')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load inference summary')
+      }
+
+      const data: InferenceSummary = await response.json()
+      setInferenceSummary(data)
+      setStatusMessage(`Loaded inference summary with ${data.total_inferences} inference run(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load inference summary.')
+    } finally {
+      setIsLoadingInferenceSummary(false)
+    }
+  }
+
   const handleLoadInferenceLogs = async () => {
     try {
       setIsLoadingInferenceLogs(true)
@@ -762,6 +806,7 @@ function App() {
     isLoadingDetections ||
     isLoadingDetectionSummary ||
     isLoadingInferenceLogs ||
+    isLoadingInferenceSummary ||
     isListening
 
   const thresholdChangedAfterDetection =
@@ -833,6 +878,14 @@ function App() {
             >
               {isLoadingInferenceLogs ? 'Loading inference logs...' : 'Load Inference Logs'}
             </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleLoadInferenceSummary}
+              disabled={isBusy}
+            >
+              {isLoadingInferenceSummary ? 'Loading inference summary...' : 'Load Inference Summary'}
+            </button>
           </div>
         </div>
 
@@ -882,6 +935,60 @@ function App() {
               </div>
             ) : (
               <p>No detection summary available yet. Run YOLO detection first.</p>
+            )}
+          </div>
+        )}
+
+        {inferenceSummary && (
+          <div className="inference-summary">
+            <h3>Inference Summary</h3>
+
+            <div className="inference-summary-grid">
+              <div className="stat-item">
+                <span>Total runs</span>
+                <strong>{inferenceSummary.total_inferences}</strong>
+              </div>
+
+              <div className="stat-item">
+                <span>Avg time</span>
+                <strong>{inferenceSummary.average_inference_time_ms.toFixed(2)} ms</strong>
+              </div>
+
+              <div className="stat-item">
+                <span>Max time</span>
+                <strong>{inferenceSummary.max_inference_time_ms.toFixed(2)} ms</strong>
+              </div>
+
+              <div className="stat-item">
+                <span>Total detections</span>
+                <strong>{inferenceSummary.total_detections}</strong>
+              </div>
+
+              <div className="stat-item">
+                <span>Avg detections/run</span>
+                <strong>{inferenceSummary.average_detections_per_run.toFixed(2)}</strong>
+              </div>
+            </div>
+
+            {inferenceSummary.by_endpoint.length > 0 ? (
+              <div className="summary-class-list">
+                {inferenceSummary.by_endpoint.map((item) => (
+                  <div className="summary-class-item" key={item.source_endpoint}>
+                    <div>
+                      <strong>{item.source_endpoint}</strong>
+                      <p>{item.run_count} run(s)</p>
+                    </div>
+
+                    <div>
+                      <span>Avg time: {item.average_inference_time_ms.toFixed(2)} ms</span>
+                      <span>Max time: {item.max_inference_time_ms.toFixed(2)} ms</span>
+                      <span>Total detections: {item.total_detections}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>No inference summary available yet. Run YOLO detection first.</p>
             )}
           </div>
         )}
