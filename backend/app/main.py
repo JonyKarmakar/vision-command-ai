@@ -6,9 +6,16 @@ import json
 import shutil
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
-from pydantic import BaseModel
 from fastapi.responses import FileResponse
 from PIL import Image, ImageDraw, UnidentifiedImageError
+
+from app.schemas import (
+    BlurAllByClassRequest,
+    BlurByClassRequest,
+    CommandRequest,
+    CropByClassRequest,
+    CropRequest,
+)
 
 from app.config import (
     APP_DESCRIPTION,
@@ -26,12 +33,6 @@ app = FastAPI(
     description=APP_DESCRIPTION,
     version=APP_VERSION,
 )
-
-class CropRequest(BaseModel):
-    x1: float
-    y1: float
-    x2: float
-    y2: float
 
 
 @app.get("/")
@@ -343,10 +344,6 @@ def crop_uploaded_image(filename: str, crop: CropRequest):
     }
 
 
-class CropByClassRequest(BaseModel):
-    class_name: str
-    confidence_threshold: float = 0.25
-
 
 @app.post("/vision/crop-by-class/{filename}")
 def crop_best_object_by_class(filename: str, request: CropByClassRequest):
@@ -394,11 +391,6 @@ def crop_best_object_by_class(filename: str, request: CropByClassRequest):
         **crop_response,
     }
 
-
-class CommandRequest(BaseModel):
-    filename: str
-    command: str
-    confidence_threshold: float = 0.25
 
 
 def normalize_requested_class_name(class_name: str):
@@ -947,10 +939,6 @@ def blur_uploaded_image_object(filename: str, crop: CropRequest):
 
 
 
-class BlurByClassRequest(BaseModel):
-    class_name: str
-    confidence_threshold: float = 0.25
-
 
 @app.post("/vision/blur-by-class/{filename}")
 def blur_best_object_by_class(filename: str, request: BlurByClassRequest):
@@ -999,10 +987,6 @@ def blur_best_object_by_class(filename: str, request: BlurByClassRequest):
     }
 
 
-
-class BlurAllByClassRequest(BaseModel):
-    class_name: str
-    confidence_threshold: float = 0.25
 
 
 @app.post("/vision/blur-all-by-class/{filename}")
