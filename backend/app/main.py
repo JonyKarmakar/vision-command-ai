@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw, UnidentifiedImageError
 
 from app.routers import health, model
 from app.services.command_parser import normalize_requested_class_name, parse_command
+from app.services.database_service import get_database_url
 from app.schemas import (
     BlurAllByClassRequest,
     BlurByClassRequest,
@@ -457,11 +458,6 @@ def crop_best_object_by_class(filename: str, request: CropByClassRequest):
 
 
 
-
-def get_database_url():
-    import os
-
-    return os.getenv("DATABASE_URL")
 
 
 
