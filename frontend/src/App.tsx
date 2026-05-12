@@ -139,6 +139,15 @@ type InferenceLog = {
   created_at: string
 }
 
+type ModelInfo = {
+  model_name: string
+  task: string
+  framework: string
+  backend: string
+  version: string
+  supported_actions: string[]
+}
+
 type SpeechRecognitionEventLike = {
   results: {
     [index: number]: {
@@ -184,6 +193,7 @@ function App() {
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
+  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
   const [detectionLogs, setDetectionLogs] = useState<DetectionLog[]>([])
   const [detectionSummary, setDetectionSummary] = useState<DetectionSummary | null>(null)
   const [inferenceLogs, setInferenceLogs] = useState<InferenceLog[]>([])
@@ -199,6 +209,7 @@ function App() {
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
+  const [isLoadingModelInfo, setIsLoadingModelInfo] = useState(false)
   const [isLoadingDetections, setIsLoadingDetections] = useState(false)
   const [isLoadingDetectionSummary, setIsLoadingDetectionSummary] = useState(false)
   const [isLoadingInferenceLogs, setIsLoadingInferenceLogs] = useState(false)
@@ -469,6 +480,30 @@ function App() {
     setLastDetectionClass(null)
     setError(null)
     setStatusMessage(`Loaded ${mediaFile.original_filename} from media history. You can now run detection or commands.`)
+  }
+
+  const handleLoadModelInfo = async () => {
+    try {
+      setIsLoadingModelInfo(true)
+      setError(null)
+      setStatusMessage('Loading model information...')
+
+      const response = await fetch('/api/model/info')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load model information')
+      }
+
+      const data: ModelInfo = await response.json()
+      setModelInfo(data)
+      setStatusMessage(`Loaded model information for ${data.model_name}.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load model information.')
+    } finally {
+      setIsLoadingModelInfo(false)
+    }
   }
 
   const handleLoadDatabaseStats = async () => {
@@ -759,6 +794,7 @@ function App() {
     isLoadingLogs ||
     isLoadingMediaFiles ||
     isLoadingStats ||
+    isLoadingModelInfo ||
     isLoadingDetections ||
     isLoadingDetectionSummary ||
     isLoadingInferenceLogs ||
@@ -812,6 +848,14 @@ function App() {
 
             <button
               className="secondary-button"
+              onClick={handleLoadModelInfo}
+              disabled={isBusy}
+            >
+              {isLoadingModelInfo ? 'Loading model...' : 'Load Model Info'}
+            </button>
+
+            <button
+              className="secondary-button"
               onClick={handleLoadDetectionLogs}
               disabled={isBusy}
             >
@@ -835,6 +879,48 @@ function App() {
             </button>
           </div>
         </div>
+
+        {modelInfo && (
+          <div className="model-info-panel">
+            <h3>Model Information</h3>
+
+            <div className="model-info-grid">
+              <div className="stat-item">
+                <span>Model</span>
+                <strong>{modelInfo.model_name}</strong>
+              </div>
+
+              <div className="stat-item">
+                <span>Task</span>
+                <strong>{modelInfo.task}</strong>
+              </div>
+
+              <div className="stat-item">
+                <span>Framework</span>
+                <strong>{modelInfo.framework}</strong>
+              </div>
+
+              <div className="stat-item">
+                <span>Backend</span>
+                <strong>{modelInfo.backend}</strong>
+              </div>
+
+              <div className="stat-item">
+                <span>Version</span>
+                <strong>{modelInfo.version}</strong>
+              </div>
+            </div>
+
+            <div className="supported-actions">
+              <h4>Supported Actions</h4>
+              <div className="action-tags">
+                {modelInfo.supported_actions.map((action) => (
+                  <span key={action}>{action}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {databaseStats && (
           <div className="stats-grid">
