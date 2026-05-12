@@ -11,7 +11,15 @@ from PIL import Image, ImageDraw, UnidentifiedImageError
 
 from app.routers import health, model
 from app.services.command_parser import normalize_requested_class_name, parse_command
-from app.services.database_service import get_database_url
+from app.services.database_service import (
+    get_database_command_logs,
+    get_database_media_files,
+    get_database_url,
+    initialize_command_logs_table,
+    initialize_media_files_table,
+    save_command_log_to_database,
+    save_media_file_to_database,
+)
 from app.schemas import (
     BlurAllByClassRequest,
     BlurByClassRequest,
@@ -83,7 +91,7 @@ def upload_media(file: UploadFile = File(...)):
     }
 
     try:
-        save_media_file_to_database(response_data)
+        save_media_file_to_database(response_data, datetime.now(timezone.utc).isoformat())
     except Exception:
         # Database metadata logging should not break image upload.
         pass
@@ -461,9 +469,6 @@ def crop_best_object_by_class(filename: str, request: CropByClassRequest):
 
 
 
-def initialize_media_files_table():
-    import psycopg
-
     database_url = get_database_url()
 
     if not database_url:
@@ -490,9 +495,6 @@ def initialize_media_files_table():
 
     return True
 
-
-def save_media_file_to_database(media_data: dict):
-    import psycopg
 
     database_url = get_database_url()
 
@@ -532,9 +534,6 @@ def save_media_file_to_database(media_data: dict):
 
     return True
 
-
-def get_database_media_files(limit: int = 20):
-    import psycopg
 
     database_url = get_database_url()
 
