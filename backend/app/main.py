@@ -15,13 +15,17 @@ from app.services.database_service import (
     get_database_command_logs,
     get_database_detection_results,
     get_database_detection_summary,
+    get_database_inference_logs,
+    get_database_inference_summary,
     get_database_media_files,
     get_database_url,
     initialize_command_logs_table,
     initialize_detection_results_table,
     initialize_media_files_table,
+    initialize_model_inference_logs_table,
     save_command_log_to_database,
     save_detections_to_database,
+    save_inference_log_to_database,
     save_media_file_to_database,
 )
 from app.schemas import (
@@ -1140,139 +1144,10 @@ def get_postgres_media_files(limit: int = Query(20, ge=1, le=100)):
 
 
 
-def initialize_model_inference_logs_table():
-    import psycopg
-
-    database_url = get_database_url()
-
-    if not database_url:
-        return False
-
-    with psycopg.connect(database_url) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS model_inference_logs (
-                    id SERIAL PRIMARY KEY,
-                    filename TEXT NOT NULL,
-                    model_name TEXT NOT NULL,
-                    source_endpoint TEXT NOT NULL,
-                    confidence_threshold DOUBLE PRECISION NOT NULL,
-                    class_filter TEXT,
-                    detection_count INTEGER NOT NULL,
-                    inference_time_ms DOUBLE PRECISION NOT NULL,
-                    created_at TEXT NOT NULL
-                );
-                """
-            )
-        connection.commit()
-
-    return True
 
 
-def save_inference_log_to_database(
-    filename: str,
-    source_endpoint: str,
-    confidence_threshold: float,
-    class_filter: Optional[str],
-    detection_count: int,
-    inference_time_ms: float,
-):
-    import psycopg
-
-    database_url = get_database_url()
-
-    if not database_url:
-        return False
-
-    initialize_model_inference_logs_table()
-
-    with psycopg.connect(database_url) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO model_inference_logs (
-                    filename,
-                    model_name,
-                    source_endpoint,
-                    confidence_threshold,
-                    class_filter,
-                    detection_count,
-                    inference_time_ms,
-                    created_at
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
-                """,
-                (
-                    filename,
-                    MODEL_NAME,
-                    source_endpoint,
-                    confidence_threshold,
-                    class_filter,
-                    detection_count,
-                    inference_time_ms,
-                    datetime.now(timezone.utc).isoformat(),
-                ),
-            )
-        connection.commit()
-
-    return True
 
 
-def get_database_inference_logs(limit: int = 20):
-    import psycopg
-
-    database_url = get_database_url()
-
-    if not database_url:
-        return {
-            "status": "not_configured",
-            "count": 0,
-            "inference_logs": [],
-        }
-
-    initialize_model_inference_logs_table()
-
-    with psycopg.connect(database_url) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT
-                    filename,
-                    model_name,
-                    source_endpoint,
-                    confidence_threshold,
-                    class_filter,
-                    detection_count,
-                    inference_time_ms,
-                    created_at
-                FROM model_inference_logs
-                ORDER BY id DESC
-                LIMIT %s;
-                """,
-                (limit,),
-            )
-            rows = cursor.fetchall()
-
-    inference_logs = [
-        {
-            "filename": row[0],
-            "model_name": row[1],
-            "source_endpoint": row[2],
-            "confidence_threshold": row[3],
-            "class_filter": row[4],
-            "detection_count": row[5],
-            "inference_time_ms": row[6],
-            "created_at": row[7],
-        }
-        for row in rows
-    ]
-
-    return {
-        "status": "healthy",
-        "count": len(inference_logs),
-        "inference_logs": inference_logs,
-    }
 
 
 def run_yolo_detection_with_inference_logging(
@@ -1297,6 +1172,7 @@ def run_yolo_detection_with_inference_logging(
     try:
         save_inference_log_to_database(
             filename=filename,
+            model_name=MODEL_NAME,
             source_endpoint=source_endpoint,
             confidence_threshold=confidence_threshold,
             class_filter=class_filter,
@@ -1409,74 +1285,6 @@ def get_postgres_inference_logs(limit: int = Query(20, ge=1, le=100)):
     return get_database_inference_logs(limit)
 
 
-def get_database_inference_summary():
-    import psycopg
-
-    database_url = get_database_url()
-
-    if not database_url:
-        return {
-            "status": "not_configured",
-            "total_inferences": 0,
-            "average_inference_time_ms": 0,
-            "max_inference_time_ms": 0,
-            "total_detections": 0,
-            "average_detections_per_run": 0,
-            "by_endpoint": [],
-        }
-
-    initialize_model_inference_logs_table()
-
-    with psycopg.connect(database_url) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT
-                    COUNT(*) AS total_inferences,
-                    COALESCE(AVG(inference_time_ms), 0) AS average_inference_time_ms,
-                    COALESCE(MAX(inference_time_ms), 0) AS max_inference_time_ms,
-                    COALESCE(SUM(detection_count), 0) AS total_detections,
-                    COALESCE(AVG(detection_count), 0) AS average_detections_per_run
-                FROM model_inference_logs;
-                """
-            )
-            summary_row = cursor.fetchone()
-
-            cursor.execute(
-                """
-                SELECT
-                    source_endpoint,
-                    COUNT(*) AS run_count,
-                    COALESCE(AVG(inference_time_ms), 0) AS average_inference_time_ms,
-                    COALESCE(MAX(inference_time_ms), 0) AS max_inference_time_ms,
-                    COALESCE(SUM(detection_count), 0) AS total_detections
-                FROM model_inference_logs
-                GROUP BY source_endpoint
-                ORDER BY run_count DESC, source_endpoint ASC;
-                """
-            )
-            endpoint_rows = cursor.fetchall()
-
-    by_endpoint = [
-        {
-            "source_endpoint": row[0],
-            "run_count": row[1],
-            "average_inference_time_ms": round(float(row[2]), 2),
-            "max_inference_time_ms": round(float(row[3]), 2),
-            "total_detections": row[4],
-        }
-        for row in endpoint_rows
-    ]
-
-    return {
-        "status": "healthy",
-        "total_inferences": summary_row[0],
-        "average_inference_time_ms": round(float(summary_row[1]), 2),
-        "max_inference_time_ms": round(float(summary_row[2]), 2),
-        "total_detections": summary_row[3],
-        "average_detections_per_run": round(float(summary_row[4]), 2),
-        "by_endpoint": by_endpoint,
-    }
 
 
 @app.get("/db/inference-summary")
