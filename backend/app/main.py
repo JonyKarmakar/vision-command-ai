@@ -10,18 +10,22 @@ from pydantic import BaseModel
 from fastapi.responses import FileResponse
 from PIL import Image, ImageDraw, UnidentifiedImageError
 
-app = FastAPI(
-    title="VisionCommand AI Backend",
-    description="Backend API for the VisionCommand AI project",
-    version="0.1.0",
+from app.config import (
+    APP_DESCRIPTION,
+    APP_TITLE,
+    APP_VERSION,
+    COMMAND_LOG_FILE,
+    LOG_DIR,
+    MODEL_NAME,
+    OUTPUT_DIR,
+    UPLOAD_DIR,
 )
 
-UPLOAD_DIR = Path("storage/uploads")
-OUTPUT_DIR = Path("storage/outputs")
-LOG_DIR = Path("storage/logs")
-COMMAND_LOG_FILE = LOG_DIR / "command_logs.jsonl"
-MODEL_NAME = "yolo26n.pt"
-
+app = FastAPI(
+    title=APP_TITLE,
+    description=APP_DESCRIPTION,
+    version=APP_VERSION,
+)
 
 class CropRequest(BaseModel):
     x1: float
