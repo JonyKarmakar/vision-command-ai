@@ -1563,3 +1563,78 @@ def get_postgres_detection_summary():
 @app.get("/db/inference-logs")
 def get_postgres_inference_logs(limit: int = Query(20, ge=1, le=100)):
     return get_database_inference_logs(limit)
+
+
+def get_database_inference_summary():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "total_inferences": 0,
+            "average_inference_time_ms": 0,
+            "max_inference_time_ms": 0,
+            "total_detections": 0,
+            "average_detections_per_run": 0,
+            "by_endpoint": [],
+        }
+
+    initialize_model_inference_logs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    COUNT(*) AS total_inferences,
+                    COALESCE(AVG(inference_time_ms), 0) AS average_inference_time_ms,
+                    COALESCE(MAX(inference_time_ms), 0) AS max_inference_time_ms,
+                    COALESCE(SUM(detection_count), 0) AS total_detections,
+                    COALESCE(AVG(detection_count), 0) AS average_detections_per_run
+                FROM model_inference_logs;
+                """
+            )
+            summary_row = cursor.fetchone()
+
+            cursor.execute(
+                """
+                SELECT
+                    source_endpoint,
+                    COUNT(*) AS run_count,
+                    COALESCE(AVG(inference_time_ms), 0) AS average_inference_time_ms,
+                    COALESCE(MAX(inference_time_ms), 0) AS max_inference_time_ms,
+                    COALESCE(SUM(detection_count), 0) AS total_detections
+                FROM model_inference_logs
+                GROUP BY source_endpoint
+                ORDER BY run_count DESC, source_endpoint ASC;
+                """
+            )
+            endpoint_rows = cursor.fetchall()
+
+    by_endpoint = [
+        {
+            "source_endpoint": row[0],
+            "run_count": row[1],
+            "average_inference_time_ms": round(float(row[2]), 2),
+            "max_inference_time_ms": round(float(row[3]), 2),
+            "total_detections": row[4],
+        }
+        for row in endpoint_rows
+    ]
+
+    return {
+        "status": "healthy",
+        "total_inferences": summary_row[0],
+        "average_inference_time_ms": round(float(summary_row[1]), 2),
+        "max_inference_time_ms": round(float(summary_row[2]), 2),
+        "total_detections": summary_row[3],
+        "average_detections_per_run": round(float(summary_row[4]), 2),
+        "by_endpoint": by_endpoint,
+    }
+
+
+@app.get("/db/inference-summary")
+def get_postgres_inference_summary():
+    return get_database_inference_summary()
