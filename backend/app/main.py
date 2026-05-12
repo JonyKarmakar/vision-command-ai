@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from PIL import Image, ImageDraw, UnidentifiedImageError
 
 from app.routers import health, model
+from app.services.command_parser import normalize_requested_class_name, parse_command
 from app.schemas import (
     BlurAllByClassRequest,
     BlurByClassRequest,
@@ -389,9 +390,6 @@ def crop_best_object_by_class(filename: str, request: CropByClassRequest):
 
 
 
-def normalize_requested_class_name(class_name: str):
-    normalized = class_name.lower().strip()
-
     aliases = {
         "people": "person",
         "persons": "person",
@@ -405,10 +403,6 @@ def normalize_requested_class_name(class_name: str):
 
     return normalized
 
-
-def parse_command(command: str):
-    normalized_command = command.lower().strip()
-    words = normalized_command.split()
 
     if "detect" in normalized_command:
         return {
