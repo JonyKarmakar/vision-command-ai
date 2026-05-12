@@ -9,6 +9,7 @@ from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from PIL import Image, ImageDraw, UnidentifiedImageError
 
+from app.routers import health, model
 from app.schemas import (
     BlurAllByClassRequest,
     BlurByClassRequest,
@@ -34,15 +35,10 @@ app = FastAPI(
     version=APP_VERSION,
 )
 
-
-@app.get("/")
-def root():
-    return {"message": "VisionCommand AI backend is running"}
+app.include_router(health.router)
+app.include_router(model.router)
 
 
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
 
 
 @app.post("/media/upload")
@@ -1627,23 +1623,3 @@ def get_database_inference_summary():
 def get_postgres_inference_summary():
     return get_database_inference_summary()
 
-
-@app.get("/model/info")
-def get_model_info():
-    return {
-        "model_name": MODEL_NAME,
-        "task": "object_detection",
-        "framework": "Ultralytics YOLO",
-        "backend": "FastAPI",
-        "version": app.version,
-        "supported_actions": [
-            "detect",
-            "annotate",
-            "crop",
-            "crop_by_class",
-            "blur",
-            "blur_by_class",
-            "blur_all_by_class",
-            "command_execution",
-        ],
-    }
