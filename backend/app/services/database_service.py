@@ -673,3 +673,33 @@ def get_database_inference_summary():
         "average_detections_per_run": round(float(summary_row[4]), 2),
         "by_endpoint": by_endpoint,
     }
+
+
+def get_database_stats():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "media_files_count": 0,
+            "command_logs_count": 0,
+        }
+
+    initialize_media_files_table()
+    initialize_command_logs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM media_files;")
+            media_files_count = cursor.fetchone()[0]
+
+            cursor.execute("SELECT COUNT(*) FROM command_logs;")
+            command_logs_count = cursor.fetchone()[0]
+
+    return {
+        "status": "healthy",
+        "media_files_count": media_files_count,
+        "command_logs_count": command_logs_count,
+    }
