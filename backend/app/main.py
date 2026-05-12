@@ -1638,3 +1638,24 @@ def get_database_inference_summary():
 @app.get("/db/inference-summary")
 def get_postgres_inference_summary():
     return get_database_inference_summary()
+
+
+@app.get("/model/info")
+def get_model_info():
+    return {
+        "model_name": MODEL_NAME,
+        "task": "object_detection",
+        "framework": "Ultralytics YOLO",
+        "backend": "FastAPI",
+        "version": app.version,
+        "supported_actions": [
+            "detect",
+            "annotate",
+            "crop",
+            "crop_by_class",
+            "blur",
+            "blur_by_class",
+            "blur_all_by_class",
+            "command_execution",
+        ],
+    }
