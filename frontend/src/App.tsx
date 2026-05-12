@@ -128,6 +128,17 @@ type DetectionLog = {
   created_at: string
 }
 
+type InferenceLog = {
+  filename: string
+  model_name: string
+  source_endpoint: string
+  confidence_threshold: number
+  class_filter: string | null
+  detection_count: number
+  inference_time_ms: number
+  created_at: string
+}
+
 type SpeechRecognitionEventLike = {
   results: {
     [index: number]: {
@@ -175,6 +186,7 @@ function App() {
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
   const [detectionLogs, setDetectionLogs] = useState<DetectionLog[]>([])
   const [detectionSummary, setDetectionSummary] = useState<DetectionSummary | null>(null)
+  const [inferenceLogs, setInferenceLogs] = useState<InferenceLog[]>([])
 
   const [lastDetectionThreshold, setLastDetectionThreshold] = useState<number | null>(null)
   const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
@@ -189,6 +201,7 @@ function App() {
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [isLoadingDetections, setIsLoadingDetections] = useState(false)
   const [isLoadingDetectionSummary, setIsLoadingDetectionSummary] = useState(false)
+  const [isLoadingInferenceLogs, setIsLoadingInferenceLogs] = useState(false)
   const [isListening, setIsListening] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -482,6 +495,30 @@ function App() {
     }
   }
 
+  const handleLoadInferenceLogs = async () => {
+    try {
+      setIsLoadingInferenceLogs(true)
+      setError(null)
+      setStatusMessage('Loading model inference logs from PostgreSQL...')
+
+      const response = await fetch('/api/db/inference-logs?limit=10')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load model inference logs')
+      }
+
+      const data: { count: number; inference_logs: InferenceLog[] } = await response.json()
+      setInferenceLogs(data.inference_logs)
+      setStatusMessage(`Loaded ${data.count} recent inference log(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load model inference logs.')
+    } finally {
+      setIsLoadingInferenceLogs(false)
+    }
+  }
+
   const handleLoadDetectionSummary = async () => {
     try {
       setIsLoadingDetectionSummary(true)
@@ -724,6 +761,7 @@ function App() {
     isLoadingStats ||
     isLoadingDetections ||
     isLoadingDetectionSummary ||
+    isLoadingInferenceLogs ||
     isListening
 
   const thresholdChangedAfterDetection =
@@ -787,6 +825,14 @@ function App() {
             >
               {isLoadingDetectionSummary ? 'Loading summary...' : 'Load Detection Summary'}
             </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleLoadInferenceLogs}
+              disabled={isBusy}
+            >
+              {isLoadingInferenceLogs ? 'Loading inference logs...' : 'Load Inference Logs'}
+            </button>
           </div>
         </div>
 
@@ -837,6 +883,30 @@ function App() {
             ) : (
               <p>No detection summary available yet. Run YOLO detection first.</p>
             )}
+          </div>
+        )}
+
+        {inferenceLogs.length > 0 && (
+          <div className="inference-history">
+            <h3>Recent Model Inference Logs</h3>
+
+            {inferenceLogs.map((log, index) => (
+              <div className="inference-log-item" key={`${log.filename}-${log.created_at}-${index}`}>
+                <div>
+                  <strong>{log.model_name}</strong>
+                  <p>{new Date(log.created_at).toLocaleString()}</p>
+                  <p>{log.filename}</p>
+                </div>
+
+                <div className="inference-log-meta">
+                  <span>Endpoint: {log.source_endpoint}</span>
+                  <span>Detections: {log.detection_count}</span>
+                  <span>Inference time: {log.inference_time_ms.toFixed(2)} ms</span>
+                  <span>Threshold: {(log.confidence_threshold * 100).toFixed(0)}%</span>
+                  {log.class_filter && <span>Class filter: {log.class_filter}</span>}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
