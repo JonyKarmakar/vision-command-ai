@@ -30,6 +30,23 @@ type VideoUploadResponse = {
   }
 }
 
+type VideoTrimResponse = {
+  filename: string
+  trimmed_filename: string
+  trimmed_file_url: string
+  start_seconds: number
+  end_seconds: number
+  duration_seconds: number
+  metadata: {
+    is_readable: boolean
+    width: number | null
+    height: number | null
+    fps: number | null
+    frame_count: number | null
+    duration_seconds: number | null
+  }
+}
+
 type Detection = {
   class_id: number
   class_name: string
@@ -218,6 +235,9 @@ function App() {
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
   const [videoUploadResult, setVideoUploadResult] = useState<VideoUploadResponse | null>(null)
+  const [videoTrimResult, setVideoTrimResult] = useState<VideoTrimResponse | null>(null)
+  const [trimStartSeconds, setTrimStartSeconds] = useState(0)
+  const [trimEndSeconds, setTrimEndSeconds] = useState(2)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
@@ -242,6 +262,7 @@ function App() {
 
   const [isUploading, setIsUploading] = useState(false)
   const [isUploadingVideo, setIsUploadingVideo] = useState(false)
+  const [isTrimmingVideo, setIsTrimmingVideo] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
   const [isBlurring, setIsBlurring] = useState(false)
@@ -279,6 +300,7 @@ function App() {
     const file = event.target.files?.[0] || null
     setSelectedVideoFile(file)
     setVideoUploadResult(null)
+    setVideoTrimResult(null)
     setError(null)
     setStatusMessage(file ? `Selected video ${file.name}. Ready to upload.` : 'Ready to upload an image or video.')
   }
@@ -295,6 +317,7 @@ function App() {
     try {
       setIsUploadingVideo(true)
       setError(null)
+      setVideoTrimResult(null)
       setStatusMessage('Uploading video to backend...')
 
       const response = await fetch('/api/media/upload-video', {
@@ -315,6 +338,52 @@ function App() {
       setStatusMessage('Video upload failed.')
     } finally {
       setIsUploadingVideo(false)
+    }
+  }
+
+  const handleVideoTrim = async () => {
+    if (!videoUploadResult) {
+      setError('Please upload a video first.')
+      return
+    }
+
+    if (trimStartSeconds < 0 || trimEndSeconds <= trimStartSeconds) {
+      setError('Please enter a valid trim range.')
+      return
+    }
+
+    try {
+      setIsTrimmingVideo(true)
+      setError(null)
+      setStatusMessage(`Trimming video from ${trimStartSeconds}s to ${trimEndSeconds}s...`)
+
+      const response = await fetch(
+        `/api/video/trim/${videoUploadResult.stored_filename}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            start_seconds: trimStartSeconds,
+            end_seconds: trimEndSeconds,
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Video trim failed')
+      }
+
+      const data: VideoTrimResponse = await response.json()
+      setVideoTrimResult(data)
+      setStatusMessage('Video trim complete. Trimmed video is ready.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Video trim failed.')
+    } finally {
+      setIsTrimmingVideo(false)
     }
   }
 
@@ -873,6 +942,8 @@ function App() {
 
   const uploadedVideoUrl = videoUploadResult ? `/api${videoUploadResult.file_url}` : null
 
+  const trimmedVideoUrl = videoTrimResult ? `/api${videoTrimResult.trimmed_file_url}` : null
+
   const annotatedImageUrl = detectionResult
     ? `/api${detectionResult.annotated_file_url}`
     : null
@@ -898,6 +969,7 @@ function App() {
   const isBusy =
     isUploading ||
     isUploadingVideo ||
+    isTrimmingVideo ||
     isDetecting ||
     isCropping ||
     isBlurring ||
@@ -1381,41 +1453,80 @@ function App() {
       </section>
 
       {videoUploadResult && (
-        <section className="result-grid">
-          <div className="card">
-            <h2>Video Upload Result</h2>
-            <div className="metadata-list">
-              <p><strong>Original filename:</strong> {videoUploadResult.original_filename}</p>
-              <p><strong>Stored filename:</strong> {videoUploadResult.stored_filename}</p>
-              <p><strong>Content type:</strong> {videoUploadResult.content_type}</p>
-              <p><strong>File size:</strong> {videoUploadResult.file_size_bytes} bytes</p>
-              <p><strong>Readable:</strong> {videoUploadResult.metadata.is_readable ? 'Yes' : 'No'}</p>
-              <p><strong>Width:</strong> {videoUploadResult.metadata.width ?? 'Unknown'}</p>
-              <p><strong>Height:</strong> {videoUploadResult.metadata.height ?? 'Unknown'}</p>
-              <p><strong>FPS:</strong> {videoUploadResult.metadata.fps ?? 'Unknown'}</p>
-              <p><strong>Frame count:</strong> {videoUploadResult.metadata.frame_count ?? 'Unknown'}</p>
-              <p><strong>Duration:</strong> {videoUploadResult.metadata.duration_seconds ? `${videoUploadResult.metadata.duration_seconds}s` : 'Unknown'}</p>
+        <>
+          <section className="result-grid">
+            <div className="card">
+              <h2>Video Upload Result</h2>
+              <div className="metadata-list">
+                <p><strong>Original filename:</strong> {videoUploadResult.original_filename}</p>
+                <p><strong>Stored filename:</strong> {videoUploadResult.stored_filename}</p>
+                <p><strong>Content type:</strong> {videoUploadResult.content_type}</p>
+                <p><strong>File size:</strong> {videoUploadResult.file_size_bytes} bytes</p>
+                <p><strong>Readable:</strong> {videoUploadResult.metadata.is_readable ? 'Yes' : 'No'}</p>
+                <p><strong>Width:</strong> {videoUploadResult.metadata.width ?? 'Unknown'}</p>
+                <p><strong>Height:</strong> {videoUploadResult.metadata.height ?? 'Unknown'}</p>
+                <p><strong>FPS:</strong> {videoUploadResult.metadata.fps ?? 'Unknown'}</p>
+                <p><strong>Frame count:</strong> {videoUploadResult.metadata.frame_count ?? 'Unknown'}</p>
+                <p><strong>Duration:</strong> {videoUploadResult.metadata.duration_seconds ? `${videoUploadResult.metadata.duration_seconds}s` : 'Unknown'}</p>
+              </div>
             </div>
-          </div>
 
-          <div className="card">
-            <h2>Video Preview</h2>
-            {uploadedVideoUrl && videoUploadResult && (
-              <>
-                <video className="preview-video" src={uploadedVideoUrl} controls />
+            <div className="card">
+              <h2>Video Preview</h2>
+              {uploadedVideoUrl && videoUploadResult && (
+                <>
+                  <video className="preview-video" src={uploadedVideoUrl} controls />
 
-                <div className="output-actions">
-                  <a href={uploadedVideoUrl} target="_blank" rel="noreferrer">
-                    Open video
-                  </a>
-                  <a href={uploadedVideoUrl} download={videoUploadResult.original_filename}>
-                    Download video
-                  </a>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
+                  <div className="output-actions">
+                    <a href={uploadedVideoUrl} target="_blank" rel="noreferrer">
+                      Open video
+                    </a>
+                    <a href={uploadedVideoUrl} download={videoUploadResult.original_filename}>
+                      Download video
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+
+          <section className="card video-trim-card">
+            <h2>Trim Video</h2>
+            <p className="small-note">
+              Select a start and end time in seconds. The backend will create a browser-playable trimmed MP4.
+            </p>
+
+            <div className="trim-input-grid">
+              <label>
+                Start seconds
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={trimStartSeconds}
+                  onChange={(event) => setTrimStartSeconds(Number(event.target.value))}
+                  disabled={isBusy}
+                />
+              </label>
+
+              <label>
+                End seconds
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={trimEndSeconds}
+                  onChange={(event) => setTrimEndSeconds(Number(event.target.value))}
+                  disabled={isBusy}
+                />
+              </label>
+            </div>
+
+            <button onClick={handleVideoTrim} disabled={isBusy || !videoUploadResult}>
+              {isTrimmingVideo ? 'Trimming video...' : 'Trim Video'}
+            </button>
+          </section>
+        </>
       )}
 
       {uploadResult && (
@@ -1669,6 +1780,44 @@ function App() {
           </div>
         </section>
       )}
+      {videoTrimResult && (
+        <section className="result-grid">
+          <div className="card">
+            <h2>Trimmed Video Result</h2>
+            <div className="metadata-list">
+              <p><strong>Original filename:</strong> {videoTrimResult.filename}</p>
+              <p><strong>Trimmed filename:</strong> {videoTrimResult.trimmed_filename}</p>
+              <p><strong>Start:</strong> {videoTrimResult.start_seconds}s</p>
+              <p><strong>End:</strong> {videoTrimResult.end_seconds}s</p>
+              <p><strong>Trim duration:</strong> {videoTrimResult.duration_seconds}s</p>
+              <p><strong>Readable:</strong> {videoTrimResult.metadata.is_readable ? 'Yes' : 'No'}</p>
+              <p><strong>Width:</strong> {videoTrimResult.metadata.width ?? 'Unknown'}</p>
+              <p><strong>Height:</strong> {videoTrimResult.metadata.height ?? 'Unknown'}</p>
+              <p><strong>FPS:</strong> {videoTrimResult.metadata.fps ?? 'Unknown'}</p>
+              <p><strong>Frame count:</strong> {videoTrimResult.metadata.frame_count ?? 'Unknown'}</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2>Trimmed Video Preview</h2>
+            {trimmedVideoUrl && videoTrimResult && (
+              <>
+                <video className="preview-video" src={trimmedVideoUrl} controls />
+
+                <div className="output-actions">
+                  <a href={trimmedVideoUrl} target="_blank" rel="noreferrer">
+                    Open trimmed video
+                  </a>
+                  <a href={trimmedVideoUrl} download={videoTrimResult.trimmed_filename}>
+                    Download trimmed video
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
     </main>
   )
 }
