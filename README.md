@@ -1,33 +1,80 @@
 # VisionCommand AI
 
-VisionCommand AI is an end-to-end AI-powered computer vision application where users can upload an image, run YOLO object detection, and view the annotated detection result through a React frontend.
+VisionCommand AI is an end-to-end AI-powered computer vision and media editing application. Users can upload images, run YOLO object detection, view annotated results, crop or blur detected objects, use text or browser-based voice commands, and work with database-backed media, command, detection, and inference history.
 
-The project is being built as a learning-focused production-style AI system. The goal is not only to build a computer vision demo, but also to learn full-stack development, Git/GitHub workflow, Docker, CI/CD, and AI model serving.
+The project is being built as a learning-focused production-style AI system. The goal is not only to build a computer vision demo, but also to learn full-stack AI development, Git/GitHub workflow, Docker, CI/CD, PostgreSQL-backed data engineering, and MLOps-style inference monitoring.
+
+---
 
 ## Current Features
 
-- Upload an image from the React frontend
-- Send image to FastAPI backend
-- Store uploaded images locally
+### Image AI and Editing
+
+- Upload image files from the React frontend
+- Store uploaded images through the FastAPI backend
 - Extract image metadata such as width and height
-- Preview uploaded images
+- Preview uploaded images in the frontend
 - Run YOLO object detection on uploaded images
 - Return detected object classes, confidence scores, and bounding boxes
 - Generate annotated images with bounding boxes
 - Filter detections by confidence threshold
 - Filter detections by object class
-- Display annotated output in the frontend
 - Crop individual detected objects
 - Crop the best detected object by selected class
 - Blur individual detected objects
-- Blur the best detected object by class using text or voice command
-- Use a command box for simple commands such as `detect objects`, `crop person`, and `blur person`
-- Use browser-based voice input for simple image commands
-- Log command executions locally
-- View recent command history in the frontend
+- Blur the best detected object by class
+- Blur all objects of a selected class
 - Open and download original, annotated, cropped, and blurred outputs
-- Run backend and frontend together using Docker Compose
-- Automatically check backend tests, backend Docker build, and frontend build using GitHub Actions
+
+### Video Foundation
+
+- Upload video files from the frontend
+- Store uploaded videos through the FastAPI backend
+- Preview uploaded videos in the frontend
+- Extract video metadata such as width, height, FPS, frame count, duration, and readability status
+- Trim uploaded videos using start and end seconds
+- Generate browser-playable trimmed MP4 videos using FFmpeg through `imageio-ffmpeg`
+- Preview, open, and download trimmed video outputs
+
+### Commands and Voice Input
+
+- Use a command box for simple text commands such as:
+  - `detect objects`
+  - `crop person`
+  - `crop bottle`
+  - `blur person`
+  - `blur bottle`
+  - `blur all persons`
+- Use browser-based voice input for simple image commands
+- Execute command actions through the FastAPI backend
+- Log command executions locally and in PostgreSQL
+- View recent command history in the frontend
+
+### Database and Analytics
+
+- Store uploaded media metadata in PostgreSQL
+- Store command execution logs in PostgreSQL
+- Store YOLO detection results in PostgreSQL
+- Store model inference logs in PostgreSQL
+- View database statistics from the frontend
+- View uploaded media history from the frontend
+- Reuse uploaded images from media history
+- View recent detection history from the frontend
+- View detection summary analytics from the frontend
+- View inference logs and inference summary from the frontend
+- View model metadata from the frontend
+
+### DevOps and Workflow
+
+- Run backend, frontend, and PostgreSQL together using Docker Compose
+- Automatically check backend tests with GitHub Actions
+- Automatically check backend Docker image builds with GitHub Actions
+- Automatically check frontend builds with GitHub Actions
+- Use feature branches and Pull Requests
+- Protect the `main` branch with required CI checks
+- Use version tags and GitHub Releases
+
+---
 
 ## Tech Stack
 
@@ -47,6 +94,12 @@ The project is being built as a learning-focused production-style AI system. The
 - Ultralytics YOLO
 - OpenCV
 - PyTorch
+- imageio-ffmpeg
+
+### Database
+
+- PostgreSQL
+- psycopg
 
 ### DevOps and Workflow
 
@@ -56,13 +109,19 @@ The project is being built as a learning-focused production-style AI system. The
 - Docker
 - Docker Compose
 
+---
+
 ## Project Structure
 
 ```text
 vision-command-ai/
 ├── backend/
 │   ├── app/
-│   │   └── main.py
+│   │   ├── config.py
+│   │   ├── main.py
+│   │   ├── schemas.py
+│   │   ├── routers/
+│   │   └── services/
 │   ├── tests/
 │   ├── Dockerfile
 │   ├── .dockerignore
@@ -84,8 +143,8 @@ vision-command-ai/
 ├── docker-compose.yml
 ├── .gitignore
 └── README.md
-
 ```
+
 ---
 
 ## Backend API Endpoints
@@ -100,13 +159,25 @@ Returns backend health status.
 
 ---
 
+### Model Information
+
+```text
+GET /model/info
+```
+
+Returns model and backend metadata, including model name, task, framework, backend version, and supported actions.
+
+---
+
+## Media Endpoints
+
 ### Upload Image
 
 ```text
 POST /media/upload
 ```
 
-Uploads an image and returns metadata such as filename, width, height, and file URL.
+Uploads an image and returns metadata such as filename, width, height, storage path, and file URL.
 
 ---
 
@@ -116,9 +187,63 @@ Uploads an image and returns metadata such as filename, width, height, and file 
 GET /media/uploads/{filename}
 ```
 
-Returns the uploaded image file.
+Returns an uploaded image file.
 
 ---
+
+### Upload Video
+
+```text
+POST /media/upload-video
+```
+
+Uploads a video file and returns video metadata such as filename, content type, file size, file URL, and extracted video metadata.
+
+Example response:
+
+```json
+{
+  "message": "Video uploaded successfully",
+  "original_filename": "clip.mp4",
+  "stored_filename": "generated_filename.mp4",
+  "content_type": "video/mp4",
+  "file_size_bytes": 985083,
+  "storage_path": "storage/videos/generated_filename.mp4",
+  "file_url": "/media/videos/generated_filename.mp4",
+  "metadata": {
+    "is_readable": true,
+    "width": 1280,
+    "height": 720,
+    "fps": 25.0,
+    "frame_count": 100,
+    "duration_seconds": 4.0
+  }
+}
+```
+
+---
+
+### View Uploaded Video
+
+```text
+GET /media/videos/{filename}
+```
+
+Returns an uploaded video file.
+
+---
+
+### View Output Media
+
+```text
+GET /media/outputs/{filename}
+```
+
+Returns generated output files such as annotated images, cropped images, blurred images, and trimmed videos.
+
+---
+
+## Vision and Editing Endpoints
 
 ### Run YOLO Detection
 
@@ -137,16 +262,6 @@ POST /vision/detect/{filename}/annotated
 ```
 
 Runs YOLO detection, draws bounding boxes, saves the annotated image, and returns the annotated image URL.
-
----
-
-### View Annotated Output
-
-```text
-GET /media/outputs/{filename}
-```
-
-Returns generated output images such as annotated, cropped, and blurred images.
 
 ---
 
@@ -230,6 +345,50 @@ Example request:
 
 ---
 
+### Blur All Objects by Class
+
+```text
+POST /vision/blur-all-by-class/{filename}
+```
+
+Finds all detected objects for a requested class and returns a blurred output image.
+
+Example request:
+
+```json
+{
+  "class_name": "person",
+  "confidence_threshold": 0.3
+}
+```
+
+---
+
+## Video Editing Endpoints
+
+### Trim Uploaded Video
+
+```text
+POST /video/trim/{filename}
+```
+
+Trims an uploaded video using start and end seconds.
+
+Example request:
+
+```json
+{
+  "start_seconds": 0,
+  "end_seconds": 2
+}
+```
+
+The backend returns a trimmed video URL and metadata.
+
+---
+
+## Command Endpoints
+
 ### Execute Text Command
 
 ```text
@@ -246,6 +405,7 @@ crop person
 crop bottle
 blur person
 blur bottle
+blur all persons
 ```
 
 Example request:
@@ -260,19 +420,101 @@ Example request:
 
 ---
 
-### View Command Logs
+### View Local Command Logs
 
 ```text
 GET /commands/logs
 ```
 
-Returns recent command execution logs.
+Returns recent command execution logs from the local JSONL log file.
 
 Example:
 
 ```text
 GET /commands/logs?limit=10
 ```
+
+---
+
+## Database Endpoints
+
+### Database Health
+
+```text
+GET /db/health
+```
+
+Checks whether the backend can connect to PostgreSQL.
+
+---
+
+### Database Statistics
+
+```text
+GET /db/stats
+```
+
+Returns database-level statistics such as uploaded media count and command log count.
+
+---
+
+### Uploaded Media History
+
+```text
+GET /db/media-files
+```
+
+Returns uploaded media metadata stored in PostgreSQL.
+
+---
+
+### PostgreSQL Command Logs
+
+```text
+GET /db/command-logs
+```
+
+Returns command execution logs stored in PostgreSQL.
+
+---
+
+### Detection History
+
+```text
+GET /db/detections
+```
+
+Returns stored YOLO detection results from PostgreSQL.
+
+---
+
+### Detection Summary
+
+```text
+GET /db/detection-summary
+```
+
+Returns class-level detection analytics, including count, average confidence, and max confidence.
+
+---
+
+### Model Inference Logs
+
+```text
+GET /db/inference-logs
+```
+
+Returns YOLO inference logs, including model name, endpoint, detection count, inference time, and timestamp.
+
+---
+
+### Model Inference Summary
+
+```text
+GET /db/inference-summary
+```
+
+Returns aggregated inference analytics, including total inference runs, average inference time, max inference time, total detections, and endpoint-level summary.
 
 ---
 
@@ -297,6 +539,8 @@ FastAPI docs:
 ```text
 http://127.0.0.1:8000/docs
 ```
+
+---
 
 ### Start Frontend
 
@@ -375,6 +619,8 @@ The frontend workflow checks:
 - Frontend dependencies install correctly
 - React frontend builds successfully
 
+The `main` branch is protected with required pull requests and required status checks.
+
 ---
 
 ## Current Status
@@ -383,18 +629,23 @@ Completed:
 
 - Backend foundation
 - Health endpoint
+- Model information endpoint
 - Image upload API
 - Image metadata extraction
-- Uploaded media access endpoint
+- Uploaded image access endpoint
 - YOLO object detection endpoint
 - Annotated YOLO output endpoint
 - Object crop endpoint
 - Object blur endpoint
 - Crop-by-class endpoint
 - Blur-by-class endpoint
+- Blur-all-by-class endpoint
 - Command execution endpoint
 - Command logging endpoint
 - Command history endpoint
+- Backend video upload foundation
+- Backend video metadata extraction
+- Backend video trim endpoint
 - React frontend foundation
 - Frontend image upload flow
 - Frontend YOLO detection flow
@@ -403,12 +654,46 @@ Completed:
 - Frontend command box
 - Browser-based voice command input
 - Frontend command history
+- Frontend media history
+- Frontend database dashboard
+- Frontend detection history
+- Frontend detection summary
+- Frontend inference logs
+- Frontend inference summary
+- Frontend model information panel
+- Frontend video upload flow
+- Frontend video metadata display
+- Frontend video trim flow
+- PostgreSQL media metadata storage
+- PostgreSQL command log storage
+- PostgreSQL detection result storage
+- PostgreSQL inference log storage
 - Backend Dockerfile
 - Frontend Dockerfile
 - Full-stack Docker Compose setup
 - Backend CI
 - Frontend CI
+- Protected main branch
+- GitHub release `v0.1.0`
 - Pull Request workflow
+
+---
+
+## Recent Refactoring
+
+Recent backend cleanup moved several responsibilities out of `main.py` and into service/router modules:
+
+- Basic health/model routes moved to routers
+- Request schemas moved to a schemas module
+- Command parser moved to a service module
+- Database URL helper moved to database service
+- Command log database helpers moved to database service
+- Media database helpers moved to database service
+- Detection database helpers moved to database service
+- Inference database helpers moved to database service
+- Database stats helper moved to database service
+
+This keeps `main.py` smaller and makes the backend easier to maintain.
 
 ---
 
@@ -416,16 +701,15 @@ Completed:
 
 Planned future improvements:
 
-- Improve frontend layout and component structure
+- Add video frame extraction
+- Add YOLO object detection on selected video frames
+- Add annotated video frame output
+- Add object tracking for videos
+- Add advanced FFmpeg-based video editing workflows
 - Add backend-side command parser improvements
 - Add support for commands such as `crop the highest confidence person`
-- Add support for commands such as `blur all persons`
-- Add video upload support
-- Add video trimming with FFmpeg
-- Add object tracking for videos
-- Add chat command parsing with an LLM
-- Add proper speech-to-text backend integration
-- Add PostgreSQL for metadata and command logs
+- Add LLM-based command parsing
+- Add proper backend speech-to-text integration
 - Add MLflow for experiment tracking
 - Add DVC for data/model versioning
 - Add deployment workflow
@@ -442,92 +726,11 @@ This project is designed to teach:
 - React frontend development
 - Git and GitHub workflow
 - Pull Requests
+- Protected branch workflow
 - Automated testing
 - CI/CD with GitHub Actions
 - Docker and Docker Compose
+- PostgreSQL-backed data engineering
 - Full-stack AI system design
-- MLOps and LLMOps foundations
----
-
-## Current Project Status
-
-VisionCommand AI is an AI vision detection studio built with a FastAPI backend, a Vite frontend, YOLO-based object detection, and optional PostgreSQL persistence through Docker Compose.
-
-### Implemented Features
-
-- Upload image files through the frontend
-- Run YOLO object detection on uploaded images
-- Crop detected objects
-- Blur detected objects
-- Blur all objects by selected class
-- Execute text-based commands such as:
-  - `detect objects`
-  - `crop person`
-  - `blur person`
-  - `blur all persons`
-- Store uploaded media metadata in PostgreSQL
-- Store command execution logs in PostgreSQL
-- Store detection results in PostgreSQL
-- Store model inference logs in PostgreSQL
-- View database statistics from the frontend
-- View uploaded media history from the frontend
-- View recent detection history from the frontend
-- View detection summary from the frontend
-- View inference logs and inference summary from the frontend
-- View model metadata from the frontend
-
-### Backend
-
-The backend is built with FastAPI and exposes endpoints for:
-
-- Image upload
-- YOLO detection
-- Object cropping
-- Object blurring
-- Command execution
-- Command logs
-- Database health
-- Database statistics
-- Uploaded media history
-- Detection history
-- Detection summary
-- Inference logs
-- Inference summary
-- Model information
-
-### Frontend
-
-The frontend is built with Vite and provides a single-page interface for:
-
-- Uploading images
-- Running detections
-- Running text or voice commands
-- Viewing uploaded media history
-- Viewing database-backed analytics
-- Viewing model and inference information
-
-### Database
-
-PostgreSQL is used to persist:
-
-- Uploaded media metadata
-- Command execution logs
-- Detection results
-- Model inference logs
-
-The project can run locally with Docker Compose, including backend, frontend, and PostgreSQL services.
-
-### Recent Refactoring
-
-Recent backend cleanup moved several responsibilities out of `main.py` and into service/router modules:
-
-- Basic health/model routes moved to routers
-- Command parser moved to a service module
-- Request schemas moved to a schemas module
-- Database URL helper moved to database service
-- Media database helpers moved to database service
-- Detection database helpers moved to database service
-- Inference database helpers moved to database service
-- Database stats helper moved to database service
-
-This keeps `main.py` smaller and makes the backend easier to maintain.
+- MLOps-style inference logging and analytics
+- LLMOps foundations through command logging and command history
