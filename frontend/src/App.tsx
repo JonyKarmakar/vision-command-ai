@@ -47,6 +47,16 @@ type VideoTrimResponse = {
   }
 }
 
+type VideoFrameExtractResponse = {
+  filename: string
+  frame_filename: string
+  frame_file_url: string
+  timestamp_seconds: number
+  frame_index: number
+  fps: number
+  video_duration_seconds: number
+}
+
 type Detection = {
   class_id: number
   class_name: string
@@ -236,8 +246,10 @@ function App() {
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
   const [videoUploadResult, setVideoUploadResult] = useState<VideoUploadResponse | null>(null)
   const [videoTrimResult, setVideoTrimResult] = useState<VideoTrimResponse | null>(null)
+  const [videoFrameResult, setVideoFrameResult] = useState<VideoFrameExtractResponse | null>(null)
   const [trimStartSeconds, setTrimStartSeconds] = useState(0)
   const [trimEndSeconds, setTrimEndSeconds] = useState(2)
+  const [frameTimestampSeconds, setFrameTimestampSeconds] = useState(1)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
@@ -263,6 +275,7 @@ function App() {
   const [isUploading, setIsUploading] = useState(false)
   const [isUploadingVideo, setIsUploadingVideo] = useState(false)
   const [isTrimmingVideo, setIsTrimmingVideo] = useState(false)
+  const [isExtractingFrame, setIsExtractingFrame] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
   const [isBlurring, setIsBlurring] = useState(false)
@@ -301,6 +314,7 @@ function App() {
     setSelectedVideoFile(file)
     setVideoUploadResult(null)
     setVideoTrimResult(null)
+    setVideoFrameResult(null)
     setError(null)
     setStatusMessage(file ? `Selected video ${file.name}. Ready to upload.` : 'Ready to upload an image or video.')
   }
@@ -318,6 +332,7 @@ function App() {
       setIsUploadingVideo(true)
       setError(null)
       setVideoTrimResult(null)
+      setVideoFrameResult(null)
       setStatusMessage('Uploading video to backend...')
 
       const response = await fetch('/api/media/upload-video', {
@@ -384,6 +399,51 @@ function App() {
       setStatusMessage('Video trim failed.')
     } finally {
       setIsTrimmingVideo(false)
+    }
+  }
+
+  const handleExtractVideoFrame = async () => {
+    if (!videoUploadResult) {
+      setError('Please upload a video first.')
+      return
+    }
+
+    if (frameTimestampSeconds < 0) {
+      setError('Timestamp must be greater than or equal to 0.')
+      return
+    }
+
+    try {
+      setIsExtractingFrame(true)
+      setError(null)
+      setStatusMessage(`Extracting frame at ${frameTimestampSeconds}s...`)
+
+      const response = await fetch(
+        `/api/video/extract-frame/${videoUploadResult.stored_filename}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            timestamp_seconds: frameTimestampSeconds,
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Frame extraction failed')
+      }
+
+      const data: VideoFrameExtractResponse = await response.json()
+      setVideoFrameResult(data)
+      setStatusMessage('Frame extraction complete. Extracted frame is ready.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Frame extraction failed.')
+    } finally {
+      setIsExtractingFrame(false)
     }
   }
 
@@ -944,6 +1004,8 @@ function App() {
 
   const trimmedVideoUrl = videoTrimResult ? `/api${videoTrimResult.trimmed_file_url}` : null
 
+  const extractedFrameUrl = videoFrameResult ? `/api${videoFrameResult.frame_file_url}` : null
+
   const annotatedImageUrl = detectionResult
     ? `/api${detectionResult.annotated_file_url}`
     : null
@@ -970,6 +1032,7 @@ function App() {
     isUploading ||
     isUploadingVideo ||
     isTrimmingVideo ||
+    isExtractingFrame ||
     isDetecting ||
     isCropping ||
     isBlurring ||
@@ -1780,6 +1843,33 @@ function App() {
           </div>
         </section>
       )}
+      {videoUploadResult && (
+        <section className="card video-frame-card">
+          <h2>Extract Video Frame</h2>
+          <p className="small-note">
+            Select a timestamp in seconds. The backend will extract that video frame as an image.
+          </p>
+
+          <div className="trim-input-grid">
+            <label>
+              Timestamp seconds
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={frameTimestampSeconds}
+                onChange={(event) => setFrameTimestampSeconds(Number(event.target.value))}
+                disabled={isBusy}
+              />
+            </label>
+          </div>
+
+          <button onClick={handleExtractVideoFrame} disabled={isBusy || !videoUploadResult}>
+            {isExtractingFrame ? 'Extracting frame...' : 'Extract Frame'}
+          </button>
+        </section>
+      )}
+
       {videoTrimResult && (
         <section className="result-grid">
           <div className="card">
@@ -1810,6 +1900,44 @@ function App() {
                   </a>
                   <a href={trimmedVideoUrl} download={videoTrimResult.trimmed_filename}>
                     Download trimmed video
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      {videoFrameResult && (
+        <section className="result-grid">
+          <div className="card">
+            <h2>Extracted Frame Result</h2>
+            <div className="metadata-list">
+              <p><strong>Original filename:</strong> {videoFrameResult.filename}</p>
+              <p><strong>Frame filename:</strong> {videoFrameResult.frame_filename}</p>
+              <p><strong>Timestamp:</strong> {videoFrameResult.timestamp_seconds}s</p>
+              <p><strong>Frame index:</strong> {videoFrameResult.frame_index}</p>
+              <p><strong>FPS:</strong> {videoFrameResult.fps}</p>
+              <p><strong>Video duration:</strong> {videoFrameResult.video_duration_seconds}s</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2>Extracted Frame Preview</h2>
+            {extractedFrameUrl && videoFrameResult && (
+              <>
+                <img
+                  className="preview-image"
+                  src={extractedFrameUrl}
+                  alt="Extracted video frame"
+                />
+
+                <div className="output-actions">
+                  <a href={extractedFrameUrl} target="_blank" rel="noreferrer">
+                    Open frame
+                  </a>
+                  <a href={extractedFrameUrl} download={videoFrameResult.frame_filename}>
+                    Download frame
                   </a>
                 </div>
               </>
