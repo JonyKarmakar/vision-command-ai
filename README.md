@@ -447,3 +447,87 @@ This project is designed to teach:
 - Docker and Docker Compose
 - Full-stack AI system design
 - MLOps and LLMOps foundations
+---
+
+## Current Project Status
+
+VisionCommand AI is an AI vision detection studio built with a FastAPI backend, a Vite frontend, YOLO-based object detection, and optional PostgreSQL persistence through Docker Compose.
+
+### Implemented Features
+
+- Upload image files through the frontend
+- Run YOLO object detection on uploaded images
+- Crop detected objects
+- Blur detected objects
+- Blur all objects by selected class
+- Execute text-based commands such as:
+  - `detect objects`
+  - `crop person`
+  - `blur person`
+  - `blur all persons`
+- Store uploaded media metadata in PostgreSQL
+- Store command execution logs in PostgreSQL
+- Store detection results in PostgreSQL
+- Store model inference logs in PostgreSQL
+- View database statistics from the frontend
+- View uploaded media history from the frontend
+- View recent detection history from the frontend
+- View detection summary from the frontend
+- View inference logs and inference summary from the frontend
+- View model metadata from the frontend
+
+### Backend
+
+The backend is built with FastAPI and exposes endpoints for:
+
+- Image upload
+- YOLO detection
+- Object cropping
+- Object blurring
+- Command execution
+- Command logs
+- Database health
+- Database statistics
+- Uploaded media history
+- Detection history
+- Detection summary
+- Inference logs
+- Inference summary
+- Model information
+
+### Frontend
+
+The frontend is built with Vite and provides a single-page interface for:
+
+- Uploading images
+- Running detections
+- Running text or voice commands
+- Viewing uploaded media history
+- Viewing database-backed analytics
+- Viewing model and inference information
+
+### Database
+
+PostgreSQL is used to persist:
+
+- Uploaded media metadata
+- Command execution logs
+- Detection results
+- Model inference logs
+
+The project can run locally with Docker Compose, including backend, frontend, and PostgreSQL services.
+
+### Recent Refactoring
+
+Recent backend cleanup moved several responsibilities out of `main.py` and into service/router modules:
+
+- Basic health/model routes moved to routers
+- Command parser moved to a service module
+- Request schemas moved to a schemas module
+- Database URL helper moved to database service
+- Media database helpers moved to database service
+- Detection database helpers moved to database service
+- Inference database helpers moved to database service
+- Database stats helper moved to database service
+
+This keeps `main.py` smaller and makes the backend easier to maintain.
