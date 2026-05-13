@@ -36,6 +36,7 @@ from app.schemas import (
     CropByClassRequest,
     CropRequest,
     VideoTrimRequest,
+    VideoFrameExtractRequest,
 )
 
 from app.config import (
@@ -1452,4 +1453,86 @@ def trim_uploaded_video(filename: str, trim: VideoTrimRequest):
         "end_seconds": round(end_seconds, 2),
         "duration_seconds": round(trim_duration, 2),
         "metadata": trimmed_metadata,
+    }
+
+
+@app.post("/video/extract-frame/{filename}")
+def extract_video_frame(filename: str, request: VideoFrameExtractRequest):
+    video_path = VIDEO_DIR / filename
+
+    if not video_path.exists() or not video_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded video not found",
+        )
+
+    if request.timestamp_seconds < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Timestamp must be greater than or equal to 0",
+        )
+
+    import cv2
+
+    video_capture = cv2.VideoCapture(str(video_path))
+
+    if not video_capture.isOpened():
+        video_capture.release()
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded video is not readable",
+        )
+
+    fps = video_capture.get(cv2.CAP_PROP_FPS)
+    frame_count = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    if not fps or fps <= 0:
+        video_capture.release()
+        raise HTTPException(
+            status_code=400,
+            detail="Could not read video FPS",
+        )
+
+    duration_seconds = frame_count / fps
+
+    if request.timestamp_seconds > duration_seconds:
+        video_capture.release()
+        raise HTTPException(
+            status_code=400,
+            detail="Timestamp is beyond video duration",
+        )
+
+    target_frame_index = int(request.timestamp_seconds * fps)
+    video_capture.set(cv2.CAP_PROP_POS_FRAMES, target_frame_index)
+
+    success, frame = video_capture.read()
+    video_capture.release()
+
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not extract frame at requested timestamp",
+        )
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    frame_filename = f"frame_{video_path.stem}_{target_frame_index}_{uuid4().hex}.jpg"
+    frame_path = OUTPUT_DIR / frame_filename
+
+    success = cv2.imwrite(str(frame_path), frame)
+
+    if not success or not frame_path.exists():
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to save extracted frame",
+        )
+
+    return {
+        "filename": filename,
+        "frame_filename": frame_filename,
+        "frame_file_url": f"/media/outputs/{frame_filename}",
+        "timestamp_seconds": request.timestamp_seconds,
+        "frame_index": target_frame_index,
+        "fps": round(float(fps), 2),
+        "video_duration_seconds": round(duration_seconds, 2),
     }

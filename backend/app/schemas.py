@@ -32,3 +32,7 @@ class CommandRequest(BaseModel):
 class VideoTrimRequest(BaseModel):
     start_seconds: float
     end_seconds: float
+
+
+class VideoFrameExtractRequest(BaseModel):
+    timestamp_seconds: float
