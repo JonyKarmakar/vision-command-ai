@@ -12,6 +12,16 @@ type UploadResponse = {
   file_url: string
 }
 
+type VideoUploadResponse = {
+  message: string
+  original_filename: string
+  stored_filename: string
+  content_type: string
+  file_size_bytes: number
+  storage_path: string
+  file_url: string
+}
+
 type Detection = {
   class_id: number
   class_name: string
@@ -198,6 +208,8 @@ declare global {
 function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
+  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
+  const [videoUploadResult, setVideoUploadResult] = useState<VideoUploadResponse | null>(null)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
@@ -221,6 +233,7 @@ function App() {
   const [lastDetectionClass, setLastDetectionClass] = useState<string | null>(null)
 
   const [isUploading, setIsUploading] = useState(false)
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
   const [isBlurring, setIsBlurring] = useState(false)
@@ -252,6 +265,49 @@ function App() {
     setLastDetectionClass(null)
     setError(null)
     setStatusMessage(file ? `Selected ${file.name}. Ready to upload.` : 'Ready to upload an image.')
+  }
+
+  const handleVideoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null
+    setSelectedVideoFile(file)
+    setVideoUploadResult(null)
+    setError(null)
+    setStatusMessage(file ? `Selected video ${file.name}. Ready to upload.` : 'Ready to upload an image or video.')
+  }
+
+  const handleVideoUpload = async () => {
+    if (!selectedVideoFile) {
+      setError('Please choose a video first.')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('file', selectedVideoFile)
+
+    try {
+      setIsUploadingVideo(true)
+      setError(null)
+      setStatusMessage('Uploading video to backend...')
+
+      const response = await fetch('/api/media/upload-video', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Video upload failed')
+      }
+
+      const data: VideoUploadResponse = await response.json()
+      setVideoUploadResult(data)
+      setStatusMessage('Video upload complete. You can preview or download it.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Video upload failed.')
+    } finally {
+      setIsUploadingVideo(false)
+    }
   }
 
   const handleUpload = async () => {
@@ -807,6 +863,8 @@ function App() {
 
   const uploadedImageUrl = uploadResult ? `/api${uploadResult.file_url}` : null
 
+  const uploadedVideoUrl = videoUploadResult ? `/api${videoUploadResult.file_url}` : null
+
   const annotatedImageUrl = detectionResult
     ? `/api${detectionResult.annotated_file_url}`
     : null
@@ -831,6 +889,7 @@ function App() {
 
   const isBusy =
     isUploading ||
+    isUploadingVideo ||
     isDetecting ||
     isCropping ||
     isBlurring ||
@@ -1283,6 +1342,65 @@ function App() {
               ))}
             </div>
           )}
+        </section>
+      )}
+
+      <section className="card">
+        <h2>Video Upload Foundation</h2>
+        <p className="small-note">
+          Upload a video file and preview it from the backend. Video detection and trimming will come later.
+        </p>
+
+        <input
+          className="file-input"
+          type="file"
+          accept="video/*"
+          onChange={handleVideoFileChange}
+          disabled={isBusy}
+        />
+
+        {selectedVideoFile && (
+          <p className="selected-file">
+            Selected video: <strong>{selectedVideoFile.name}</strong>
+          </p>
+        )}
+
+        <div className="button-row">
+          <button onClick={handleVideoUpload} disabled={isBusy || !selectedVideoFile}>
+            {isUploadingVideo ? 'Uploading video...' : 'Upload Video'}
+          </button>
+        </div>
+      </section>
+
+      {videoUploadResult && (
+        <section className="result-grid">
+          <div className="card">
+            <h2>Video Upload Result</h2>
+            <div className="metadata-list">
+              <p><strong>Original filename:</strong> {videoUploadResult.original_filename}</p>
+              <p><strong>Stored filename:</strong> {videoUploadResult.stored_filename}</p>
+              <p><strong>Content type:</strong> {videoUploadResult.content_type}</p>
+              <p><strong>File size:</strong> {videoUploadResult.file_size_bytes} bytes</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2>Video Preview</h2>
+            {uploadedVideoUrl && videoUploadResult && (
+              <>
+                <video className="preview-video" src={uploadedVideoUrl} controls />
+
+                <div className="output-actions">
+                  <a href={uploadedVideoUrl} target="_blank" rel="noreferrer">
+                    Open video
+                  </a>
+                  <a href={uploadedVideoUrl} download={videoUploadResult.original_filename}>
+                    Download video
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
         </section>
       )}
 
