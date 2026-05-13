@@ -64,3 +64,19 @@ def test_get_uploaded_video_not_found():
     assert response.json() == {
         "detail": "Uploaded video not found"
     }
+
+
+def test_extract_video_metadata_handles_unreadable_video(tmp_path):
+    video_path = tmp_path / "invalid-video.mp4"
+    video_path.write_bytes(b"this is not a real video")
+
+    metadata = main.extract_video_metadata(video_path)
+
+    assert metadata == {
+        "is_readable": False,
+        "width": None,
+        "height": None,
+        "fps": None,
+        "frame_count": None,
+        "duration_seconds": None,
+    }

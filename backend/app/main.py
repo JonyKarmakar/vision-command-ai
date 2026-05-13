@@ -1267,6 +1267,47 @@ def get_postgres_inference_summary():
 
 
 
+
+
+
+def extract_video_metadata(video_path: Path):
+    import cv2
+
+    video_capture = cv2.VideoCapture(str(video_path))
+
+    if not video_capture.isOpened():
+        video_capture.release()
+        return {
+            "is_readable": False,
+            "width": None,
+            "height": None,
+            "fps": None,
+            "frame_count": None,
+            "duration_seconds": None,
+        }
+
+    fps = video_capture.get(cv2.CAP_PROP_FPS)
+    frame_count = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
+    width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    duration_seconds = None
+
+    if fps and fps > 0:
+        duration_seconds = round(frame_count / fps, 2)
+
+    video_capture.release()
+
+    return {
+        "is_readable": True,
+        "width": width,
+        "height": height,
+        "fps": round(float(fps), 2) if fps else None,
+        "frame_count": frame_count,
+        "duration_seconds": duration_seconds,
+    }
+
+
 @app.post("/media/upload-video")
 def upload_video(file: UploadFile = File(...)):
     if not file.content_type or not file.content_type.startswith("video/"):
@@ -1286,6 +1327,7 @@ def upload_video(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
 
     file_size_bytes = storage_path.stat().st_size
+    video_metadata = extract_video_metadata(storage_path)
 
     return {
         "message": "Video uploaded successfully",
@@ -1295,6 +1337,7 @@ def upload_video(file: UploadFile = File(...)):
         "file_size_bytes": file_size_bytes,
         "storage_path": str(storage_path),
         "file_url": f"/media/videos/{stored_filename}",
+        "metadata": video_metadata,
     }
 
 
