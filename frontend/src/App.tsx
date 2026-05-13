@@ -20,6 +20,14 @@ type VideoUploadResponse = {
   file_size_bytes: number
   storage_path: string
   file_url: string
+  metadata: {
+    is_readable: boolean
+    width: number | null
+    height: number | null
+    fps: number | null
+    frame_count: number | null
+    duration_seconds: number | null
+  }
 }
 
 type Detection = {
@@ -1381,6 +1389,12 @@ function App() {
               <p><strong>Stored filename:</strong> {videoUploadResult.stored_filename}</p>
               <p><strong>Content type:</strong> {videoUploadResult.content_type}</p>
               <p><strong>File size:</strong> {videoUploadResult.file_size_bytes} bytes</p>
+              <p><strong>Readable:</strong> {videoUploadResult.metadata.is_readable ? 'Yes' : 'No'}</p>
+              <p><strong>Width:</strong> {videoUploadResult.metadata.width ?? 'Unknown'}</p>
+              <p><strong>Height:</strong> {videoUploadResult.metadata.height ?? 'Unknown'}</p>
+              <p><strong>FPS:</strong> {videoUploadResult.metadata.fps ?? 'Unknown'}</p>
+              <p><strong>Frame count:</strong> {videoUploadResult.metadata.frame_count ?? 'Unknown'}</p>
+              <p><strong>Duration:</strong> {videoUploadResult.metadata.duration_seconds ? `${videoUploadResult.metadata.duration_seconds}s` : 'Unknown'}</p>
             </div>
           </div>
 
