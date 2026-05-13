@@ -46,6 +46,7 @@ from app.config import (
     MODEL_NAME,
     OUTPUT_DIR,
     UPLOAD_DIR,
+    VIDEO_DIR,
 )
 
 app = FastAPI(
@@ -1264,3 +1265,47 @@ def get_postgres_inference_logs(limit: int = Query(20, ge=1, le=100)):
 def get_postgres_inference_summary():
     return get_database_inference_summary()
 
+
+
+@app.post("/media/upload-video")
+def upload_video(file: UploadFile = File(...)):
+    if not file.content_type or not file.content_type.startswith("video/"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only video uploads are supported by this endpoint",
+        )
+
+    VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+
+    original_filename = file.filename or "uploaded_video"
+    file_extension = Path(original_filename).suffix or ".mp4"
+    stored_filename = f"{uuid4().hex}{file_extension}"
+    storage_path = VIDEO_DIR / stored_filename
+
+    with storage_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    file_size_bytes = storage_path.stat().st_size
+
+    return {
+        "message": "Video uploaded successfully",
+        "original_filename": original_filename,
+        "stored_filename": stored_filename,
+        "content_type": file.content_type,
+        "file_size_bytes": file_size_bytes,
+        "storage_path": str(storage_path),
+        "file_url": f"/media/videos/{stored_filename}",
+    }
+
+
+@app.get("/media/videos/{filename}")
+def get_uploaded_video(filename: str):
+    file_path = VIDEO_DIR / filename
+
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded video not found",
+        )
+
+    return FileResponse(file_path)

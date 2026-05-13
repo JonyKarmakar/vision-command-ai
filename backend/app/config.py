@@ -6,6 +6,7 @@ APP_VERSION = "0.1.0"
 
 UPLOAD_DIR = Path("storage/uploads")
 OUTPUT_DIR = Path("storage/outputs")
+VIDEO_DIR = Path("storage/videos")
 LOG_DIR = Path("storage/logs")
 COMMAND_LOG_FILE = LOG_DIR / "command_logs.jsonl"
 
