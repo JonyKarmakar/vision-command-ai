@@ -27,3 +27,8 @@ class CommandRequest(BaseModel):
     filename: str
     command: str
     confidence_threshold: float = 0.25
+
+
+class VideoTrimRequest(BaseModel):
+    start_seconds: float
+    end_seconds: float

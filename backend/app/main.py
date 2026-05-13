@@ -35,6 +35,7 @@ from app.schemas import (
     CommandRequest,
     CropByClassRequest,
     CropRequest,
+    VideoTrimRequest,
 )
 
 from app.config import (
@@ -1352,3 +1353,103 @@ def get_uploaded_video(filename: str):
         )
 
     return FileResponse(file_path)
+
+
+@app.post("/video/trim/{filename}")
+def trim_uploaded_video(filename: str, trim: VideoTrimRequest):
+    video_path = VIDEO_DIR / filename
+
+    if not video_path.exists() or not video_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded video not found",
+        )
+
+    if trim.start_seconds < 0 or trim.end_seconds <= trim.start_seconds:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid trim time range",
+        )
+
+    video_metadata = extract_video_metadata(video_path)
+
+    if not video_metadata["is_readable"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded video is not readable",
+        )
+
+    duration_seconds = video_metadata["duration_seconds"]
+
+    if duration_seconds is not None and trim.start_seconds >= duration_seconds:
+        raise HTTPException(
+            status_code=400,
+            detail="Trim start time is beyond video duration",
+        )
+
+    end_seconds = trim.end_seconds
+
+    if duration_seconds is not None:
+        end_seconds = min(trim.end_seconds, duration_seconds)
+
+    trim_duration = end_seconds - trim.start_seconds
+
+    if trim_duration <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid trim duration",
+        )
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    trimmed_filename = f"trim_{video_path.stem}_{uuid4().hex}.mp4"
+    trimmed_path = OUTPUT_DIR / trimmed_filename
+
+    import subprocess
+    import imageio_ffmpeg
+
+    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+
+    command = [
+        ffmpeg_exe,
+        "-y",
+        "-ss",
+        str(trim.start_seconds),
+        "-i",
+        str(video_path),
+        "-t",
+        str(trim_duration),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-pix_fmt",
+        "yuv420p",
+        "-an",
+        str(trimmed_path),
+    ]
+
+    completed_process = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    if completed_process.returncode != 0 or not trimmed_path.exists():
+        raise HTTPException(
+            status_code=500,
+            detail=f"Video trim failed: {completed_process.stderr[-500:]}",
+        )
+
+    trimmed_metadata = extract_video_metadata(trimmed_path)
+
+    return {
+        "filename": filename,
+        "trimmed_filename": trimmed_filename,
+        "trimmed_file_url": f"/media/outputs/{trimmed_filename}",
+        "start_seconds": trim.start_seconds,
+        "end_seconds": round(end_seconds, 2),
+        "duration_seconds": round(trim_duration, 2),
+        "metadata": trimmed_metadata,
+    }
