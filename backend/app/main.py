@@ -841,6 +841,43 @@ def execute_command(request: CommandRequest):
             "result": result,
         }
 
+    if parsed_command["action"] == "extract_frame":
+        result = extract_video_frame(
+            filename=request.filename,
+            request=VideoFrameExtractRequest(
+                timestamp_seconds=parsed_command["timestamp_seconds"],
+            ),
+        )
+
+        result_type = "extract_frame"
+        log_command_execution(request, parsed_command, result_type)
+
+        return {
+            "command": request.command,
+            "parsed_command": parsed_command,
+            "result_type": result_type,
+            "result": result,
+        }
+
+    if parsed_command["action"] == "trim_video":
+        result = trim_uploaded_video(
+            filename=request.filename,
+            trim=VideoTrimRequest(
+                start_seconds=parsed_command["start_seconds"],
+                end_seconds=parsed_command["end_seconds"],
+            ),
+        )
+
+        result_type = "trim_video"
+        log_command_execution(request, parsed_command, result_type)
+
+        return {
+            "command": request.command,
+            "parsed_command": parsed_command,
+            "result_type": result_type,
+            "result": result,
+        }
+
     raise HTTPException(
         status_code=400,
         detail="Unsupported command action",
