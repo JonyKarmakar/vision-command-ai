@@ -35,6 +35,11 @@ The project is being built as a learning-focused production-style AI system. The
 - Trim uploaded videos using start and end seconds
 - Generate browser-playable trimmed MP4 videos using FFmpeg through `imageio-ffmpeg`
 - Preview, open, and download trimmed video outputs
+- Extract image frames from uploaded videos at selected timestamps
+- Preview, open, and download extracted video frames
+- Run YOLO object detection on extracted video frames
+- Generate annotated frame outputs with bounding boxes
+- Preview, open, and download annotated video frame outputs
 
 ### Commands and Voice Input
 
@@ -676,6 +681,16 @@ Completed:
 - Protected main branch
 - GitHub release `v0.1.0`
 - Pull Request workflow
+- Backend video upload foundation
+- Backend video metadata extraction
+- Backend video trim endpoint
+- Backend video frame extraction endpoint
+- Backend YOLO detection on extracted video frames
+- Frontend video upload flow
+- Frontend video metadata display
+- Frontend video trim flow
+- Frontend video frame extraction flow
+- Frontend YOLO detection on extracted video frames
 
 ---
 
@@ -701,9 +716,6 @@ This keeps `main.py` smaller and makes the backend easier to maintain.
 
 Planned future improvements:
 
-- Add video frame extraction
-- Add YOLO object detection on selected video frames
-- Add annotated video frame output
 - Add object tracking for videos
 - Add advanced FFmpeg-based video editing workflows
 - Add backend-side command parser improvements
