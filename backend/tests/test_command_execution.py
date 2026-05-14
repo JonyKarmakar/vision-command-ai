@@ -157,7 +157,7 @@ def test_execute_unsupported_command_fails():
 
     assert response.status_code == 400
     assert response.json() == {
-        "detail": "Unsupported command. Try commands like: detect objects, crop person, crop bottle, blur person"
+        "detail": "Unsupported command. Try commands like: detect objects, crop person, crop bottle, blur person, extract frame at 1 second, trim video from 0 to 2 seconds"
     }
 
 

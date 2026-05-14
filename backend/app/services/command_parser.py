@@ -1,3 +1,5 @@
+import re
+
 from fastapi import HTTPException
 
 
@@ -18,9 +20,60 @@ def normalize_requested_class_name(class_name: str):
     return normalized
 
 
+def _extract_first_number(command: str):
+    match = re.search(r"(\d+(?:\.\d+)?)", command)
+
+    if not match:
+        return None
+
+    return float(match.group(1))
+
+
+def _extract_two_numbers(command: str):
+    matches = re.findall(r"(\d+(?:\.\d+)?)", command)
+
+    if len(matches) < 2:
+        return None
+
+    return float(matches[0]), float(matches[1])
+
+
 def parse_command(command: str):
     normalized_command = command.lower().strip()
     words = normalized_command.split()
+
+    if "extract" in normalized_command and "frame" in normalized_command:
+        timestamp_seconds = _extract_first_number(normalized_command)
+
+        if timestamp_seconds is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Please specify a timestamp, for example: extract frame at 1 second",
+            )
+
+        return {
+            "action": "extract_frame",
+            "class_name": None,
+            "timestamp_seconds": timestamp_seconds,
+        }
+
+    if "trim" in normalized_command and "video" in normalized_command:
+        time_range = _extract_two_numbers(normalized_command)
+
+        if time_range is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Please specify a start and end time, for example: trim video from 0 to 2 seconds",
+            )
+
+        start_seconds, end_seconds = time_range
+
+        return {
+            "action": "trim_video",
+            "class_name": None,
+            "start_seconds": start_seconds,
+            "end_seconds": end_seconds,
+        }
 
     if "detect" in normalized_command:
         return {
@@ -89,5 +142,9 @@ def parse_command(command: str):
 
     raise HTTPException(
         status_code=400,
-        detail="Unsupported command. Try commands like: detect objects, crop person, crop bottle, blur person",
+        detail=(
+            "Unsupported command. Try commands like: detect objects, crop person, "
+            "crop bottle, blur person, extract frame at 1 second, "
+            "trim video from 0 to 2 seconds"
+        ),
     )
