@@ -122,8 +122,8 @@ type CommandResponse = {
     action: string
     class_name: string | null
   }
-  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class'
-  result: DetectionResponse | CropResponse | BlurResponse
+  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'extract_frame' | 'trim_video'
+  result: DetectionResponse | CropResponse | BlurResponse | VideoFrameExtractResponse | VideoTrimResponse
 }
 
 type CommandLog = {
@@ -973,13 +973,16 @@ function App() {
   }
 
   const handleCommand = async () => {
-    if (!uploadResult) {
-      setError('Please upload an image before running a command.')
+    const activeFilename =
+      uploadResult?.stored_filename || videoUploadResult?.stored_filename
+
+    if (!activeFilename) {
+      setError('Please upload an image or video before running a command.')
       return
     }
 
     if (!commandText.trim()) {
-      setError('Please type a command, for example: crop person.')
+      setError('Please type a command, for example: crop person or extract frame at 1 second.')
       return
     }
 
@@ -994,7 +997,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          filename: uploadResult.stored_filename,
+          filename: activeFilename,
           command: commandText,
           confidence_threshold: confidenceThreshold / 100,
         }),
@@ -1036,6 +1039,17 @@ function App() {
         const result = data.result as BlurResponse
         setBlurResult(result)
         setCropResult(null)
+      }
+
+      if (data.result_type === 'extract_frame') {
+        const result = data.result as VideoFrameExtractResponse
+        setVideoFrameResult(result)
+        setVideoFrameDetectionResult(null)
+      }
+
+      if (data.result_type === 'trim_video') {
+        const result = data.result as VideoTrimResponse
+        setVideoTrimResult(result)
       }
 
       setStatusMessage(`Command complete: "${commandText}".`)
@@ -1470,11 +1484,11 @@ function App() {
         </section>
       )}
 
-      {uploadResult && (
+      {(uploadResult || videoUploadResult) && (
         <section className="card command-card">
           <h2>Command Box</h2>
           <p className="small-note">
-            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, <strong>blur person</strong>, or <strong>blur all persons</strong>.
+            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, <strong>blur person</strong>, <strong>extract frame at 1 second</strong>, or <strong>trim video from 0 to 2 seconds</strong>.
           </p>
 
           <div className="command-row">
@@ -1482,7 +1496,7 @@ function App() {
               className="command-input"
               type="text"
               value={commandText}
-              placeholder="Type a command, for example: crop person"
+              placeholder="Type a command, for example: crop person or extract frame at 1 second"
               onChange={(event) => setCommandText(event.target.value)}
               disabled={isBusy}
             />
