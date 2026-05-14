@@ -57,6 +57,16 @@ type VideoFrameExtractResponse = {
   video_duration_seconds: number
 }
 
+type VideoFrameDetectionResponse = {
+  frame_filename: string
+  confidence_threshold: number
+  class_filter: string | null
+  detections: Detection[]
+  detection_count: number
+  annotated_frame_filename: string
+  annotated_frame_file_url: string
+}
+
 type Detection = {
   class_id: number
   class_name: string
@@ -247,6 +257,7 @@ function App() {
   const [videoUploadResult, setVideoUploadResult] = useState<VideoUploadResponse | null>(null)
   const [videoTrimResult, setVideoTrimResult] = useState<VideoTrimResponse | null>(null)
   const [videoFrameResult, setVideoFrameResult] = useState<VideoFrameExtractResponse | null>(null)
+  const [videoFrameDetectionResult, setVideoFrameDetectionResult] = useState<VideoFrameDetectionResponse | null>(null)
   const [trimStartSeconds, setTrimStartSeconds] = useState(0)
   const [trimEndSeconds, setTrimEndSeconds] = useState(2)
   const [frameTimestampSeconds, setFrameTimestampSeconds] = useState(1)
@@ -276,6 +287,7 @@ function App() {
   const [isUploadingVideo, setIsUploadingVideo] = useState(false)
   const [isTrimmingVideo, setIsTrimmingVideo] = useState(false)
   const [isExtractingFrame, setIsExtractingFrame] = useState(false)
+  const [isDetectingFrame, setIsDetectingFrame] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
   const [isBlurring, setIsBlurring] = useState(false)
@@ -315,6 +327,7 @@ function App() {
     setVideoUploadResult(null)
     setVideoTrimResult(null)
     setVideoFrameResult(null)
+    setVideoFrameDetectionResult(null)
     setError(null)
     setStatusMessage(file ? `Selected video ${file.name}. Ready to upload.` : 'Ready to upload an image or video.')
   }
@@ -333,6 +346,7 @@ function App() {
       setError(null)
       setVideoTrimResult(null)
       setVideoFrameResult(null)
+      setVideoFrameDetectionResult(null)
       setStatusMessage('Uploading video to backend...')
 
       const response = await fetch('/api/media/upload-video', {
@@ -438,12 +452,47 @@ function App() {
 
       const data: VideoFrameExtractResponse = await response.json()
       setVideoFrameResult(data)
+      setVideoFrameDetectionResult(null)
       setStatusMessage('Frame extraction complete. Extracted frame is ready.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Frame extraction failed.')
     } finally {
       setIsExtractingFrame(false)
+    }
+  }
+
+  const handleDetectExtractedFrame = async () => {
+    if (!videoFrameResult) {
+      setError('Please extract a video frame first.')
+      return
+    }
+
+    try {
+      setIsDetectingFrame(true)
+      setError(null)
+      setStatusMessage('Running YOLO detection on extracted frame...')
+
+      const response = await fetch(
+        `/api/video/detect-frame/${videoFrameResult.frame_filename}/annotated?confidence_threshold=${confidenceThreshold / 100}`,
+        {
+          method: 'POST',
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Frame detection failed')
+      }
+
+      const data: VideoFrameDetectionResponse = await response.json()
+      setVideoFrameDetectionResult(data)
+      setStatusMessage(`Frame detection complete. Found ${data.detection_count} object(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Frame detection failed.')
+    } finally {
+      setIsDetectingFrame(false)
     }
   }
 
@@ -1006,6 +1055,10 @@ function App() {
 
   const extractedFrameUrl = videoFrameResult ? `/api${videoFrameResult.frame_file_url}` : null
 
+  const annotatedFrameUrl = videoFrameDetectionResult
+    ? `/api${videoFrameDetectionResult.annotated_frame_file_url}`
+    : null
+
   const annotatedImageUrl = detectionResult
     ? `/api${detectionResult.annotated_file_url}`
     : null
@@ -1033,6 +1086,7 @@ function App() {
     isUploadingVideo ||
     isTrimmingVideo ||
     isExtractingFrame ||
+    isDetectingFrame ||
     isDetecting ||
     isCropping ||
     isBlurring ||
@@ -1938,6 +1992,69 @@ function App() {
                   </a>
                   <a href={extractedFrameUrl} download={videoFrameResult.frame_filename}>
                     Download frame
+                  </a>
+                </div>
+
+                <button
+                  className="secondary-button frame-detection-button"
+                  onClick={handleDetectExtractedFrame}
+                  disabled={isBusy || !videoFrameResult}
+                >
+                  {isDetectingFrame ? 'Detecting frame...' : 'Run YOLO on Frame'}
+                </button>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      {videoFrameDetectionResult && (
+        <section className="result-grid">
+          <div className="card">
+            <h2>Video Frame Detection Result</h2>
+            <div className="summary-box">
+              <p><strong>Frame filename:</strong> {videoFrameDetectionResult.frame_filename}</p>
+              <p><strong>Detection count:</strong> {videoFrameDetectionResult.detection_count}</p>
+              <p><strong>Annotated frame:</strong> {videoFrameDetectionResult.annotated_frame_filename}</p>
+            </div>
+
+            {videoFrameDetectionResult.detections.length > 0 ? (
+              <div className="detections-list">
+                {videoFrameDetectionResult.detections.map((detection, index) => (
+                  <div className="detection-item" key={`${detection.class_name}-${index}`}>
+                    <div className="detection-header">
+                      <strong>{index + 1}. {detection.class_name}</strong>
+                      <span className="confidence-badge">
+                        {(detection.confidence * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <span>
+                      Box: x1 {detection.bbox.x1}, y1 {detection.bbox.y1}, x2 {detection.bbox.x2}, y2 {detection.bbox.y2}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>No objects detected in this frame.</p>
+            )}
+          </div>
+
+          <div className="card">
+            <h2>Annotated Frame Preview</h2>
+            {annotatedFrameUrl && videoFrameDetectionResult && (
+              <>
+                <img
+                  className="preview-image"
+                  src={annotatedFrameUrl}
+                  alt="Annotated extracted video frame"
+                />
+
+                <div className="output-actions">
+                  <a href={annotatedFrameUrl} target="_blank" rel="noreferrer">
+                    Open annotated frame
+                  </a>
+                  <a href={annotatedFrameUrl} download={videoFrameDetectionResult.annotated_frame_filename}>
+                    Download annotated frame
                   </a>
                 </div>
               </>
