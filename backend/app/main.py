@@ -1536,3 +1536,81 @@ def extract_video_frame(filename: str, request: VideoFrameExtractRequest):
         "fps": round(float(fps), 2),
         "video_duration_seconds": round(duration_seconds, 2),
     }
+
+
+@app.post("/video/detect-frame/{frame_filename}/annotated")
+def detect_objects_on_extracted_frame(
+    frame_filename: str,
+    confidence_threshold: float = Query(0.25, ge=0.0, le=1.0),
+    class_filter: Optional[str] = Query(None),
+):
+    frame_path = OUTPUT_DIR / frame_filename
+
+    if not frame_path.exists() or not frame_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Extracted frame not found",
+        )
+
+    detections = run_yolo_detection_with_inference_logging(
+        filename=frame_filename,
+        image_path=frame_path,
+        confidence_threshold=confidence_threshold,
+        class_filter=class_filter,
+        source_endpoint="video_frame_detection",
+    )
+
+    try:
+        save_detections_to_database(
+            filename=frame_filename,
+            detections=detections,
+            confidence_threshold=confidence_threshold,
+            class_filter=class_filter,
+            source_endpoint="video_frame_detection",
+        )
+    except Exception:
+        # Database logging should not break frame detection.
+        pass
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    file_extension = frame_path.suffix or ".jpg"
+    annotated_frame_filename = f"annotated_frame_{frame_path.stem}_{uuid4().hex}{file_extension}"
+    annotated_frame_path = OUTPUT_DIR / annotated_frame_filename
+
+    with Image.open(frame_path).convert("RGB") as image:
+        draw = ImageDraw.Draw(image)
+
+        for detection in detections:
+            bbox = detection["bbox"]
+            x1 = bbox["x1"]
+            y1 = bbox["y1"]
+            x2 = bbox["x2"]
+            y2 = bbox["y2"]
+
+            label = f"{detection['class_name']} {detection['confidence']:.2f}"
+
+            draw.rectangle(
+                [(x1, y1), (x2, y2)],
+                outline="red",
+                width=3,
+            )
+
+            text_y = y1 - 12 if y1 >= 12 else y1 + 4
+            draw.text(
+                (x1, text_y),
+                label,
+                fill="red",
+            )
+
+        image.save(annotated_frame_path)
+
+    return {
+        "frame_filename": frame_filename,
+        "confidence_threshold": confidence_threshold,
+        "class_filter": class_filter,
+        "detections": detections,
+        "detection_count": len(detections),
+        "annotated_frame_filename": annotated_frame_filename,
+        "annotated_frame_file_url": f"/media/outputs/{annotated_frame_filename}",
+    }
