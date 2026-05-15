@@ -171,6 +171,54 @@ type VideoSampledDetectionResponse = {
   detection: VideoMultiFrameDetectionResponse
 }
 
+type VideoTrackSummary = {
+  track_id: number
+  class_name: string
+  observation_count: number
+  first_timestamp_seconds: number
+  last_timestamp_seconds: number
+  max_confidence: number
+}
+
+type VideoTrackedDetection = Detection & {
+  track_id: number
+  center: {
+    x: number
+    y: number
+  }
+}
+
+type VideoTrackingFrame = {
+  frame_filename: string
+  frame_file_url: string
+  timestamp_seconds: number
+  frame_index: number
+  detections: VideoTrackedDetection[]
+  detection_count: number
+}
+
+type VideoTrackingResponse = {
+  filename: string
+  video_metadata: {
+    is_readable: boolean
+    width: number | null
+    height: number | null
+    fps: number | null
+    frame_count: number | null
+    duration_seconds: number | null
+  }
+  start_seconds: number
+  end_seconds: number
+  interval_seconds: number
+  confidence_threshold: number
+  class_filter: string | null
+  max_distance_pixels: number
+  frame_count: number
+  track_count: number
+  tracks: VideoTrackSummary[]
+  frames: VideoTrackingFrame[]
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
@@ -315,6 +363,7 @@ function App() {
   const [videoMultiFrameResult, setVideoMultiFrameResult] = useState<VideoMultiFrameExtractResponse | null>(null)
   const [videoMultiFrameDetectionResult, setVideoMultiFrameDetectionResult] = useState<VideoMultiFrameDetectionResponse | null>(null)
   const [videoSampledDetectionResult, setVideoSampledDetectionResult] = useState<VideoSampledDetectionResponse | null>(null)
+  const [videoTrackingResult, setVideoTrackingResult] = useState<VideoTrackingResponse | null>(null)
   const [videoFrameDetectionResult, setVideoFrameDetectionResult] = useState<VideoFrameDetectionResponse | null>(null)
   const [trimStartSeconds, setTrimStartSeconds] = useState(0)
   const [trimEndSeconds, setTrimEndSeconds] = useState(2)
@@ -323,6 +372,10 @@ function App() {
   const [multiFrameEndSeconds, setMultiFrameEndSeconds] = useState(3)
   const [multiFrameIntervalSeconds, setMultiFrameIntervalSeconds] = useState(1)
   const [sampledVideoIntervalSeconds, setSampledVideoIntervalSeconds] = useState(1)
+  const [trackingStartSeconds, setTrackingStartSeconds] = useState(0)
+  const [trackingEndSeconds, setTrackingEndSeconds] = useState(3)
+  const [trackingIntervalSeconds, setTrackingIntervalSeconds] = useState(1)
+  const [trackingMaxDistancePixels, setTrackingMaxDistancePixels] = useState(80)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
@@ -352,6 +405,7 @@ function App() {
   const [isExtractingMultipleFrames, setIsExtractingMultipleFrames] = useState(false)
   const [isDetectingMultipleFrames, setIsDetectingMultipleFrames] = useState(false)
   const [isDetectingSampledVideo, setIsDetectingSampledVideo] = useState(false)
+  const [isTrackingVideo, setIsTrackingVideo] = useState(false)
   const [isDetectingFrame, setIsDetectingFrame] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
@@ -702,6 +756,7 @@ function App() {
       const data: VideoSampledDetectionResponse = await response.json()
 
       setVideoSampledDetectionResult(data)
+      setVideoTrackingResult(null)
       setVideoMultiFrameResult(data.extracted_frames)
       setVideoMultiFrameDetectionResult(data.detection)
 
@@ -713,6 +768,61 @@ function App() {
       setStatusMessage('Sampled video detection failed.')
     } finally {
       setIsDetectingSampledVideo(false)
+    }
+  }
+
+  const handleTrackSampledVideo = async () => {
+    if (!videoUploadResult) {
+      setError('Please upload a video first.')
+      return
+    }
+
+    if (
+      trackingStartSeconds < 0 ||
+      trackingEndSeconds <= trackingStartSeconds ||
+      trackingIntervalSeconds <= 0 ||
+      trackingMaxDistancePixels <= 0
+    ) {
+      setError('Please enter a valid tracking range, interval, and max distance.')
+      return
+    }
+
+    try {
+      setIsTrackingVideo(true)
+      setError(null)
+      setStatusMessage('Running sampled video tracking...')
+
+      const response = await fetch(
+        `/api/video/track-sampled/${videoUploadResult.stored_filename}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            start_seconds: trackingStartSeconds,
+            end_seconds: trackingEndSeconds,
+            interval_seconds: trackingIntervalSeconds,
+            confidence_threshold: confidenceThreshold / 100,
+            class_filter: selectedClass === 'all' ? null : selectedClass,
+            max_distance_pixels: trackingMaxDistancePixels,
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Video tracking failed')
+      }
+
+      const data: VideoTrackingResponse = await response.json()
+      setVideoTrackingResult(data)
+      setStatusMessage(`Video tracking complete. Found ${data.track_count} track(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Video tracking failed.')
+    } finally {
+      setIsTrackingVideo(false)
     }
   }
 
@@ -1349,6 +1459,7 @@ function App() {
     isExtractingMultipleFrames ||
     isDetectingMultipleFrames ||
     isDetectingSampledVideo ||
+    isTrackingVideo ||
     isDetectingFrame ||
     isDetecting ||
     isCropping ||
@@ -2536,7 +2647,73 @@ function App() {
             {isDetectingSampledVideo ? 'Detecting sampled video...' : 'Detect Sampled Video'}
           </button>
 
-          {videoSampledDetectionResult && (
+          {videoUploadResult && (
+        <section className="card video-tracking-card">
+          <h2>Track Sampled Video</h2>
+          <p className="small-note">
+            Track detected objects across sampled video frames using simple centroid-based matching.
+          </p>
+
+          <div className="trim-input-grid">
+            <label>
+              Start seconds
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={trackingStartSeconds}
+                onChange={(event) => setTrackingStartSeconds(Number(event.target.value))}
+                disabled={isBusy}
+              />
+            </label>
+
+            <label>
+              End seconds
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={trackingEndSeconds}
+                onChange={(event) => setTrackingEndSeconds(Number(event.target.value))}
+                disabled={isBusy}
+              />
+            </label>
+
+            <label>
+              Interval seconds
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={trackingIntervalSeconds}
+                onChange={(event) => setTrackingIntervalSeconds(Number(event.target.value))}
+                disabled={isBusy}
+              />
+            </label>
+
+            <label>
+              Max distance pixels
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={trackingMaxDistancePixels}
+                onChange={(event) => setTrackingMaxDistancePixels(Number(event.target.value))}
+                disabled={isBusy}
+              />
+            </label>
+          </div>
+
+          <button
+            onClick={handleTrackSampledVideo}
+            disabled={isBusy || !videoUploadResult}
+          >
+            {isTrackingVideo ? 'Tracking video...' : 'Track Sampled Video'}
+          </button>
+        </section>
+      )}
+
+      {videoSampledDetectionResult && (
             <div className="summary-box sampled-video-summary">
               <p><strong>Video:</strong> {videoSampledDetectionResult.filename}</p>
               <p><strong>Interval:</strong> {videoSampledDetectionResult.interval_seconds}s</p>
@@ -2681,6 +2858,75 @@ function App() {
                 </div>
               )
             })}
+          </div>
+        </section>
+      )}
+
+      {videoTrackingResult && (
+        <section className="card">
+          <h2>Video Tracking Result</h2>
+
+          <div className="summary-box">
+            <p><strong>Video:</strong> {videoTrackingResult.filename}</p>
+            <p><strong>Frames processed:</strong> {videoTrackingResult.frame_count}</p>
+            <p><strong>Tracks found:</strong> {videoTrackingResult.track_count}</p>
+            <p><strong>Range:</strong> {videoTrackingResult.start_seconds}s to {videoTrackingResult.end_seconds}s</p>
+            <p><strong>Interval:</strong> {videoTrackingResult.interval_seconds}s</p>
+            <p><strong>Max distance:</strong> {videoTrackingResult.max_distance_pixels}px</p>
+            <p><strong>Class filter:</strong> {videoTrackingResult.class_filter ?? 'All classes'}</p>
+          </div>
+
+          {videoTrackingResult.tracks.length > 0 ? (
+            <div className="track-summary-list">
+              <h3>Track Summary</h3>
+
+              {videoTrackingResult.tracks.map((track) => (
+                <div className="track-summary-item" key={track.track_id}>
+                  <div>
+                    <strong>Track {track.track_id}: {track.class_name}</strong>
+                    <p>{track.observation_count} observation(s)</p>
+                  </div>
+
+                  <div>
+                    <span>{track.first_timestamp_seconds}s → {track.last_timestamp_seconds}s</span>
+                    <span>Max confidence: {(track.max_confidence * 100).toFixed(1)}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>No tracks found.</p>
+          )}
+
+          <div className="video-timeline">
+            <h3>Tracking Timeline</h3>
+
+            {videoTrackingResult.frames.map((frame, index) => (
+              <div className="timeline-item" key={`${frame.frame_filename}-tracking`}>
+                <div className="timeline-index">
+                  <span>{index + 1}</span>
+                </div>
+
+                <div className="timeline-content">
+                  <div className="timeline-header">
+                    <strong>{frame.timestamp_seconds}s</strong>
+                    <span>{frame.detection_count} tracked detection(s)</span>
+                  </div>
+
+                  {frame.detections.length > 0 ? (
+                    <div className="tracking-detection-list">
+                      {frame.detections.map((detection) => (
+                        <span key={`${frame.frame_filename}-${detection.track_id}`}>
+                          Track {detection.track_id}: {detection.class_name} ({(detection.confidence * 100).toFixed(1)}%)
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>No tracked detections in this frame.</p>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}

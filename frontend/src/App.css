@@ -965,3 +965,65 @@ input[type="file"]::file-selector-button:hover {
 .sampled-video-summary {
   margin-top: 16px;
 }
+
+.video-tracking-card {
+  border-color: #f59e0b;
+}
+
+.track-summary-list {
+  margin-top: 18px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.track-summary-list h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.track-summary-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.track-summary-item p {
+  margin: 6px 0 0;
+  color: #a1a1aa;
+  font-size: 14px;
+}
+
+.track-summary-item span {
+  display: block;
+  color: #d4d4d8;
+  font-size: 14px;
+  text-align: right;
+}
+
+.tracking-detection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tracking-detection-list span {
+  color: #d4d4d8;
+  font-size: 14px;
+}
+
+@media (max-width: 800px) {
+  .track-summary-item {
+    flex-direction: column;
+  }
+
+  .track-summary-item span {
+    text-align: left;
+  }
+}
