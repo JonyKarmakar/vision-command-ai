@@ -36,3 +36,9 @@ class VideoTrimRequest(BaseModel):
 
 class VideoFrameExtractRequest(BaseModel):
     timestamp_seconds: float
+
+
+class VideoMultiFrameExtractRequest(BaseModel):
+    start_seconds: float
+    end_seconds: float
+    interval_seconds: float = 1.0
