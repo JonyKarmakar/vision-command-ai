@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -42,3 +44,10 @@ class VideoMultiFrameExtractRequest(BaseModel):
     start_seconds: float
     end_seconds: float
     interval_seconds: float = 1.0
+
+
+
+class VideoFrameDetectionBatchRequest(BaseModel):
+    frame_filenames: list[str]
+    confidence_threshold: float = 0.25
+    class_filter: Optional[str] = None
