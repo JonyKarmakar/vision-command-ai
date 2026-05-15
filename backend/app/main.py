@@ -37,6 +37,7 @@ from app.schemas import (
     CropRequest,
     VideoTrimRequest,
     VideoFrameExtractRequest,
+    VideoMultiFrameExtractRequest,
 )
 
 from app.config import (
@@ -1650,4 +1651,115 @@ def detect_objects_on_extracted_frame(
         "detection_count": len(detections),
         "annotated_frame_filename": annotated_frame_filename,
         "annotated_frame_file_url": f"/media/outputs/{annotated_frame_filename}",
+    }
+
+
+@app.post("/video/extract-frames/{filename}")
+def extract_video_frames(filename: str, request: VideoMultiFrameExtractRequest):
+    video_path = VIDEO_DIR / filename
+
+    if not video_path.exists() or not video_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded video not found",
+        )
+
+    if request.start_seconds < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Start time must be greater than or equal to 0",
+        )
+
+    if request.end_seconds <= request.start_seconds:
+        raise HTTPException(
+            status_code=400,
+            detail="End time must be greater than start time",
+        )
+
+    if request.interval_seconds <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Interval must be greater than 0",
+        )
+
+    import cv2
+
+    video_capture = cv2.VideoCapture(str(video_path))
+
+    if not video_capture.isOpened():
+        video_capture.release()
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded video is not readable",
+        )
+
+    fps = video_capture.get(cv2.CAP_PROP_FPS)
+    frame_count = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    if not fps or fps <= 0:
+        video_capture.release()
+        raise HTTPException(
+            status_code=400,
+            detail="Could not read video FPS",
+        )
+
+    duration_seconds = frame_count / fps
+
+    if request.start_seconds > duration_seconds:
+        video_capture.release()
+        raise HTTPException(
+            status_code=400,
+            detail="Start time is beyond video duration",
+        )
+
+    end_seconds = min(request.end_seconds, duration_seconds)
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    extracted_frames = []
+    current_timestamp = request.start_seconds
+
+    while current_timestamp <= end_seconds:
+        frame_index = int(current_timestamp * fps)
+        video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+
+        success, frame = video_capture.read()
+
+        if not success:
+            break
+
+        frame_filename = f"frame_{video_path.stem}_{frame_index}_{uuid4().hex}.jpg"
+        frame_path = OUTPUT_DIR / frame_filename
+
+        saved = cv2.imwrite(str(frame_path), frame)
+
+        if saved and frame_path.exists():
+            extracted_frames.append(
+                {
+                    "frame_filename": frame_filename,
+                    "frame_file_url": f"/media/outputs/{frame_filename}",
+                    "timestamp_seconds": round(current_timestamp, 2),
+                    "frame_index": frame_index,
+                }
+            )
+
+        current_timestamp += request.interval_seconds
+
+    video_capture.release()
+
+    if not extracted_frames:
+        raise HTTPException(
+            status_code=400,
+            detail="No frames were extracted",
+        )
+
+    return {
+        "filename": filename,
+        "start_seconds": request.start_seconds,
+        "end_seconds": round(end_seconds, 2),
+        "interval_seconds": request.interval_seconds,
+        "fps": round(float(fps), 2),
+        "video_duration_seconds": round(duration_seconds, 2),
+        "frame_count": len(extracted_frames),
+        "frames": extracted_frames,
     }
