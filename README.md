@@ -35,21 +35,28 @@ The project is being built as a learning-focused production-style AI system. The
 - Trim uploaded videos using start and end seconds
 - Generate browser-playable trimmed MP4 videos using FFmpeg through `imageio-ffmpeg`
 - Preview, open, and download trimmed video outputs
-- Extract image frames from uploaded videos at selected timestamps
+- Extract a single image frame from an uploaded video at a selected timestamp
+- Extract multiple frames from uploaded videos using start time, end time, and interval
 - Preview, open, and download extracted video frames
-- Run YOLO object detection on extracted video frames
+- Run YOLO object detection on a single extracted video frame
+- Run YOLO object detection on multiple extracted video frames
 - Generate annotated frame outputs with bounding boxes
+- View a video detection timeline by timestamp
 - Preview, open, and download annotated video frame outputs
 
 ### Commands and Voice Input
 
-- Use a command box for simple text commands such as:
+- Use a command box for simple text and video commands such as:
   - `detect objects`
   - `crop person`
   - `crop bottle`
   - `blur person`
   - `blur bottle`
   - `blur all persons`
+  - `extract frame at 1 second`
+  - `extract frames from 0 to 3 seconds`
+  - `detect frames from 0 to 3 seconds`
+  - `trim video from 0 to 2 seconds`
 - Use browser-based voice input for simple image commands
 - Execute command actions through the FastAPI backend
 - Log command executions locally and in PostgreSQL
@@ -390,6 +397,76 @@ Example request:
 
 The backend returns a trimmed video URL and metadata.
 
+### Extract One Frame from Video
+
+```text
+POST /video/extract-frame/{filename}
+```
+
+Extracts one image frame from an uploaded video at a selected timestamp.
+
+Example request:
+
+```json
+{
+  "timestamp_seconds": 1
+}
+```
+
+The backend returns an extracted frame image URL, timestamp, frame index, FPS, and video duration.
+
+### Extract Multiple Frames from Video
+
+```text
+POST /video/extract-frames/{filename}
+```
+
+Extracts multiple image frames from an uploaded video using start time, end time, and interval.
+
+Example request:
+
+```json
+{
+  "start_seconds": 0,
+  "end_seconds": 3,
+  "interval_seconds": 1
+}
+```
+
+The backend returns a list of extracted frame URLs, timestamps, and frame indices.
+
+### Run YOLO Detection on One Extracted Frame
+
+```text
+POST /video/detect-frame/{frame_filename}/annotated
+```
+
+Runs YOLO object detection on an extracted frame and returns an annotated frame output with bounding boxes.
+
+### Run YOLO Detection on Multiple Extracted Frames
+
+```text
+POST /video/detect-frames/annotated
+```
+
+Runs YOLO object detection on multiple extracted video frames and returns annotated frame outputs.
+
+Example request:
+
+```json
+{
+  "frame_filenames": [
+    "frame_video_0_abc.jpg",
+    "frame_video_30_def.jpg"
+  ],
+  "confidence_threshold": 0.3,
+  "class_filter": null
+}
+```
+
+The backend returns a list of extracted frame URLs, timestamps, and frame indices.
+
+
 ---
 
 ## Command Endpoints
@@ -411,13 +488,17 @@ crop bottle
 blur person
 blur bottle
 blur all persons
+extract frame at 1 second
+extract frames from 0 to 3 seconds
+detect frames from 0 to 3 seconds
+trim video from 0 to 2 seconds
 ```
 
 Example request:
 
 ```json
 {
-  "filename": "uploaded_image.png",
+  "filename": "uploaded_image_or_video_filename",
   "command": "crop person",
   "confidence_threshold": 0.3
 }
@@ -632,6 +713,8 @@ The `main` branch is protected with required pull requests and required status c
 
 Completed:
 
+### Backend
+
 - Backend foundation
 - Health endpoint
 - Model information endpoint
@@ -648,9 +731,17 @@ Completed:
 - Command execution endpoint
 - Command logging endpoint
 - Command history endpoint
-- Backend video upload foundation
-- Backend video metadata extraction
-- Backend video trim endpoint
+- Video upload foundation
+- Video metadata extraction
+- Video trim endpoint
+- Video frame extraction endpoint
+- Multi-frame extraction endpoint
+- YOLO detection on extracted video frames
+- YOLO detection on multiple extracted video frames
+- Video command support for frame extraction, multi-frame extraction, frame detection, and trimming
+
+### Frontend
+
 - React frontend foundation
 - Frontend image upload flow
 - Frontend YOLO detection flow
@@ -669,10 +760,24 @@ Completed:
 - Frontend video upload flow
 - Frontend video metadata display
 - Frontend video trim flow
+- Frontend video frame extraction flow
+- Frontend multi-frame extraction flow
+- Frontend YOLO detection on extracted video frames
+- Frontend YOLO detection on multiple extracted video frames
+- Frontend video detection timeline
+
+### Database and MLOps-style Logging
+
 - PostgreSQL media metadata storage
 - PostgreSQL command log storage
 - PostgreSQL detection result storage
 - PostgreSQL inference log storage
+- Database statistics endpoint
+- Detection summary endpoint
+- Inference summary endpoint
+
+### DevOps and Workflow
+
 - Backend Dockerfile
 - Frontend Dockerfile
 - Full-stack Docker Compose setup
@@ -681,16 +786,6 @@ Completed:
 - Protected main branch
 - GitHub release `v0.1.0`
 - Pull Request workflow
-- Backend video upload foundation
-- Backend video metadata extraction
-- Backend video trim endpoint
-- Backend video frame extraction endpoint
-- Backend YOLO detection on extracted video frames
-- Frontend video upload flow
-- Frontend video metadata display
-- Frontend video trim flow
-- Frontend video frame extraction flow
-- Frontend YOLO detection on extracted video frames
 
 ---
 
@@ -717,15 +812,16 @@ This keeps `main.py` smaller and makes the backend easier to maintain.
 Planned future improvements:
 
 - Add object tracking for videos
+- Add full-video detection timeline across automatically sampled frames
 - Add advanced FFmpeg-based video editing workflows
 - Add backend-side command parser improvements
 - Add support for commands such as `crop the highest confidence person`
+- Add support for commands such as `blur all persons from 0 to 3 seconds`
 - Add LLM-based command parsing
 - Add proper backend speech-to-text integration
 - Add MLflow for experiment tracking
 - Add DVC for data/model versioning
 - Add deployment workflow
-
 ---
 
 ## Learning Goals
