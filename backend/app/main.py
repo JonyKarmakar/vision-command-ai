@@ -40,6 +40,7 @@ from app.schemas import (
     VideoFrameDetectionBatchRequest,
     VideoMultiFrameExtractRequest,
     VideoSampledDetectionRequest,
+    VideoTrackingRequest,
 )
 
 from app.config import (
@@ -1983,4 +1984,207 @@ def detect_sampled_video_frames(filename: str, request: VideoSampledDetectionReq
         "class_filter": request.class_filter,
         "extracted_frames": extracted_frames_result,
         "detection": detection_result,
+    }
+
+
+def calculate_bbox_center(bbox: dict):
+    return {
+        "x": round((bbox["x1"] + bbox["x2"]) / 2, 2),
+        "y": round((bbox["y1"] + bbox["y2"]) / 2, 2),
+    }
+
+
+def calculate_center_distance(center_a: dict, center_b: dict):
+    return (
+        (center_a["x"] - center_b["x"]) ** 2
+        + (center_a["y"] - center_b["y"]) ** 2
+    ) ** 0.5
+
+
+@app.post("/video/track-sampled/{filename}")
+def track_sampled_video_objects(filename: str, request: VideoTrackingRequest):
+    video_path = VIDEO_DIR / filename
+
+    if not video_path.exists() or not video_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded video not found",
+        )
+
+    if request.start_seconds < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Start time must be greater than or equal to 0",
+        )
+
+    if request.interval_seconds <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Interval must be greater than 0",
+        )
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    if request.max_distance_pixels <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="max_distance_pixels must be greater than 0",
+        )
+
+    video_metadata = extract_video_metadata(video_path)
+
+    if not video_metadata["is_readable"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded video is not readable",
+        )
+
+    duration_seconds = video_metadata["duration_seconds"]
+
+    if duration_seconds is None or duration_seconds <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not determine video duration",
+        )
+
+    end_seconds = request.end_seconds if request.end_seconds is not None else duration_seconds
+
+    if end_seconds <= request.start_seconds:
+        raise HTTPException(
+            status_code=400,
+            detail="End time must be greater than start time",
+        )
+
+    end_seconds = min(end_seconds, duration_seconds)
+
+    extracted_frames_result = extract_video_frames(
+        filename=filename,
+        request=VideoMultiFrameExtractRequest(
+            start_seconds=request.start_seconds,
+            end_seconds=end_seconds,
+            interval_seconds=request.interval_seconds,
+        ),
+    )
+
+    active_tracks = {}
+    track_summaries = {}
+    next_track_id = 1
+    frame_results = []
+
+    for frame in extracted_frames_result["frames"]:
+        frame_filename = frame["frame_filename"]
+        frame_path = OUTPUT_DIR / frame_filename
+
+        detections = run_yolo_detection_with_inference_logging(
+            filename=frame_filename,
+            image_path=frame_path,
+            confidence_threshold=request.confidence_threshold,
+            class_filter=request.class_filter,
+            source_endpoint="video_tracking",
+        )
+
+        try:
+            save_detections_to_database(
+                filename=frame_filename,
+                detections=detections,
+                confidence_threshold=request.confidence_threshold,
+                class_filter=request.class_filter,
+                source_endpoint="video_tracking",
+            )
+        except Exception:
+            # Database logging should not break video tracking.
+            pass
+
+        tracked_detections = []
+
+        for detection in detections:
+            bbox = detection["bbox"]
+            center = calculate_bbox_center(bbox)
+            class_name = detection["class_name"]
+
+            best_track_id = None
+            best_distance = None
+
+            for track_id, track in active_tracks.items():
+                if track["class_name"] != class_name:
+                    continue
+
+                distance = calculate_center_distance(center, track["center"])
+
+                if distance <= request.max_distance_pixels and (
+                    best_distance is None or distance < best_distance
+                ):
+                    best_distance = distance
+                    best_track_id = track_id
+
+            if best_track_id is None:
+                best_track_id = next_track_id
+                next_track_id += 1
+
+                track_summaries[best_track_id] = {
+                    "track_id": best_track_id,
+                    "class_name": class_name,
+                    "observation_count": 0,
+                    "first_timestamp_seconds": frame["timestamp_seconds"],
+                    "last_timestamp_seconds": frame["timestamp_seconds"],
+                    "max_confidence": detection["confidence"],
+                }
+
+            active_tracks[best_track_id] = {
+                "class_name": class_name,
+                "center": center,
+            }
+
+            track_summary = track_summaries[best_track_id]
+            track_summary["observation_count"] += 1
+            track_summary["last_timestamp_seconds"] = frame["timestamp_seconds"]
+            track_summary["max_confidence"] = max(
+                track_summary["max_confidence"],
+                detection["confidence"],
+            )
+
+            tracked_detections.append(
+                {
+                    "track_id": best_track_id,
+                    "class_id": detection["class_id"],
+                    "class_name": class_name,
+                    "confidence": detection["confidence"],
+                    "bbox": bbox,
+                    "center": center,
+                }
+            )
+
+        frame_results.append(
+            {
+                "frame_filename": frame_filename,
+                "frame_file_url": frame["frame_file_url"],
+                "timestamp_seconds": frame["timestamp_seconds"],
+                "frame_index": frame["frame_index"],
+                "detections": tracked_detections,
+                "detection_count": len(tracked_detections),
+            }
+        )
+
+    tracks = sorted(
+        track_summaries.values(),
+        key=lambda track: track["track_id"],
+    )
+
+    return {
+        "filename": filename,
+        "video_metadata": video_metadata,
+        "start_seconds": request.start_seconds,
+        "end_seconds": round(end_seconds, 2),
+        "interval_seconds": request.interval_seconds,
+        "confidence_threshold": request.confidence_threshold,
+        "class_filter": request.class_filter,
+        "max_distance_pixels": request.max_distance_pixels,
+        "frame_count": len(frame_results),
+        "track_count": len(tracks),
+        "tracks": tracks,
+        "frames": frame_results,
     }
