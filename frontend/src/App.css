@@ -957,3 +957,11 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.video-sampled-detection-card {
+  border-color: #2563eb;
+}
+
+.sampled-video-summary {
+  margin-top: 16px;
+}

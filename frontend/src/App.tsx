@@ -154,6 +154,23 @@ type VideoDetectFramesCommandResponse = {
   detection: VideoMultiFrameDetectionResponse
 }
 
+type VideoSampledDetectionResponse = {
+  filename: string
+  video_metadata: {
+    is_readable: boolean
+    width: number | null
+    height: number | null
+    fps: number | null
+    frame_count: number | null
+    duration_seconds: number | null
+  }
+  interval_seconds: number
+  confidence_threshold: number
+  class_filter: string | null
+  extracted_frames: VideoMultiFrameExtractResponse
+  detection: VideoMultiFrameDetectionResponse
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
@@ -297,6 +314,7 @@ function App() {
   const [videoFrameResult, setVideoFrameResult] = useState<VideoFrameExtractResponse | null>(null)
   const [videoMultiFrameResult, setVideoMultiFrameResult] = useState<VideoMultiFrameExtractResponse | null>(null)
   const [videoMultiFrameDetectionResult, setVideoMultiFrameDetectionResult] = useState<VideoMultiFrameDetectionResponse | null>(null)
+  const [videoSampledDetectionResult, setVideoSampledDetectionResult] = useState<VideoSampledDetectionResponse | null>(null)
   const [videoFrameDetectionResult, setVideoFrameDetectionResult] = useState<VideoFrameDetectionResponse | null>(null)
   const [trimStartSeconds, setTrimStartSeconds] = useState(0)
   const [trimEndSeconds, setTrimEndSeconds] = useState(2)
@@ -304,6 +322,7 @@ function App() {
   const [multiFrameStartSeconds, setMultiFrameStartSeconds] = useState(0)
   const [multiFrameEndSeconds, setMultiFrameEndSeconds] = useState(3)
   const [multiFrameIntervalSeconds, setMultiFrameIntervalSeconds] = useState(1)
+  const [sampledVideoIntervalSeconds, setSampledVideoIntervalSeconds] = useState(1)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
@@ -332,6 +351,7 @@ function App() {
   const [isExtractingFrame, setIsExtractingFrame] = useState(false)
   const [isExtractingMultipleFrames, setIsExtractingMultipleFrames] = useState(false)
   const [isDetectingMultipleFrames, setIsDetectingMultipleFrames] = useState(false)
+  const [isDetectingSampledVideo, setIsDetectingSampledVideo] = useState(false)
   const [isDetectingFrame, setIsDetectingFrame] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
@@ -636,6 +656,63 @@ function App() {
       setStatusMessage('Multi-frame detection failed.')
     } finally {
       setIsDetectingMultipleFrames(false)
+    }
+  }
+
+  const handleDetectSampledVideo = async () => {
+    if (!videoUploadResult) {
+      setError('Please upload a video first.')
+      return
+    }
+
+    if (sampledVideoIntervalSeconds <= 0) {
+      setError('Sampling interval must be greater than 0.')
+      return
+    }
+
+    try {
+      setIsDetectingSampledVideo(true)
+      setError(null)
+      setVideoFrameResult(null)
+      setVideoFrameDetectionResult(null)
+      setVideoMultiFrameResult(null)
+      setVideoMultiFrameDetectionResult(null)
+      setStatusMessage(`Running sampled video detection every ${sampledVideoIntervalSeconds}s...`)
+
+      const response = await fetch(
+        `/api/video/detect-sampled/${videoUploadResult.stored_filename}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            interval_seconds: sampledVideoIntervalSeconds,
+            confidence_threshold: confidenceThreshold / 100,
+            class_filter: selectedClass === 'all' ? null : selectedClass,
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Sampled video detection failed')
+      }
+
+      const data: VideoSampledDetectionResponse = await response.json()
+
+      setVideoSampledDetectionResult(data)
+      setVideoMultiFrameResult(data.extracted_frames)
+      setVideoMultiFrameDetectionResult(data.detection)
+
+      setStatusMessage(
+        `Sampled video detection complete. Processed ${data.detection.frame_count} frame(s).`,
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Sampled video detection failed.')
+    } finally {
+      setIsDetectingSampledVideo(false)
     }
   }
 
@@ -1271,6 +1348,7 @@ function App() {
     isExtractingFrame ||
     isExtractingMultipleFrames ||
     isDetectingMultipleFrames ||
+    isDetectingSampledVideo ||
     isDetectingFrame ||
     isDetecting ||
     isCropping ||
@@ -2427,6 +2505,47 @@ function App() {
               </>
             )}
           </div>
+        </section>
+      )}
+
+      {videoUploadResult && (
+        <section className="card video-sampled-detection-card">
+          <h2>Detect Sampled Video</h2>
+          <p className="small-note">
+            Sample frames across the full video and run YOLO detection on each sampled frame.
+          </p>
+
+          <div className="trim-input-grid">
+            <label>
+              Sampling interval seconds
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={sampledVideoIntervalSeconds}
+                onChange={(event) => setSampledVideoIntervalSeconds(Number(event.target.value))}
+                disabled={isBusy}
+              />
+            </label>
+          </div>
+
+          <button
+            onClick={handleDetectSampledVideo}
+            disabled={isBusy || !videoUploadResult}
+          >
+            {isDetectingSampledVideo ? 'Detecting sampled video...' : 'Detect Sampled Video'}
+          </button>
+
+          {videoSampledDetectionResult && (
+            <div className="summary-box sampled-video-summary">
+              <p><strong>Video:</strong> {videoSampledDetectionResult.filename}</p>
+              <p><strong>Interval:</strong> {videoSampledDetectionResult.interval_seconds}s</p>
+              <p><strong>Confidence threshold:</strong> {(videoSampledDetectionResult.confidence_threshold * 100).toFixed(0)}%</p>
+              <p><strong>Class filter:</strong> {videoSampledDetectionResult.class_filter ?? 'All classes'}</p>
+              <p><strong>Extracted frames:</strong> {videoSampledDetectionResult.extracted_frames.frame_count}</p>
+              <p><strong>Detected frames:</strong> {videoSampledDetectionResult.detection.frame_count}</p>
+            </div>
+          )}
         </section>
       )}
 
