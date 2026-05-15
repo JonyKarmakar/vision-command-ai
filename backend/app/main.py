@@ -880,6 +880,26 @@ def execute_command(request: CommandRequest):
             "result": result,
         }
 
+    if parsed_command["action"] == "extract_frames":
+        result = extract_video_frames(
+            filename=request.filename,
+            request=VideoMultiFrameExtractRequest(
+                start_seconds=parsed_command["start_seconds"],
+                end_seconds=parsed_command["end_seconds"],
+                interval_seconds=parsed_command["interval_seconds"],
+            ),
+        )
+
+        result_type = "extract_frames"
+        log_command_execution(request, parsed_command, result_type)
+
+        return {
+            "command": request.command,
+            "parsed_command": parsed_command,
+            "result_type": result_type,
+            "result": result,
+        }
+
     raise HTTPException(
         status_code=400,
         detail="Unsupported command action",
