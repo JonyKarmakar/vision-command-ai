@@ -67,6 +67,24 @@ type VideoFrameDetectionResponse = {
   annotated_frame_file_url: string
 }
 
+type VideoMultiFrame = {
+  frame_filename: string
+  frame_file_url: string
+  timestamp_seconds: number
+  frame_index: number
+}
+
+type VideoMultiFrameExtractResponse = {
+  filename: string
+  start_seconds: number
+  end_seconds: number
+  interval_seconds: number
+  fps: number
+  video_duration_seconds: number
+  frame_count: number
+  frames: VideoMultiFrame[]
+}
+
 type Detection = {
   class_id: number
   class_name: string
@@ -257,10 +275,14 @@ function App() {
   const [videoUploadResult, setVideoUploadResult] = useState<VideoUploadResponse | null>(null)
   const [videoTrimResult, setVideoTrimResult] = useState<VideoTrimResponse | null>(null)
   const [videoFrameResult, setVideoFrameResult] = useState<VideoFrameExtractResponse | null>(null)
+  const [videoMultiFrameResult, setVideoMultiFrameResult] = useState<VideoMultiFrameExtractResponse | null>(null)
   const [videoFrameDetectionResult, setVideoFrameDetectionResult] = useState<VideoFrameDetectionResponse | null>(null)
   const [trimStartSeconds, setTrimStartSeconds] = useState(0)
   const [trimEndSeconds, setTrimEndSeconds] = useState(2)
   const [frameTimestampSeconds, setFrameTimestampSeconds] = useState(1)
+  const [multiFrameStartSeconds, setMultiFrameStartSeconds] = useState(0)
+  const [multiFrameEndSeconds, setMultiFrameEndSeconds] = useState(3)
+  const [multiFrameIntervalSeconds, setMultiFrameIntervalSeconds] = useState(1)
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
@@ -287,6 +309,7 @@ function App() {
   const [isUploadingVideo, setIsUploadingVideo] = useState(false)
   const [isTrimmingVideo, setIsTrimmingVideo] = useState(false)
   const [isExtractingFrame, setIsExtractingFrame] = useState(false)
+  const [isExtractingMultipleFrames, setIsExtractingMultipleFrames] = useState(false)
   const [isDetectingFrame, setIsDetectingFrame] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
@@ -327,6 +350,7 @@ function App() {
     setVideoUploadResult(null)
     setVideoTrimResult(null)
     setVideoFrameResult(null)
+    setVideoMultiFrameResult(null)
     setVideoFrameDetectionResult(null)
     setError(null)
     setStatusMessage(file ? `Selected video ${file.name}. Ready to upload.` : 'Ready to upload an image or video.')
@@ -346,6 +370,7 @@ function App() {
       setError(null)
       setVideoTrimResult(null)
       setVideoFrameResult(null)
+      setVideoMultiFrameResult(null)
       setVideoFrameDetectionResult(null)
       setStatusMessage('Uploading video to backend...')
 
@@ -452,6 +477,7 @@ function App() {
 
       const data: VideoFrameExtractResponse = await response.json()
       setVideoFrameResult(data)
+      setVideoMultiFrameResult(null)
       setVideoFrameDetectionResult(null)
       setStatusMessage('Frame extraction complete. Extracted frame is ready.')
     } catch (err) {
@@ -493,6 +519,61 @@ function App() {
       setStatusMessage('Frame detection failed.')
     } finally {
       setIsDetectingFrame(false)
+    }
+  }
+
+  const handleExtractMultipleVideoFrames = async () => {
+    if (!videoUploadResult) {
+      setError('Please upload a video first.')
+      return
+    }
+
+    if (
+      multiFrameStartSeconds < 0 ||
+      multiFrameEndSeconds <= multiFrameStartSeconds ||
+      multiFrameIntervalSeconds <= 0
+    ) {
+      setError('Please enter a valid start, end, and interval for multi-frame extraction.')
+      return
+    }
+
+    try {
+      setIsExtractingMultipleFrames(true)
+      setError(null)
+      setVideoFrameResult(null)
+      setVideoFrameDetectionResult(null)
+      setStatusMessage(
+        `Extracting frames from ${multiFrameStartSeconds}s to ${multiFrameEndSeconds}s...`,
+      )
+
+      const response = await fetch(
+        `/api/video/extract-frames/${videoUploadResult.stored_filename}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            start_seconds: multiFrameStartSeconds,
+            end_seconds: multiFrameEndSeconds,
+            interval_seconds: multiFrameIntervalSeconds,
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Multi-frame extraction failed')
+      }
+
+      const data: VideoMultiFrameExtractResponse = await response.json()
+      setVideoMultiFrameResult(data)
+      setStatusMessage(`Extracted ${data.frame_count} frame(s) from the video.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Multi-frame extraction failed.')
+    } finally {
+      setIsExtractingMultipleFrames(false)
     }
   }
 
@@ -1100,6 +1181,7 @@ function App() {
     isUploadingVideo ||
     isTrimmingVideo ||
     isExtractingFrame ||
+    isExtractingMultipleFrames ||
     isDetectingFrame ||
     isDetecting ||
     isCropping ||
@@ -1938,6 +2020,60 @@ function App() {
         </section>
       )}
 
+      {videoUploadResult && (
+        <section className="card video-multiframe-card">
+          <h2>Extract Multiple Frames</h2>
+          <p className="small-note">
+            Select a start time, end time, and interval. The backend will extract a frame gallery.
+          </p>
+
+          <div className="trim-input-grid">
+            <label>
+              Start seconds
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={multiFrameStartSeconds}
+                onChange={(event) => setMultiFrameStartSeconds(Number(event.target.value))}
+                disabled={isBusy}
+              />
+            </label>
+
+            <label>
+              End seconds
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={multiFrameEndSeconds}
+                onChange={(event) => setMultiFrameEndSeconds(Number(event.target.value))}
+                disabled={isBusy}
+              />
+            </label>
+
+            <label>
+              Interval seconds
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={multiFrameIntervalSeconds}
+                onChange={(event) => setMultiFrameIntervalSeconds(Number(event.target.value))}
+                disabled={isBusy}
+              />
+            </label>
+          </div>
+
+          <button
+            onClick={handleExtractMultipleVideoFrames}
+            disabled={isBusy || !videoUploadResult}
+          >
+            {isExtractingMultipleFrames ? 'Extracting frames...' : 'Extract Multiple Frames'}
+          </button>
+        </section>
+      )}
+
       {videoTrimResult && (
         <section className="result-grid">
           <div className="card">
@@ -2073,6 +2209,52 @@ function App() {
                 </div>
               </>
             )}
+          </div>
+        </section>
+      )}
+
+      {videoMultiFrameResult && (
+        <section className="card">
+          <h2>Multi-Frame Extraction Result</h2>
+
+          <div className="summary-box">
+            <p><strong>Original filename:</strong> {videoMultiFrameResult.filename}</p>
+            <p><strong>Start:</strong> {videoMultiFrameResult.start_seconds}s</p>
+            <p><strong>End:</strong> {videoMultiFrameResult.end_seconds}s</p>
+            <p><strong>Interval:</strong> {videoMultiFrameResult.interval_seconds}s</p>
+            <p><strong>Extracted frames:</strong> {videoMultiFrameResult.frame_count}</p>
+            <p><strong>FPS:</strong> {videoMultiFrameResult.fps}</p>
+            <p><strong>Video duration:</strong> {videoMultiFrameResult.video_duration_seconds}s</p>
+          </div>
+
+          <div className="frame-gallery">
+            {videoMultiFrameResult.frames.map((frame) => {
+              const frameUrl = `/api${frame.frame_file_url}`
+
+              return (
+                <div className="frame-card" key={frame.frame_filename}>
+                  <img
+                    className="preview-image"
+                    src={frameUrl}
+                    alt={`Extracted frame at ${frame.timestamp_seconds}s`}
+                  />
+
+                  <div className="metadata-list">
+                    <p><strong>Timestamp:</strong> {frame.timestamp_seconds}s</p>
+                    <p><strong>Frame index:</strong> {frame.frame_index}</p>
+                  </div>
+
+                  <div className="output-actions">
+                    <a href={frameUrl} target="_blank" rel="noreferrer">
+                      Open frame
+                    </a>
+                    <a href={frameUrl} download={frame.frame_filename}>
+                      Download frame
+                    </a>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </section>
       )}
