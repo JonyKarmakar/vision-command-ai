@@ -51,3 +51,9 @@ class VideoFrameDetectionBatchRequest(BaseModel):
     frame_filenames: list[str]
     confidence_threshold: float = 0.25
     class_filter: Optional[str] = None
+
+
+class VideoSampledDetectionRequest(BaseModel):
+    interval_seconds: float = 1.0
+    confidence_threshold: float = 0.25
+    class_filter: Optional[str] = None

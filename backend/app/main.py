@@ -39,6 +39,7 @@ from app.schemas import (
     VideoFrameExtractRequest,
     VideoFrameDetectionBatchRequest,
     VideoMultiFrameExtractRequest,
+    VideoSampledDetectionRequest,
 )
 
 from app.config import (
@@ -1911,4 +1912,75 @@ def detect_objects_on_multiple_extracted_frames(
         "confidence_threshold": request.confidence_threshold,
         "class_filter": request.class_filter,
         "frames": frame_results,
+    }
+
+
+@app.post("/video/detect-sampled/{filename}")
+def detect_sampled_video_frames(filename: str, request: VideoSampledDetectionRequest):
+    video_path = VIDEO_DIR / filename
+
+    if not video_path.exists() or not video_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded video not found",
+        )
+
+    if request.interval_seconds <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Interval must be greater than 0",
+        )
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    video_metadata = extract_video_metadata(video_path)
+
+    if not video_metadata["is_readable"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded video is not readable",
+        )
+
+    duration_seconds = video_metadata["duration_seconds"]
+
+    if duration_seconds is None or duration_seconds <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not determine video duration",
+        )
+
+    extracted_frames_result = extract_video_frames(
+        filename=filename,
+        request=VideoMultiFrameExtractRequest(
+            start_seconds=0,
+            end_seconds=duration_seconds,
+            interval_seconds=request.interval_seconds,
+        ),
+    )
+
+    frame_filenames = [
+        frame["frame_filename"]
+        for frame in extracted_frames_result["frames"]
+    ]
+
+    detection_result = detect_objects_on_multiple_extracted_frames(
+        request=VideoFrameDetectionBatchRequest(
+            frame_filenames=frame_filenames,
+            confidence_threshold=request.confidence_threshold,
+            class_filter=request.class_filter,
+        ),
+    )
+
+    return {
+        "filename": filename,
+        "video_metadata": video_metadata,
+        "interval_seconds": request.interval_seconds,
+        "confidence_threshold": request.confidence_threshold,
+        "class_filter": request.class_filter,
+        "extracted_frames": extracted_frames_result,
+        "detection": detection_result,
     }
