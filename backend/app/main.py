@@ -861,6 +861,42 @@ def execute_command(request: CommandRequest):
             "result": result,
         }
 
+    if parsed_command["action"] == "detect_frames":
+        extracted_frames_result = extract_video_frames(
+            filename=request.filename,
+            request=VideoMultiFrameExtractRequest(
+                start_seconds=parsed_command["start_seconds"],
+                end_seconds=parsed_command["end_seconds"],
+                interval_seconds=parsed_command["interval_seconds"],
+            ),
+        )
+
+        frame_filenames = [
+            frame["frame_filename"]
+            for frame in extracted_frames_result["frames"]
+        ]
+
+        detection_result = detect_objects_on_multiple_extracted_frames(
+            request=VideoFrameDetectionBatchRequest(
+                frame_filenames=frame_filenames,
+                confidence_threshold=request.confidence_threshold,
+                class_filter=None,
+            ),
+        )
+
+        result_type = "detect_frames"
+        log_command_execution(request, parsed_command, result_type)
+
+        return {
+            "command": request.command,
+            "parsed_command": parsed_command,
+            "result_type": result_type,
+            "result": {
+                "extracted_frames": extracted_frames_result,
+                "detection": detection_result,
+            },
+        }
+
     if parsed_command["action"] == "trim_video":
         result = trim_uploaded_video(
             filename=request.filename,

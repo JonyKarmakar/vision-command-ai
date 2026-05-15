@@ -46,6 +46,27 @@ def parse_command(command: str):
     normalized_command = command.lower().strip()
     words = normalized_command.split()
 
+    if "detect" in normalized_command and "frames" in words:
+        numbers = _extract_numbers(normalized_command)
+
+        if len(numbers) < 2:
+            raise HTTPException(
+                status_code=400,
+                detail="Please specify a start and end time, for example: detect frames from 0 to 3 seconds",
+            )
+
+        start_seconds = numbers[0]
+        end_seconds = numbers[1]
+        interval_seconds = numbers[2] if len(numbers) >= 3 else 1.0
+
+        return {
+            "action": "detect_frames",
+            "class_name": None,
+            "start_seconds": start_seconds,
+            "end_seconds": end_seconds,
+            "interval_seconds": interval_seconds,
+        }
+
     if "extract" in normalized_command and "frames" in words:
         numbers = _extract_numbers(normalized_command)
 
@@ -170,6 +191,7 @@ def parse_command(command: str):
         detail=(
             "Unsupported command. Try commands like: detect objects, crop person, "
             "crop bottle, blur person, extract frame at 1 second, "
-            "extract frames from 0 to 3 seconds, trim video from 0 to 2 seconds"
+            "extract frames from 0 to 3 seconds, detect frames from 0 to 3 seconds, "
+            "trim video from 0 to 2 seconds"
         ),
     )
