@@ -107,6 +107,21 @@ type DetectionResponse = {
   annotated_file_url: string
 }
 
+type VideoMultiFrameDetectionFrame = {
+  frame_filename: string
+  detections: Detection[]
+  detection_count: number
+  annotated_frame_filename: string
+  annotated_frame_file_url: string
+}
+
+type VideoMultiFrameDetectionResponse = {
+  frame_count: number
+  confidence_threshold: number
+  class_filter: string | null
+  frames: VideoMultiFrameDetectionFrame[]
+}
+
 type CropResponse = {
   filename: string
   class_name?: string
@@ -276,6 +291,7 @@ function App() {
   const [videoTrimResult, setVideoTrimResult] = useState<VideoTrimResponse | null>(null)
   const [videoFrameResult, setVideoFrameResult] = useState<VideoFrameExtractResponse | null>(null)
   const [videoMultiFrameResult, setVideoMultiFrameResult] = useState<VideoMultiFrameExtractResponse | null>(null)
+  const [videoMultiFrameDetectionResult, setVideoMultiFrameDetectionResult] = useState<VideoMultiFrameDetectionResponse | null>(null)
   const [videoFrameDetectionResult, setVideoFrameDetectionResult] = useState<VideoFrameDetectionResponse | null>(null)
   const [trimStartSeconds, setTrimStartSeconds] = useState(0)
   const [trimEndSeconds, setTrimEndSeconds] = useState(2)
@@ -310,6 +326,7 @@ function App() {
   const [isTrimmingVideo, setIsTrimmingVideo] = useState(false)
   const [isExtractingFrame, setIsExtractingFrame] = useState(false)
   const [isExtractingMultipleFrames, setIsExtractingMultipleFrames] = useState(false)
+  const [isDetectingMultipleFrames, setIsDetectingMultipleFrames] = useState(false)
   const [isDetectingFrame, setIsDetectingFrame] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
@@ -568,12 +585,52 @@ function App() {
 
       const data: VideoMultiFrameExtractResponse = await response.json()
       setVideoMultiFrameResult(data)
+      setVideoMultiFrameDetectionResult(null)
       setStatusMessage(`Extracted ${data.frame_count} frame(s) from the video.`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Multi-frame extraction failed.')
     } finally {
       setIsExtractingMultipleFrames(false)
+    }
+  }
+
+  const handleDetectMultipleVideoFrames = async () => {
+    if (!videoMultiFrameResult || videoMultiFrameResult.frames.length === 0) {
+      setError('Please extract multiple frames first.')
+      return
+    }
+
+    try {
+      setIsDetectingMultipleFrames(true)
+      setError(null)
+      setStatusMessage('Running YOLO detection on extracted video frames...')
+
+      const response = await fetch('/api/video/detect-frames/annotated', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          frame_filenames: videoMultiFrameResult.frames.map((frame) => frame.frame_filename),
+          confidence_threshold: confidenceThreshold / 100,
+          class_filter: selectedClass === 'all' ? null : selectedClass,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Multi-frame detection failed')
+      }
+
+      const data: VideoMultiFrameDetectionResponse = await response.json()
+      setVideoMultiFrameDetectionResult(data)
+      setStatusMessage(`Detected objects on ${data.frame_count} extracted frame(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Multi-frame detection failed.')
+    } finally {
+      setIsDetectingMultipleFrames(false)
     }
   }
 
@@ -1182,6 +1239,7 @@ function App() {
     isTrimmingVideo ||
     isExtractingFrame ||
     isExtractingMultipleFrames ||
+    isDetectingMultipleFrames ||
     isDetectingFrame ||
     isDetecting ||
     isCropping ||
@@ -2227,6 +2285,16 @@ function App() {
             <p><strong>Video duration:</strong> {videoMultiFrameResult.video_duration_seconds}s</p>
           </div>
 
+          <div className="button-row multiframe-detection-actions">
+            <button
+              className="secondary-button"
+              onClick={handleDetectMultipleVideoFrames}
+              disabled={isBusy || !videoMultiFrameResult}
+            >
+              {isDetectingMultipleFrames ? 'Detecting frames...' : 'Run YOLO on Extracted Frames'}
+            </button>
+          </div>
+
           <div className="frame-gallery">
             {videoMultiFrameResult.frames.map((frame) => {
               const frameUrl = `/api${frame.frame_file_url}`
@@ -2250,6 +2318,65 @@ function App() {
                     </a>
                     <a href={frameUrl} download={frame.frame_filename}>
                       Download frame
+                    </a>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {videoMultiFrameDetectionResult && (
+        <section className="card">
+          <h2>Multi-Frame Detection Result</h2>
+
+          <div className="summary-box">
+            <p><strong>Processed frames:</strong> {videoMultiFrameDetectionResult.frame_count}</p>
+            <p><strong>Confidence threshold:</strong> {(videoMultiFrameDetectionResult.confidence_threshold * 100).toFixed(0)}%</p>
+            <p><strong>Class filter:</strong> {videoMultiFrameDetectionResult.class_filter ?? 'All classes'}</p>
+          </div>
+
+          <div className="frame-gallery">
+            {videoMultiFrameDetectionResult.frames.map((frame) => {
+              const annotatedFrameUrl = `/api${frame.annotated_frame_file_url}`
+
+              return (
+                <div className="frame-card" key={frame.annotated_frame_filename}>
+                  <img
+                    className="preview-image"
+                    src={annotatedFrameUrl}
+                    alt={`Annotated frame ${frame.frame_filename}`}
+                  />
+
+                  <div className="metadata-list">
+                    <p><strong>Frame:</strong> {frame.frame_filename}</p>
+                    <p><strong>Detections:</strong> {frame.detection_count}</p>
+                  </div>
+
+                  {frame.detections.length > 0 ? (
+                    <div className="detections-list compact-detections">
+                      {frame.detections.map((detection, index) => (
+                        <div className="detection-item" key={`${frame.frame_filename}-${index}`}>
+                          <div className="detection-header">
+                            <strong>{index + 1}. {detection.class_name}</strong>
+                            <span className="confidence-badge">
+                              {(detection.confidence * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>No objects detected in this frame.</p>
+                  )}
+
+                  <div className="output-actions">
+                    <a href={annotatedFrameUrl} target="_blank" rel="noreferrer">
+                      Open annotated frame
+                    </a>
+                    <a href={annotatedFrameUrl} download={frame.annotated_frame_filename}>
+                      Download annotated frame
                     </a>
                   </div>
                 </div>

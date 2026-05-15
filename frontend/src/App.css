@@ -825,3 +825,15 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.multiframe-detection-actions {
+  margin-bottom: 18px;
+}
+
+.compact-detections {
+  margin-top: 12px;
+}
+
+.compact-detections .detection-item {
+  padding: 10px;
+}
