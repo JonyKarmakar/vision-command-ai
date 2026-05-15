@@ -149,14 +149,19 @@ type BlurResponse = {
   }
 }
 
+type VideoDetectFramesCommandResponse = {
+  extracted_frames: VideoMultiFrameExtractResponse
+  detection: VideoMultiFrameDetectionResponse
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
     action: string
     class_name: string | null
   }
-  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'extract_frame' | 'trim_video' | 'extract_frames'
-  result: DetectionResponse | CropResponse | BlurResponse | VideoFrameExtractResponse | VideoTrimResponse | VideoMultiFrameExtractResponse
+  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'extract_frame' | 'extract_frames' | 'trim_video' | 'detect_frames'
+  result: DetectionResponse | CropResponse | BlurResponse | VideoFrameExtractResponse | VideoMultiFrameExtractResponse | VideoTrimResponse | VideoDetectFramesCommandResponse
 }
 
 type CommandLog = {
@@ -1193,6 +1198,14 @@ function App() {
         setVideoFrameDetectionResult(null)
       }
 
+      if (data.result_type === 'detect_frames') {
+        const result = data.result as VideoDetectFramesCommandResponse
+        setVideoMultiFrameResult(result.extracted_frames)
+        setVideoMultiFrameDetectionResult(result.detection)
+        setVideoFrameResult(null)
+        setVideoFrameDetectionResult(null)
+      }
+
       if (data.result_type === 'trim_video') {
         const result = data.result as VideoTrimResponse
         setVideoTrimResult(result)
@@ -1662,7 +1675,7 @@ function App() {
         <section className="card command-card">
           <h2>Command Box</h2>
           <p className="small-note">
-            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, <strong>blur person</strong>, <strong>extract frame at 1 second</strong>, <strong>extract frames from 0 to 3 seconds</strong>, or <strong>trim video from 0 to 2 seconds</strong>.
+            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, <strong>blur person</strong>, <strong>extract frame at 1 second</strong>, <strong>extract frames from 0 to 3 seconds</strong>, <strong>detect frames from 0 to 3 seconds</strong>, or <strong>trim video from 0 to 2 seconds</strong>.
           </p>
 
           <div className="command-row">
