@@ -155,8 +155,8 @@ type CommandResponse = {
     action: string
     class_name: string | null
   }
-  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'extract_frame' | 'trim_video'
-  result: DetectionResponse | CropResponse | BlurResponse | VideoFrameExtractResponse | VideoTrimResponse
+  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'extract_frame' | 'trim_video' | 'extract_frames'
+  result: DetectionResponse | CropResponse | BlurResponse | VideoFrameExtractResponse | VideoTrimResponse | VideoMultiFrameExtractResponse
 }
 
 type CommandLog = {
@@ -1185,6 +1185,14 @@ function App() {
         setVideoFrameDetectionResult(null)
       }
 
+      if (data.result_type === 'extract_frames') {
+        const result = data.result as VideoMultiFrameExtractResponse
+        setVideoMultiFrameResult(result)
+        setVideoMultiFrameDetectionResult(null)
+        setVideoFrameResult(null)
+        setVideoFrameDetectionResult(null)
+      }
+
       if (data.result_type === 'trim_video') {
         const result = data.result as VideoTrimResponse
         setVideoTrimResult(result)
@@ -1654,7 +1662,7 @@ function App() {
         <section className="card command-card">
           <h2>Command Box</h2>
           <p className="small-note">
-            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, <strong>blur person</strong>, <strong>extract frame at 1 second</strong>, or <strong>trim video from 0 to 2 seconds</strong>.
+            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, <strong>blur person</strong>, <strong>extract frame at 1 second</strong>, <strong>extract frames from 0 to 3 seconds</strong>, or <strong>trim video from 0 to 2 seconds</strong>.
           </p>
 
           <div className="command-row">
