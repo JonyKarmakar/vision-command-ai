@@ -899,3 +899,61 @@ input[type="file"]::file-selector-button:hover {
     flex-direction: column;
   }
 }
+
+.smart-command-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin: 18px 0;
+}
+
+.command-preset-group {
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.command-preset-group h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #e5e7eb;
+}
+
+.preset-button-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.preset-button {
+  background: #27272a;
+  color: #e5e7eb;
+  border: 1px solid #3f3f46;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.preset-button:hover:not(:disabled) {
+  background: #3f3f46;
+}
+
+.preset-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.empty-preset-note {
+  color: #a1a1aa;
+  font-size: 14px;
+  margin: 12px 0 0;
+}
+
+@media (max-width: 800px) {
+  .smart-command-presets {
+    grid-template-columns: 1fr;
+  }
+}

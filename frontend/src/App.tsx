@@ -1116,11 +1116,21 @@ function App() {
   }
 
   const handleCommand = async () => {
-    const activeFilename =
-      uploadResult?.stored_filename || videoUploadResult?.stored_filename
+    const normalizedCommandText = commandText.toLowerCase().trim()
+    const isVideoCommand =
+      normalizedCommandText.includes('video') ||
+      normalizedCommandText.includes('frame')
+
+    const activeFilename = isVideoCommand
+      ? videoUploadResult?.stored_filename
+      : uploadResult?.stored_filename
 
     if (!activeFilename) {
-      setError('Please upload an image or video before running a command.')
+      setError(
+        isVideoCommand
+          ? 'Please upload a video before running this command.'
+          : 'Please upload an image before running this command.',
+      )
       return
     }
 
@@ -1314,6 +1324,49 @@ function App() {
       .map(([className, count]) => `${className} (${count})`)
       .join(', ')
   }
+
+  const generalCommandPresets = [
+    {
+      label: 'Detect objects',
+      command: 'detect objects',
+      target: 'image',
+    },
+    {
+      label: 'Extract frame at 1s',
+      command: 'extract frame at 1 second',
+      target: 'video',
+    },
+    {
+      label: 'Extract frames 0–3s',
+      command: 'extract frames from 0 to 3 seconds',
+      target: 'video',
+    },
+    {
+      label: 'Detect frames 0–3s',
+      command: 'detect frames from 0 to 3 seconds',
+      target: 'video',
+    },
+    {
+      label: 'Trim video 0–2s',
+      command: 'trim video from 0 to 2 seconds',
+      target: 'video',
+    },
+  ]
+
+  const detectedObjectCommandPresets = classOptions.flatMap((className) => [
+    {
+      label: `Crop ${className}`,
+      command: `crop ${className}`,
+    },
+    {
+      label: `Blur ${className}`,
+      command: `blur ${className}`,
+    },
+    {
+      label: `Blur all ${className}s`,
+      command: `blur all ${className}s`,
+    },
+  ])
 
   return (
     <main className="page">
@@ -1675,8 +1728,67 @@ function App() {
         <section className="card command-card">
           <h2>Command Box</h2>
           <p className="small-note">
-            Try commands like <strong>detect objects</strong>, <strong>crop person</strong>, <strong>blur person</strong>, <strong>extract frame at 1 second</strong>, <strong>extract frames from 0 to 3 seconds</strong>, <strong>detect frames from 0 to 3 seconds</strong>, or <strong>trim video from 0 to 2 seconds</strong>.
+            Use preset buttons or type commands manually. Object-specific presets appear after YOLO detects classes.
           </p>
+
+          <div className="smart-command-presets">
+            <div className="command-preset-group">
+              <h3>General commands</h3>
+              <p className="small-note">
+                These commands work after uploading the required media type.
+              </p>
+
+              <div className="preset-button-grid">
+                {generalCommandPresets.map((preset) => {
+                  const requiresImage = preset.target === 'image'
+                  const requiresVideo = preset.target === 'video'
+                  const disabled =
+                    isBusy ||
+                    (requiresImage && !uploadResult) ||
+                    (requiresVideo && !videoUploadResult)
+
+                  return (
+                    <button
+                      key={preset.command}
+                      className="preset-button"
+                      type="button"
+                      onClick={() => setCommandText(preset.command)}
+                      disabled={disabled}
+                    >
+                      {preset.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="command-preset-group">
+              <h3>Detected object commands</h3>
+              <p className="small-note">
+                These presets are generated from detected object classes. Run detection first.
+              </p>
+
+              {detectedObjectCommandPresets.length > 0 ? (
+                <div className="preset-button-grid">
+                  {detectedObjectCommandPresets.map((preset) => (
+                    <button
+                      key={preset.command}
+                      className="preset-button"
+                      type="button"
+                      onClick={() => setCommandText(preset.command)}
+                      disabled={isBusy || !uploadResult}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-preset-note">
+                  No detected classes yet. Upload an image and run YOLO detection to generate object presets.
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="command-row">
             <input
