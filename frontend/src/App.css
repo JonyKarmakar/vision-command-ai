@@ -837,3 +837,65 @@ input[type="file"]::file-selector-button:hover {
 .compact-detections .detection-item {
   padding: 10px;
 }
+
+.video-timeline {
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+  margin: 18px 0;
+}
+
+.video-timeline h3 {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.timeline-index span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #2563eb;
+  color: white;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.timeline-header span {
+  color: #d4d4d8;
+  font-size: 14px;
+}
+
+.timeline-content p {
+  margin: 0;
+  color: #a1a1aa;
+  font-size: 14px;
+}
+
+@media (max-width: 800px) {
+  .timeline-header {
+    flex-direction: column;
+  }
+}

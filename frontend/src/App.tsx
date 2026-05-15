@@ -1268,6 +1268,32 @@ function App() {
   const filtersChangedAfterDetection =
     thresholdChangedAfterDetection || classChangedAfterDetection
 
+  const getFrameTimestamp = (frameFilename: string) => {
+    return videoMultiFrameResult?.frames.find(
+      (frame) => frame.frame_filename === frameFilename,
+    )?.timestamp_seconds
+  }
+
+  const formatFrameTimestamp = (frameFilename: string) => {
+    const timestamp = getFrameTimestamp(frameFilename)
+    return timestamp !== undefined ? `${timestamp}s` : 'Unknown time'
+  }
+
+  const getFrameClassSummary = (detections: Detection[]) => {
+    if (detections.length === 0) {
+      return 'No detections'
+    }
+
+    const classCounts = detections.reduce<Record<string, number>>((counts, detection) => {
+      counts[detection.class_name] = (counts[detection.class_name] || 0) + 1
+      return counts
+    }, {})
+
+    return Object.entries(classCounts)
+      .map(([className, count]) => `${className} (${count})`)
+      .join(', ')
+  }
+
   return (
     <main className="page">
       <section className="hero">
@@ -2335,6 +2361,27 @@ function App() {
             <p><strong>Processed frames:</strong> {videoMultiFrameDetectionResult.frame_count}</p>
             <p><strong>Confidence threshold:</strong> {(videoMultiFrameDetectionResult.confidence_threshold * 100).toFixed(0)}%</p>
             <p><strong>Class filter:</strong> {videoMultiFrameDetectionResult.class_filter ?? 'All classes'}</p>
+          </div>
+
+          <div className="video-timeline">
+            <h3>Video Detection Timeline</h3>
+
+            {videoMultiFrameDetectionResult.frames.map((frame, index) => (
+              <div className="timeline-item" key={`${frame.frame_filename}-timeline`}>
+                <div className="timeline-index">
+                  <span>{index + 1}</span>
+                </div>
+
+                <div className="timeline-content">
+                  <div className="timeline-header">
+                    <strong>{formatFrameTimestamp(frame.frame_filename)}</strong>
+                    <span>{frame.detection_count} detection(s)</span>
+                  </div>
+
+                  <p>{getFrameClassSummary(frame.detections)}</p>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="frame-gallery">
