@@ -33,6 +33,7 @@ from app.schemas import (
     BlurAllByClassRequest,
     BlurByClassRequest,
     CommandRequest,
+    CommandParseRequest,
     CropByClassRequest,
     CropRequest,
     VideoTrimRequest,
@@ -2245,4 +2246,14 @@ def track_sampled_video_objects(filename: str, request: VideoTrackingRequest):
         "track_count": len(tracks),
         "tracks": tracks,
         "frames": frame_results,
+    }
+
+
+@app.post("/commands/parse")
+def parse_text_command(request: CommandParseRequest):
+    parsed_command = parse_command(request.command)
+
+    return {
+        "command": request.command,
+        "parsed_command": parsed_command,
     }

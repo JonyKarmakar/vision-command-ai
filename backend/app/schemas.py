@@ -67,3 +67,7 @@ class VideoTrackingRequest(BaseModel):
     confidence_threshold: float = 0.25
     class_filter: Optional[str] = None
     max_distance_pixels: float = 80.0
+
+
+class CommandParseRequest(BaseModel):
+    command: str
