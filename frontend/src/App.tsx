@@ -195,6 +195,8 @@ type VideoTrackingFrame = {
   frame_index: number
   detections: VideoTrackedDetection[]
   detection_count: number
+  annotated_frame_filename?: string
+  annotated_frame_file_url?: string
 }
 
 type VideoTrackingResponse = {
@@ -2927,6 +2929,34 @@ function App() {
                     <strong>{frame.timestamp_seconds}s</strong>
                     <span>{frame.detection_count} tracked detection(s)</span>
                   </div>
+
+                  {frame.annotated_frame_file_url && (
+                    <div className="tracking-frame-preview">
+                      <img
+                        src={`/api${frame.annotated_frame_file_url}`}
+                        alt={`Annotated tracking frame at ${frame.timestamp_seconds}s`}
+                      />
+
+                      <div className="output-actions">
+                        <a
+                          href={`/api${frame.annotated_frame_file_url}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Open tracked frame
+                        </a>
+
+                        {frame.annotated_frame_filename && (
+                          <a
+                            href={`/api${frame.annotated_frame_file_url}`}
+                            download={frame.annotated_frame_filename}
+                          >
+                            Download tracked frame
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {frame.detections.length > 0 ? (
                     <div className="tracking-detection-list">
