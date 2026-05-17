@@ -221,6 +221,13 @@ type VideoTrackingResponse = {
   frames: VideoTrackingFrame[]
 }
 
+type ParsedCommand = Record<string, string | number | null | undefined>
+
+type CommandParseResponse = {
+  command: string
+  parsed_command: ParsedCommand
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
@@ -388,6 +395,7 @@ function App() {
 
   const [commandText, setCommandText] = useState('')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
+  const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
@@ -413,6 +421,7 @@ function App() {
   const [isCropping, setIsCropping] = useState(false)
   const [isBlurring, setIsBlurring] = useState(false)
   const [isRunningCommand, setIsRunningCommand] = useState(false)
+  const [isParsingCommand, setIsParsingCommand] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
@@ -1304,6 +1313,44 @@ function App() {
     }
   }
 
+  const handleParseCommand = async () => {
+    if (!commandText.trim()) {
+      setError('Please type a command to parse.')
+      return
+    }
+
+    try {
+      setIsParsingCommand(true)
+      setError(null)
+      setCommandParseResult(null)
+      setStatusMessage(`Parsing command: "${commandText}"...`)
+
+      const response = await fetch('/api/commands/parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          command: commandText,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Command parsing failed')
+      }
+
+      const data: CommandParseResponse = await response.json()
+      setCommandParseResult(data)
+      setStatusMessage(`Command parsed as: ${data.parsed_command.action}.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Command parsing failed.')
+    } finally {
+      setIsParsingCommand(false)
+    }
+  }
+
   const handleCommand = async () => {
     const normalizedCommandText = commandText.toLowerCase().trim()
     const isVideoCommand =
@@ -1473,6 +1520,7 @@ function App() {
     isCropping ||
     isBlurring ||
     isRunningCommand ||
+    isParsingCommand ||
     isLoadingLogs ||
     isLoadingMediaFiles ||
     isLoadingStats ||
@@ -2002,9 +2050,20 @@ function App() {
               type="text"
               value={commandText}
               placeholder="Type a command, for example: crop person or extract frame at 1 second"
-              onChange={(event) => setCommandText(event.target.value)}
+              onChange={(event) => {
+                setCommandText(event.target.value)
+                setCommandParseResult(null)
+              }}
               disabled={isBusy}
             />
+
+            <button
+              className="secondary-button"
+              onClick={handleParseCommand}
+              disabled={isBusy || !commandText.trim()}
+            >
+              {isParsingCommand ? 'Parsing...' : 'Parse Command'}
+            </button>
 
             <button onClick={handleCommand} disabled={isBusy || !commandText.trim()}>
               {isRunningCommand ? 'Running...' : 'Run Command'}
@@ -2028,6 +2087,22 @@ function App() {
               {isLoadingLogs ? 'Loading history...' : 'Load Command History'}
             </button>
           </div>
+
+          {commandParseResult && (
+            <div className="command-parse-result">
+              <h3>Parsed Command Preview</h3>
+              <p><strong>Original command:</strong> {commandParseResult.command}</p>
+
+              <div className="parse-field-list">
+                {Object.entries(commandParseResult.parsed_command).map(([key, value]) => (
+                  <div className="parse-field" key={key}>
+                    <span>{key}</span>
+                    <strong>{value === null || value === undefined ? 'null' : String(value)}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {commandResult && (
             <div className="command-result">
