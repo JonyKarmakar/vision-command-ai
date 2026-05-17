@@ -899,6 +899,29 @@ def execute_command(request: CommandRequest):
             },
         }
 
+    if parsed_command["action"] == "track_video":
+        result = track_sampled_video_objects(
+            filename=request.filename,
+            request=VideoTrackingRequest(
+                start_seconds=parsed_command["start_seconds"],
+                end_seconds=parsed_command["end_seconds"],
+                interval_seconds=parsed_command["interval_seconds"],
+                confidence_threshold=request.confidence_threshold,
+                class_filter=parsed_command["class_name"],
+                max_distance_pixels=80,
+            ),
+        )
+
+        result_type = "track_video"
+        log_command_execution(request, parsed_command, result_type)
+
+        return {
+            "command": request.command,
+            "parsed_command": parsed_command,
+            "result_type": result_type,
+            "result": result,
+        }
+
     if parsed_command["action"] == "trim_video":
         result = trim_uploaded_video(
             filename=request.filename,

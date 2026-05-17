@@ -103,6 +103,51 @@ def parse_command(command: str):
             "timestamp_seconds": timestamp_seconds,
         }
 
+    if "track" in normalized_command:
+        time_range = _extract_two_numbers(normalized_command)
+
+        if time_range is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Please specify a start and end time, for example: track video from 0 to 3 seconds",
+            )
+
+        start_seconds, end_seconds = time_range
+
+        # Remove numbers from the command before trying to extract class words.
+        command_without_numbers = re.sub(r"\d+(?:\.\d+)?", "", normalized_command)
+        words_without_numbers = command_without_numbers.split()
+
+        ignored_words = {
+            "track",
+            "video",
+            "from",
+            "to",
+            "second",
+            "seconds",
+            "the",
+            "a",
+            "an",
+            "object",
+            "objects",
+            "detected",
+        }
+
+        class_words = [
+            word for word in words_without_numbers
+            if word not in ignored_words
+        ]
+
+        class_name = normalize_requested_class_name(" ".join(class_words)) if class_words else None
+
+        return {
+            "action": "track_video",
+            "class_name": class_name,
+            "start_seconds": start_seconds,
+            "end_seconds": end_seconds,
+            "interval_seconds": 1.0,
+        }
+
     if "trim" in normalized_command and "video" in normalized_command:
         time_range = _extract_two_numbers(normalized_command)
 
@@ -192,6 +237,7 @@ def parse_command(command: str):
             "Unsupported command. Try commands like: detect objects, crop person, "
             "crop bottle, blur person, extract frame at 1 second, "
             "extract frames from 0 to 3 seconds, detect frames from 0 to 3 seconds, "
+            "track video from 0 to 3 seconds, track person from 0 to 3 seconds, "
             "trim video from 0 to 2 seconds"
         ),
     )

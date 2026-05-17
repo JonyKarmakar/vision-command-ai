@@ -225,8 +225,8 @@ type CommandResponse = {
     action: string
     class_name: string | null
   }
-  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'extract_frame' | 'extract_frames' | 'trim_video' | 'detect_frames'
-  result: DetectionResponse | CropResponse | BlurResponse | VideoFrameExtractResponse | VideoMultiFrameExtractResponse | VideoTrimResponse | VideoDetectFramesCommandResponse
+  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'extract_frame' | 'extract_frames' | 'trim_video' | 'detect_frames' | 'track_video'
+  result: DetectionResponse | CropResponse | BlurResponse | VideoFrameExtractResponse | VideoMultiFrameExtractResponse | VideoTrimResponse | VideoDetectFramesCommandResponse | VideoTrackingResponse
 }
 
 type CommandLog = {
@@ -1306,7 +1306,8 @@ function App() {
     const normalizedCommandText = commandText.toLowerCase().trim()
     const isVideoCommand =
       normalizedCommandText.includes('video') ||
-      normalizedCommandText.includes('frame')
+      normalizedCommandText.includes('frame') ||
+      normalizedCommandText.includes('track')
 
     const activeFilename = isVideoCommand
       ? videoUploadResult?.stored_filename
@@ -1401,6 +1402,11 @@ function App() {
         setVideoMultiFrameDetectionResult(result.detection)
         setVideoFrameResult(null)
         setVideoFrameDetectionResult(null)
+      }
+
+      if (data.result_type === 'track_video') {
+        const result = data.result as VideoTrackingResponse
+        setVideoTrackingResult(result)
       }
 
       if (data.result_type === 'trim_video') {
