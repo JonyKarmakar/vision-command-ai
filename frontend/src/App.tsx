@@ -1542,6 +1542,11 @@ function App() {
       target: 'video',
     },
     {
+      label: 'Track video 0–3s',
+      command: 'track video from 0 to 3 seconds',
+      target: 'video',
+    },
+    {
       label: 'Trim video 0–2s',
       command: 'trim video from 0 to 2 seconds',
       target: 'video',
@@ -1560,6 +1565,10 @@ function App() {
     {
       label: `Blur all ${className}s`,
       command: `blur all ${className}s`,
+    },
+    {
+      label: `Track ${className} 0–3s`,
+      command: `track ${className} from 0 to 3 seconds`,
     },
   ])
 
