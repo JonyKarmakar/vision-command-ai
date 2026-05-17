@@ -43,6 +43,12 @@ The project is being built as a learning-focused production-style AI system. The
 - Generate annotated frame outputs with bounding boxes
 - View a video detection timeline by timestamp
 - Preview, open, and download annotated video frame outputs
+- Track objects across sampled video frames
+- Assign simple track IDs using class name and bounding-box center distance
+- View track summaries with observation count, first/last timestamp, and max confidence
+- View frame-by-frame tracking timeline in the frontend
+- Generate annotated tracking frame outputs with track IDs and class labels
+- Preview, open, and download annotated tracking frames
 
 ### Commands and Voice Input
 
@@ -57,6 +63,8 @@ The project is being built as a learning-focused production-style AI system. The
   - `extract frames from 0 to 3 seconds`
   - `detect frames from 0 to 3 seconds`
   - `trim video from 0 to 2 seconds`
+  - `track video from 0 to 3 seconds`
+  - `track person from 0 to 3 seconds`
 - Use browser-based voice input for simple image commands
 - Execute command actions through the FastAPI backend
 - Log command executions locally and in PostgreSQL
@@ -469,6 +477,24 @@ The backend returns a list of extracted frame URLs, timestamps, and frame indice
 
 ---
 
+### Track Objects in Sampled Video Frames
+
+```text
+POST /video/track-sampled/{filename}
+```
+```json
+{
+  "start_seconds": 0,
+  "end_seconds": 3,
+  "interval_seconds": 1,
+  "confidence_threshold": 0.3,
+  "class_filter": null,
+  "max_distance_pixels": 80
+}
+```
+
+---
+
 ## Command Endpoints
 
 ### Execute Text Command
@@ -739,6 +765,12 @@ Completed:
 - YOLO detection on extracted video frames
 - YOLO detection on multiple extracted video frames
 - Video command support for frame extraction, multi-frame extraction, frame detection, and trimming
+- Backend sampled video tracking endpoint
+- Frontend sampled video tracking flow
+- Backend annotated tracking frame outputs
+- Frontend annotated tracking frame display
+- Video tracking command support
+- Tracking command presets
 
 ### Frontend
 
@@ -811,7 +843,9 @@ This keeps `main.py` smaller and makes the backend easier to maintain.
 
 Planned future improvements:
 
-- Add object tracking for videos
+- Improve video tracking with stronger tracking algorithms such as ByteTrack or DeepSORT
+- Add full-video tracking summaries across longer videos
+- Add object-specific video editing based on tracked objects
 - Add full-video detection timeline across automatically sampled frames
 - Add advanced FFmpeg-based video editing workflows
 - Add backend-side command parser improvements
