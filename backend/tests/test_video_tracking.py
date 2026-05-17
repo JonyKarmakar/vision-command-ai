@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from app import main
 
@@ -54,7 +55,7 @@ def test_track_sampled_video_objects_success(tmp_path, monkeypatch):
         ]
 
         for frame in frames:
-            (test_output_dir / frame["frame_filename"]).write_bytes(b"fake frame")
+            Image.new("RGB", (120, 90), color="white").save(test_output_dir / frame["frame_filename"])
 
         return {
             "filename": filename,
@@ -137,6 +138,13 @@ def test_track_sampled_video_objects_success(tmp_path, monkeypatch):
     second_track_id = data["frames"][1]["detections"][0]["track_id"]
 
     assert first_track_id == second_track_id
+
+    for frame in data["frames"]:
+        assert frame["annotated_frame_filename"].endswith(".jpg")
+        assert frame["annotated_frame_file_url"] == f"/media/outputs/{frame['annotated_frame_filename']}"
+
+        annotated_path = test_output_dir / frame["annotated_frame_filename"]
+        assert annotated_path.exists()
 
 
 def test_track_sampled_video_objects_file_not_found():

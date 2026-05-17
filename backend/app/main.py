@@ -2181,6 +2181,39 @@ def track_sampled_video_objects(filename: str, request: VideoTrackingRequest):
                 }
             )
 
+        annotated_tracking_filename = f"tracked_{frame_path.stem}_{uuid4().hex}{frame_path.suffix or '.jpg'}"
+        annotated_tracking_path = OUTPUT_DIR / annotated_tracking_filename
+
+        with Image.open(frame_path).convert("RGB") as image:
+            draw = ImageDraw.Draw(image)
+
+            for detection in tracked_detections:
+                bbox = detection["bbox"]
+                x1 = bbox["x1"]
+                y1 = bbox["y1"]
+                x2 = bbox["x2"]
+                y2 = bbox["y2"]
+
+                label = (
+                    f"Track {detection['track_id']}: "
+                    f"{detection['class_name']} {detection['confidence']:.2f}"
+                )
+
+                draw.rectangle(
+                    [(x1, y1), (x2, y2)],
+                    outline="red",
+                    width=3,
+                )
+
+                text_y = y1 - 12 if y1 >= 12 else y1 + 4
+                draw.text(
+                    (x1, text_y),
+                    label,
+                    fill="red",
+                )
+
+            image.save(annotated_tracking_path)
+
         frame_results.append(
             {
                 "frame_filename": frame_filename,
@@ -2189,6 +2222,8 @@ def track_sampled_video_objects(filename: str, request: VideoTrackingRequest):
                 "frame_index": frame["frame_index"],
                 "detections": tracked_detections,
                 "detection_count": len(tracked_detections),
+                "annotated_frame_filename": annotated_tracking_filename,
+                "annotated_frame_file_url": f"/media/outputs/{annotated_tracking_filename}",
             }
         )
 
