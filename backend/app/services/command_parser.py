@@ -234,7 +234,7 @@ def parse_command(command: str):
     raise HTTPException(
         status_code=400,
         detail=(
-            "Unsupported command. Try commands like: detect objects, crop person, "
+            "Unsupported command. Try commands like: detect objects, crop person, crop bottle, blur person, extract frame at 1 second, extract frames from 0 to 3 seconds, detect frames from 0 to 3 seconds, track video from 0 to 3 seconds, track person from 0 to 3 seconds, trim video from 0 to 2 seconds"
             "crop bottle, blur person, extract frame at 1 second, "
             "extract frames from 0 to 3 seconds, detect frames from 0 to 3 seconds, "
             "track video from 0 to 3 seconds, track person from 0 to 3 seconds, "
