@@ -231,6 +231,24 @@ type CommandParseResponse = {
   parsed_command: ParsedCommand
 }
 
+type CommandEvaluationCaseResult = {
+  command: string
+  expected: ParsedCommand
+  actual: ParsedCommand | null
+  passed: boolean
+  error: string | null
+}
+
+type CommandEvaluationResponse = {
+  parser_type: string
+  parser_version: string
+  total_cases: number
+  passed_cases: number
+  failed_cases: number
+  accuracy: number
+  results: CommandEvaluationCaseResult[]
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
@@ -399,6 +417,7 @@ function App() {
   const [commandText, setCommandText] = useState('')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
+  const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
@@ -425,6 +444,7 @@ function App() {
   const [isBlurring, setIsBlurring] = useState(false)
   const [isRunningCommand, setIsRunningCommand] = useState(false)
   const [isParsingCommand, setIsParsingCommand] = useState(false)
+  const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
@@ -1355,6 +1375,32 @@ function App() {
     }
   }
 
+  const handleLoadCommandEvaluation = async () => {
+    try {
+      setIsLoadingCommandEvaluation(true)
+      setError(null)
+      setStatusMessage('Loading command parser evaluation...')
+
+      const response = await fetch('/api/commands/evaluate')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load parser evaluation')
+      }
+
+      const data: CommandEvaluationResponse = await response.json()
+      setCommandEvaluationResult(data)
+      setStatusMessage(
+        `Loaded parser evaluation: ${data.passed_cases}/${data.total_cases} cases passed.`,
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load parser evaluation.')
+    } finally {
+      setIsLoadingCommandEvaluation(false)
+    }
+  }
+
   const handleCommand = async () => {
     const normalizedCommandText = commandText.toLowerCase().trim()
     const isVideoCommand =
@@ -1525,6 +1571,7 @@ function App() {
     isBlurring ||
     isRunningCommand ||
     isParsingCommand ||
+    isLoadingCommandEvaluation ||
     isLoadingLogs ||
     isLoadingMediaFiles ||
     isLoadingStats ||
@@ -2090,6 +2137,14 @@ function App() {
             >
               {isLoadingLogs ? 'Loading history...' : 'Load Command History'}
             </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleLoadCommandEvaluation}
+              disabled={isBusy}
+            >
+              {isLoadingCommandEvaluation ? 'Loading evaluation...' : 'Load Parser Evaluation'}
+            </button>
           </div>
 
           {commandParseResult && (
@@ -2124,6 +2179,58 @@ function App() {
                 <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
               )}
               <p><strong>Result type:</strong> {commandResult.result_type}</p>
+            </div>
+          )}
+
+          {commandEvaluationResult && (
+            <div className="parser-evaluation-panel">
+              <h3>Parser Evaluation Results</h3>
+
+              <div className="parser-evaluation-summary">
+                <div>
+                  <span>Parser</span>
+                  <strong>{commandEvaluationResult.parser_type}</strong>
+                </div>
+                <div>
+                  <span>Version</span>
+                  <strong>{commandEvaluationResult.parser_version}</strong>
+                </div>
+                <div>
+                  <span>Total cases</span>
+                  <strong>{commandEvaluationResult.total_cases}</strong>
+                </div>
+                <div>
+                  <span>Passed</span>
+                  <strong>{commandEvaluationResult.passed_cases}</strong>
+                </div>
+                <div>
+                  <span>Failed</span>
+                  <strong>{commandEvaluationResult.failed_cases}</strong>
+                </div>
+                <div>
+                  <span>Accuracy</span>
+                  <strong>{(commandEvaluationResult.accuracy * 100).toFixed(1)}%</strong>
+                </div>
+              </div>
+
+              <div className="parser-evaluation-list">
+                {commandEvaluationResult.results.map((result) => (
+                  <div
+                    className={result.passed ? 'evaluation-item passed' : 'evaluation-item failed'}
+                    key={result.command}
+                  >
+                    <div>
+                      <strong>{result.command}</strong>
+                      <p>{result.passed ? 'Passed' : 'Failed'}</p>
+                    </div>
+
+                    <div>
+                      <span>Expected: {result.expected.action}</span>
+                      <span>Actual: {result.actual?.action ?? 'none'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
