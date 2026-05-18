@@ -1174,3 +1174,28 @@ input[type="file"]::file-selector-button:hover {
     text-align: left;
   }
 }
+
+.parser-mode-selector {
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 14px;
+  margin: 16px 0;
+}
+
+.parser-mode-selector label {
+  display: block;
+  color: #e5e7eb;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.parser-mode-selector select {
+  width: 100%;
+  background: #18181b;
+  color: #e5e7eb;
+  border: 1px solid #52525b;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+}

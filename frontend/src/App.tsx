@@ -415,6 +415,7 @@ function App() {
   const [classOptions, setClassOptions] = useState<string[]>([])
 
   const [commandText, setCommandText] = useState('')
+  const [selectedParserMode, setSelectedParserMode] = useState<'rule_based' | 'llm_mock'>('rule_based')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
@@ -1355,7 +1356,7 @@ function App() {
         },
         body: JSON.stringify({
           command: commandText,
-          parser_mode: 'rule_based',
+          parser_mode: selectedParserMode,
         }),
       })
 
@@ -2093,6 +2094,28 @@ function App() {
                 </p>
               )}
             </div>
+          </div>
+
+          <div className="parser-mode-selector">
+            <label htmlFor="parser-mode">
+              Parser mode
+            </label>
+
+            <select
+              id="parser-mode"
+              value={selectedParserMode}
+              onChange={(event) =>
+                setSelectedParserMode(event.target.value as 'rule_based' | 'llm_mock')
+              }
+              disabled={isBusy}
+            >
+              <option value="rule_based">rule_based</option>
+              <option value="llm_mock">llm_mock</option>
+            </select>
+
+            <p className="small-note">
+              `llm_mock` uses the current rule-based parser internally, but marks the result as a mock LLM parser.
+            </p>
           </div>
 
           <div className="command-row">
