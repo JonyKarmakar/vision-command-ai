@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+
 from app.services.command_parser import parse_command
 
 
@@ -83,7 +85,18 @@ COMMAND_EVALUATION_CASES = [
 ]
 
 
-def evaluate_command_parser():
+def evaluate_command_parser(parser_mode: str = "rule_based"):
+    supported_parser_modes = {"rule_based", "llm_mock"}
+
+    if parser_mode not in supported_parser_modes:
+        raise HTTPException(
+            status_code=400,
+            detail="Supported parser modes are: rule_based, llm_mock",
+        )
+
+    parser_type = parser_mode
+    parser_version = "v1" if parser_mode == "rule_based" else "mock-v1"
+
     results = []
 
     for case in COMMAND_EVALUATION_CASES:
@@ -116,8 +129,8 @@ def evaluate_command_parser():
     accuracy = passed_cases / total_cases if total_cases > 0 else 0
 
     return {
-        "parser_type": "rule_based",
-        "parser_version": "v1",
+        "parser_type": parser_type,
+        "parser_version": parser_version,
         "total_cases": total_cases,
         "passed_cases": passed_cases,
         "failed_cases": failed_cases,
