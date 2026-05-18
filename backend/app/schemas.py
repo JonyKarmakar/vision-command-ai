@@ -71,3 +71,4 @@ class VideoTrackingRequest(BaseModel):
 
 class CommandParseRequest(BaseModel):
     command: str
+    parser_mode: str = "rule_based"

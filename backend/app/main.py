@@ -752,7 +752,6 @@ def log_command_execution(
         save_command_log_to_database(log_entry)
     except Exception:
         # Database logging should not break command execution.
-        # JSONL logging remains as a local fallback.
         pass
 
 
@@ -2251,10 +2250,18 @@ def track_sampled_video_objects(filename: str, request: VideoTrackingRequest):
 
 @app.post("/commands/parse")
 def parse_text_command(request: CommandParseRequest):
+    if request.parser_mode != "rule_based":
+        raise HTTPException(
+            status_code=400,
+            detail="Only rule_based parser mode is supported for now",
+        )
+
     parsed_command = parse_command(request.command)
 
     return {
         "command": request.command,
+        "parser_mode": request.parser_mode,
         "parser_type": "rule_based",
+        "parser_version": "v1",
         "parsed_command": parsed_command,
     }
