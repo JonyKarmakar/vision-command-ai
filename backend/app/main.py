@@ -2273,5 +2273,7 @@ def parse_text_command(request: CommandParseRequest):
     }
 
 @app.get("/commands/evaluate")
-def evaluate_text_command_parser():
-    return evaluate_command_parser()
+def evaluate_text_command_parser(
+    parser_mode: str = Query("rule_based"),
+):
+    return evaluate_command_parser(parser_mode)
