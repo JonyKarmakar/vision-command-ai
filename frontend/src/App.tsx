@@ -1380,9 +1380,11 @@ function App() {
     try {
       setIsLoadingCommandEvaluation(true)
       setError(null)
-      setStatusMessage('Loading command parser evaluation...')
+      setStatusMessage(`Loading command parser evaluation for ${selectedParserMode}...`)
 
-      const response = await fetch('/api/commands/evaluate')
+      const response = await fetch(
+        `/api/commands/evaluate?parser_mode=${encodeURIComponent(selectedParserMode)}`,
+      )
 
       if (!response.ok) {
         const errorData = await response.json()
