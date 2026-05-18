@@ -2255,5 +2255,6 @@ def parse_text_command(request: CommandParseRequest):
 
     return {
         "command": request.command,
+        "parser_type": "rule_based",
         "parsed_command": parsed_command,
     }

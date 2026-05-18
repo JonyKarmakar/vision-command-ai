@@ -16,6 +16,7 @@ def test_parse_detect_command():
 
     data = response.json()
     assert data["command"] == "detect objects"
+    assert data["parser_type"] == "rule_based"
     assert data["parsed_command"]["action"] == "detect"
     assert data["parsed_command"]["class_name"] is None
 
