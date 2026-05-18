@@ -140,3 +140,38 @@ def test_parse_unsupported_command_fails():
     )
 
     assert response.status_code == 400
+
+
+
+def test_parse_command_with_explicit_rule_based_mode():
+    response = client.post(
+        "/commands/parse",
+        json={
+            "command": "crop person",
+            "parser_mode": "rule_based",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["parser_mode"] == "rule_based"
+    assert data["parser_type"] == "rule_based"
+    assert data["parser_version"] == "v1"
+    assert data["parsed_command"]["action"] == "crop_by_class"
+    assert data["parsed_command"]["class_name"] == "person"
+
+
+def test_parse_command_rejects_unsupported_parser_mode():
+    response = client.post(
+        "/commands/parse",
+        json={
+            "command": "crop person",
+            "parser_mode": "llm",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Only rule_based parser mode is supported for now"
+    }

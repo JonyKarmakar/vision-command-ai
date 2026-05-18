@@ -225,7 +225,9 @@ type ParsedCommand = Record<string, string | number | null | undefined>
 
 type CommandParseResponse = {
   command: string
+  parser_mode?: string
   parser_type?: string
+  parser_version?: string
   parsed_command: ParsedCommand
 }
 
@@ -1333,6 +1335,7 @@ function App() {
         },
         body: JSON.stringify({
           command: commandText,
+          parser_mode: 'rule_based',
         }),
       })
 
@@ -2093,8 +2096,14 @@ function App() {
             <div className="command-parse-result">
               <h3>Parsed Command Preview</h3>
               <p><strong>Original command:</strong> {commandParseResult.command}</p>
+              {commandParseResult.parser_mode && (
+                <p><strong>Parser mode:</strong> {commandParseResult.parser_mode}</p>
+              )}
               {commandParseResult.parser_type && (
                 <p><strong>Parser type:</strong> {commandParseResult.parser_type}</p>
+              )}
+              {commandParseResult.parser_version && (
+                <p><strong>Parser version:</strong> {commandParseResult.parser_version}</p>
               )}
 
               <div className="parse-field-list">
