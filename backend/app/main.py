@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw, UnidentifiedImageError
 
 from app.routers import health, model
 from app.services.command_evaluation import evaluate_command_parser
+from app.services.llm_parser import parse_command_with_mode
 from app.services.command_parser import normalize_requested_class_name, parse_command
 from app.services.database_service import (
     get_database_command_logs,
@@ -2251,25 +2252,14 @@ def track_sampled_video_objects(filename: str, request: VideoTrackingRequest):
 
 @app.post("/commands/parse")
 def parse_text_command(request: CommandParseRequest):
-    supported_parser_modes = {"rule_based", "llm_mock"}
-
-    if request.parser_mode not in supported_parser_modes:
-        raise HTTPException(
-            status_code=400,
-            detail="Supported parser modes are: rule_based, llm_mock",
-        )
-
-    parsed_command = parse_command(request.command)
-
-    parser_type = request.parser_mode
-    parser_version = "v1" if request.parser_mode == "rule_based" else "mock-v1"
+    parse_result = parse_command_with_mode(
+        command=request.command,
+        parser_mode=request.parser_mode,
+    )
 
     return {
         "command": request.command,
-        "parser_mode": request.parser_mode,
-        "parser_type": parser_type,
-        "parser_version": parser_version,
-        "parsed_command": parsed_command,
+        **parse_result,
     }
 
 @app.get("/commands/evaluate")
