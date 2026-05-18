@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from PIL import Image, ImageDraw, UnidentifiedImageError
 
 from app.routers import health, model
+from app.services.command_evaluation import evaluate_command_parser
 from app.services.command_parser import normalize_requested_class_name, parse_command
 from app.services.database_service import (
     get_database_command_logs,
@@ -2265,3 +2266,9 @@ def parse_text_command(request: CommandParseRequest):
         "parser_version": "v1",
         "parsed_command": parsed_command,
     }
+
+
+
+@app.get("/commands/evaluate")
+def evaluate_text_command_parser():
+    return evaluate_command_parser()
