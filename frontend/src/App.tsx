@@ -225,6 +225,7 @@ type ParsedCommand = Record<string, string | number | null | undefined>
 
 type CommandParseResponse = {
   command: string
+  parser_type?: string
   parsed_command: ParsedCommand
 }
 
@@ -2092,6 +2093,9 @@ function App() {
             <div className="command-parse-result">
               <h3>Parsed Command Preview</h3>
               <p><strong>Original command:</strong> {commandParseResult.command}</p>
+              {commandParseResult.parser_type && (
+                <p><strong>Parser type:</strong> {commandParseResult.parser_type}</p>
+              )}
 
               <div className="parse-field-list">
                 {Object.entries(commandParseResult.parsed_command).map(([key, value]) => (
