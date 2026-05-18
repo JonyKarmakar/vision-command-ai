@@ -1,0 +1,126 @@
+from app.services.command_parser import parse_command
+
+
+COMMAND_EVALUATION_CASES = [
+    {
+        "command": "detect objects",
+        "expected": {
+            "action": "detect",
+            "class_name": None,
+        },
+    },
+    {
+        "command": "crop person",
+        "expected": {
+            "action": "crop_by_class",
+            "class_name": "person",
+        },
+    },
+    {
+        "command": "blur all persons",
+        "expected": {
+            "action": "blur_all_by_class",
+            "class_name": "person",
+        },
+    },
+    {
+        "command": "extract frame at 1 second",
+        "expected": {
+            "action": "extract_frame",
+            "class_name": None,
+            "timestamp_seconds": 1.0,
+        },
+    },
+    {
+        "command": "extract frames from 0 to 3 seconds",
+        "expected": {
+            "action": "extract_frames",
+            "class_name": None,
+            "start_seconds": 0.0,
+            "end_seconds": 3.0,
+            "interval_seconds": 1.0,
+        },
+    },
+    {
+        "command": "detect frames from 0 to 3 seconds",
+        "expected": {
+            "action": "detect_frames",
+            "class_name": None,
+            "start_seconds": 0.0,
+            "end_seconds": 3.0,
+            "interval_seconds": 1.0,
+        },
+    },
+    {
+        "command": "track video from 0 to 3 seconds",
+        "expected": {
+            "action": "track_video",
+            "class_name": None,
+            "start_seconds": 0.0,
+            "end_seconds": 3.0,
+            "interval_seconds": 1.0,
+        },
+    },
+    {
+        "command": "track person from 0 to 3 seconds",
+        "expected": {
+            "action": "track_video",
+            "class_name": "person",
+            "start_seconds": 0.0,
+            "end_seconds": 3.0,
+            "interval_seconds": 1.0,
+        },
+    },
+    {
+        "command": "trim video from 0 to 2 seconds",
+        "expected": {
+            "action": "trim_video",
+            "class_name": None,
+            "start_seconds": 0.0,
+            "end_seconds": 2.0,
+        },
+    },
+]
+
+
+def evaluate_command_parser():
+    results = []
+
+    for case in COMMAND_EVALUATION_CASES:
+        command = case["command"]
+        expected = case["expected"]
+
+        try:
+            actual = parse_command(command)
+            passed = actual == expected
+            error = None
+        except Exception as exception:
+            actual = None
+            passed = False
+            error = str(exception)
+
+        results.append(
+            {
+                "command": command,
+                "expected": expected,
+                "actual": actual,
+                "passed": passed,
+                "error": error,
+            }
+        )
+
+    total_cases = len(results)
+    passed_cases = sum(1 for result in results if result["passed"])
+    failed_cases = total_cases - passed_cases
+
+    accuracy = passed_cases / total_cases if total_cases > 0 else 0
+
+    return {
+        "parser_type": "rule_based",
+        "parser_version": "v1",
+        "total_cases": total_cases,
+        "passed_cases": passed_cases,
+        "failed_cases": failed_cases,
+        "accuracy": round(accuracy, 4),
+        "results": results,
+    }
