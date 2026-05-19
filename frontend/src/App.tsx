@@ -434,7 +434,7 @@ function App() {
   const [classOptions, setClassOptions] = useState<string[]>([])
 
   const [commandText, setCommandText] = useState('')
-  const [selectedParserMode, setSelectedParserMode] = useState<'rule_based' | 'llm_mock'>('rule_based')
+  const [selectedParserMode, setSelectedParserMode] = useState<'rule_based' | 'llm_mock' | 'real_llm'>('rule_based')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
   const [parsedCommandValidationResult, setParsedCommandValidationResult] = useState<ParsedCommandValidationResponse | null>(null)
@@ -2237,12 +2237,13 @@ function App() {
               id="parser-mode"
               value={selectedParserMode}
               onChange={(event) =>
-                setSelectedParserMode(event.target.value as 'rule_based' | 'llm_mock')
+                setSelectedParserMode(event.target.value as 'rule_based' | 'llm_mock' | 'real_llm')
               }
               disabled={isBusy}
             >
               <option value="rule_based">rule_based</option>
               <option value="llm_mock">llm_mock</option>
+              <option value="real_llm">real_llm (not implemented)</option>
             </select>
 
             <p className="small-note">
