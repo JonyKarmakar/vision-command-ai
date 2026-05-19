@@ -254,6 +254,15 @@ type ParserComparisonResponse = {
   evaluations: CommandEvaluationResponse[]
 }
 
+type CommandPromptPreviewResponse = {
+  command: string
+  parser_mode: string
+  prompt_version: string
+  system_prompt: string
+  user_prompt: string
+  expected_json_schema: Record<string, unknown>
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
@@ -423,6 +432,7 @@ function App() {
   const [selectedParserMode, setSelectedParserMode] = useState<'rule_based' | 'llm_mock'>('rule_based')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
+  const [commandPromptPreviewResult, setCommandPromptPreviewResult] = useState<CommandPromptPreviewResponse | null>(null)
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
   const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
@@ -451,6 +461,7 @@ function App() {
   const [isBlurring, setIsBlurring] = useState(false)
   const [isRunningCommand, setIsRunningCommand] = useState(false)
   const [isParsingCommand, setIsParsingCommand] = useState(false)
+  const [isLoadingPromptPreview, setIsLoadingPromptPreview] = useState(false)
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
@@ -1344,6 +1355,45 @@ function App() {
     }
   }
 
+  const handleLoadPromptPreview = async () => {
+    if (!commandText.trim()) {
+      setError('Please type a command before previewing the LLM prompt.')
+      return
+    }
+
+    try {
+      setIsLoadingPromptPreview(true)
+      setError(null)
+      setCommandPromptPreviewResult(null)
+      setStatusMessage(`Generating LLM prompt preview for: "${commandText}"...`)
+
+      const response = await fetch('/api/commands/parse/prompt-preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          command: commandText,
+          parser_mode: selectedParserMode,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Prompt preview failed')
+      }
+
+      const data: CommandPromptPreviewResponse = await response.json()
+      setCommandPromptPreviewResult(data)
+      setStatusMessage(`Loaded prompt preview: ${data.prompt_version}.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Prompt preview failed.')
+    } finally {
+      setIsLoadingPromptPreview(false)
+    }
+  }
+
   const handleParseCommand = async () => {
     if (!commandText.trim()) {
       setError('Please type a command to parse.')
@@ -1605,6 +1655,7 @@ function App() {
     isBlurring ||
     isRunningCommand ||
     isParsingCommand ||
+    isLoadingPromptPreview ||
     isLoadingCommandEvaluation ||
     isLoadingParserComparison ||
     isLoadingLogs ||
@@ -2173,6 +2224,14 @@ function App() {
               {isParsingCommand ? 'Parsing...' : 'Parse Command'}
             </button>
 
+            <button
+              className="secondary-button"
+              onClick={handleLoadPromptPreview}
+              disabled={isBusy || !commandText.trim()}
+            >
+              {isLoadingPromptPreview ? 'Loading prompt...' : 'Preview LLM Prompt'}
+            </button>
+
             <button onClick={handleCommand} disabled={isBusy || !commandText.trim()}>
               {isRunningCommand ? 'Running...' : 'Run Command'}
             </button>
@@ -2211,6 +2270,38 @@ function App() {
               {isLoadingParserComparison ? 'Loading comparison...' : 'Load Parser Comparison'}
             </button>
           </div>
+
+          {commandPromptPreviewResult && (
+            <div className="llm-prompt-preview-panel">
+              <h3>LLM Prompt Preview</h3>
+
+              <div className="prompt-metadata-grid">
+                <div>
+                  <span>Parser mode</span>
+                  <strong>{commandPromptPreviewResult.parser_mode}</strong>
+                </div>
+                <div>
+                  <span>Prompt version</span>
+                  <strong>{commandPromptPreviewResult.prompt_version}</strong>
+                </div>
+              </div>
+
+              <div className="prompt-block">
+                <h4>System Prompt</h4>
+                <pre>{commandPromptPreviewResult.system_prompt}</pre>
+              </div>
+
+              <div className="prompt-block">
+                <h4>User Prompt</h4>
+                <pre>{commandPromptPreviewResult.user_prompt}</pre>
+              </div>
+
+              <div className="prompt-block">
+                <h4>Expected JSON Schema</h4>
+                <pre>{JSON.stringify(commandPromptPreviewResult.expected_json_schema, null, 2)}</pre>
+              </div>
+            </div>
+          )}
 
           {commandParseResult && (
             <div className="command-parse-result">
