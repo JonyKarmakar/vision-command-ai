@@ -13,6 +13,7 @@ from app.routers import health, model
 from app.services.command_evaluation import evaluate_command_parser
 from app.services.llm_parser import parse_command_with_mode
 from app.services.llm_prompt_builder import build_command_parser_prompt
+from app.services.command_validation import validate_parsed_command
 from app.services.command_parser import normalize_requested_class_name, parse_command
 from app.services.database_service import (
     get_database_command_logs,
@@ -37,6 +38,7 @@ from app.schemas import (
     BlurByClassRequest,
     CommandRequest,
     CommandParseRequest,
+    ParsedCommandValidationRequest,
     CropByClassRequest,
     CropRequest,
     VideoTrimRequest,
@@ -2294,4 +2296,14 @@ def preview_command_parser_prompt(request: CommandParseRequest):
         "command": request.command,
         "parser_mode": request.parser_mode,
         **prompt_preview,
+    }
+
+
+@app.post("/commands/validate-parsed")
+def validate_parsed_text_command(request: ParsedCommandValidationRequest):
+    validated_command = validate_parsed_command(request.parsed_command)
+
+    return {
+        "status": "valid",
+        "validated_command": validated_command,
     }
