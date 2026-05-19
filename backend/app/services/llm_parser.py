@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 
 from app.services.command_parser import parse_command
+from app.services.command_validation import validate_parsed_command
 
 
 SUPPORTED_PARSER_MODES = {"rule_based", "llm_mock"}
@@ -33,8 +34,9 @@ def parse_command_with_mode(command: str, parser_mode: str = "rule_based"):
     # For now, llm_mock reuses the rule-based parser internally.
     # Later, this is where a real LLM parser can be plugged in.
     parsed_command = parse_command(command)
+    validated_command = validate_parsed_command(parsed_command)
 
     return {
         **parser_metadata,
-        "parsed_command": parsed_command,
+        "parsed_command": validated_command,
     }
