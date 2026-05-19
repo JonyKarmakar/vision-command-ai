@@ -1199,3 +1199,46 @@ input[type="file"]::file-selector-button:hover {
   padding: 10px 12px;
   font-size: 15px;
 }
+
+.parser-comparison-panel {
+  margin-top: 18px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.parser-comparison-panel h3 {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+.parser-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.parser-comparison-card {
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.parser-comparison-card h4 {
+  margin: 0 0 10px;
+  color: #f8fafc;
+  font-size: 20px;
+}
+
+.parser-comparison-card p {
+  margin: 6px 0;
+  color: #d4d4d8;
+}
+
+@media (max-width: 800px) {
+  .parser-comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}
