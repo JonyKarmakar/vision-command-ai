@@ -4,7 +4,7 @@ from app.services.command_parser import parse_command
 from app.services.command_validation import validate_parsed_command
 
 
-SUPPORTED_PARSER_MODES = {"rule_based", "llm_mock"}
+SUPPORTED_PARSER_MODES = {"rule_based", "llm_mock", "real_llm"}
 
 
 def get_parser_metadata(parser_mode: str):
@@ -22,14 +22,34 @@ def get_parser_metadata(parser_mode: str):
             "parser_version": "mock-v1",
         }
 
+    if parser_mode == "real_llm":
+        return {
+            "parser_mode": "real_llm",
+            "parser_type": "real_llm",
+            "parser_version": "not_configured",
+        }
+
     raise HTTPException(
         status_code=400,
-        detail="Supported parser modes are: rule_based, llm_mock",
+        detail="Supported parser modes are: rule_based, llm_mock, real_llm",
+    )
+
+
+def parse_command_with_real_llm(command: str):
+    raise HTTPException(
+        status_code=501,
+        detail=(
+            "real_llm parser mode is not implemented yet. "
+            "This parser mode is reserved for future external LLM integration."
+        ),
     )
 
 
 def parse_command_with_mode(command: str, parser_mode: str = "rule_based"):
     parser_metadata = get_parser_metadata(parser_mode)
+
+    if parser_mode == "real_llm":
+        return parse_command_with_real_llm(command)
 
     # For now, llm_mock reuses the rule-based parser internally.
     # Later, this is where a real LLM parser can be plugged in.

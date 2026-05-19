@@ -173,7 +173,7 @@ def test_parse_command_rejects_unsupported_parser_mode():
 
     assert response.status_code == 400
     assert response.json() == {
-        "detail": "Supported parser modes are: rule_based, llm_mock"
+        "detail": "Supported parser modes are: rule_based, llm_mock, real_llm"
     }
 
 
@@ -195,3 +195,17 @@ def test_parse_command_with_llm_mock_mode():
     assert data["parser_version"] == "mock-v1"
     assert data["parsed_command"]["action"] == "crop_by_class"
     assert data["parsed_command"]["class_name"] == "person"
+
+
+
+def test_parse_command_with_real_llm_mode_not_implemented():
+    response = client.post(
+        "/commands/parse",
+        json={
+            "command": "crop person",
+            "parser_mode": "real_llm",
+        },
+    )
+
+    assert response.status_code == 501
+    assert "not implemented yet" in response.json()["detail"]
