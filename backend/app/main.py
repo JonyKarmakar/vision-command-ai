@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw, UnidentifiedImageError
 from app.routers import health, model
 from app.services.command_evaluation import evaluate_command_parser
 from app.services.llm_parser import parse_command_with_mode
+from app.services.llm_prompt_builder import build_command_parser_prompt
 from app.services.command_parser import normalize_requested_class_name, parse_command
 from app.services.database_service import (
     get_database_command_logs,
@@ -2281,4 +2282,16 @@ def compare_text_command_parsers():
     return {
         "parser_modes": parser_modes,
         "evaluations": evaluations,
+    }
+
+
+
+@app.post("/commands/parse/prompt-preview")
+def preview_command_parser_prompt(request: CommandParseRequest):
+    prompt_preview = build_command_parser_prompt(request.command)
+
+    return {
+        "command": request.command,
+        "parser_mode": request.parser_mode,
+        **prompt_preview,
     }
