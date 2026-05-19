@@ -1307,3 +1307,28 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.parsed-command-validation-panel {
+  margin-top: 18px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.parsed-command-validation-panel h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.validation-result {
+  margin-top: 16px;
+  background: #27272a;
+  border: 1px solid #166534;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.validation-result p {
+  margin-top: 0;
+}
