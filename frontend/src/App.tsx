@@ -263,6 +263,11 @@ type CommandPromptPreviewResponse = {
   expected_json_schema: Record<string, unknown>
 }
 
+type ParsedCommandValidationResponse = {
+  status: string
+  validated_command: ParsedCommand
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
@@ -432,6 +437,7 @@ function App() {
   const [selectedParserMode, setSelectedParserMode] = useState<'rule_based' | 'llm_mock'>('rule_based')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
+  const [parsedCommandValidationResult, setParsedCommandValidationResult] = useState<ParsedCommandValidationResponse | null>(null)
   const [commandPromptPreviewResult, setCommandPromptPreviewResult] = useState<CommandPromptPreviewResponse | null>(null)
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
   const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
@@ -461,6 +467,7 @@ function App() {
   const [isBlurring, setIsBlurring] = useState(false)
   const [isRunningCommand, setIsRunningCommand] = useState(false)
   const [isParsingCommand, setIsParsingCommand] = useState(false)
+  const [isValidatingParsedCommand, setIsValidatingParsedCommand] = useState(false)
   const [isLoadingPromptPreview, setIsLoadingPromptPreview] = useState(false)
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
@@ -1404,6 +1411,7 @@ function App() {
       setIsParsingCommand(true)
       setError(null)
       setCommandParseResult(null)
+      setParsedCommandValidationResult(null)
       setStatusMessage(`Parsing command: "${commandText}"...`)
 
       const response = await fetch('/api/commands/parse', {
@@ -1482,6 +1490,44 @@ function App() {
       setStatusMessage('Could not load parser comparison.')
     } finally {
       setIsLoadingParserComparison(false)
+    }
+  }
+
+  const handleValidateParsedCommand = async () => {
+    if (!commandParseResult) {
+      setError('Please parse a command before validating it.')
+      return
+    }
+
+    try {
+      setIsValidatingParsedCommand(true)
+      setError(null)
+      setParsedCommandValidationResult(null)
+      setStatusMessage('Validating parsed command JSON...')
+
+      const response = await fetch('/api/commands/validate-parsed', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          parsed_command: commandParseResult.parsed_command,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Parsed command validation failed')
+      }
+
+      const data: ParsedCommandValidationResponse = await response.json()
+      setParsedCommandValidationResult(data)
+      setStatusMessage('Parsed command JSON is valid.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Parsed command validation failed.')
+    } finally {
+      setIsValidatingParsedCommand(false)
     }
   }
 
@@ -1655,6 +1701,7 @@ function App() {
     isBlurring ||
     isRunningCommand ||
     isParsingCommand ||
+    isValidatingParsedCommand ||
     isLoadingPromptPreview ||
     isLoadingCommandEvaluation ||
     isLoadingParserComparison ||
@@ -2325,6 +2372,38 @@ function App() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {commandParseResult && (
+            <div className="parsed-command-validation-panel">
+              <h3>Parsed Command Validation</h3>
+              <p className="small-note">
+                Validate the structured JSON before it is passed to the execution layer.
+              </p>
+
+              <button
+                className="secondary-button"
+                onClick={handleValidateParsedCommand}
+                disabled={isBusy || !commandParseResult}
+              >
+                {isValidatingParsedCommand ? 'Validating...' : 'Validate Parsed Command'}
+              </button>
+
+              {parsedCommandValidationResult && (
+                <div className="validation-result">
+                  <p><strong>Status:</strong> {parsedCommandValidationResult.status}</p>
+
+                  <div className="parse-field-list">
+                    {Object.entries(parsedCommandValidationResult.validated_command).map(([key, value]) => (
+                      <div className="parse-field" key={key}>
+                        <span>{key}</span>
+                        <strong>{value === null || value === undefined ? 'null' : String(value)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
