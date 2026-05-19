@@ -2267,3 +2267,18 @@ def evaluate_text_command_parser(
     parser_mode: str = Query("rule_based"),
 ):
     return evaluate_command_parser(parser_mode)
+
+
+@app.get("/commands/evaluate/compare")
+def compare_text_command_parsers():
+    parser_modes = ["rule_based", "llm_mock"]
+
+    evaluations = [
+        evaluate_command_parser(parser_mode)
+        for parser_mode in parser_modes
+    ]
+
+    return {
+        "parser_modes": parser_modes,
+        "evaluations": evaluations,
+    }
