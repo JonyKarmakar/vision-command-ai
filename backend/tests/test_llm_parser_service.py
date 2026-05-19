@@ -53,3 +53,24 @@ def test_parse_command_with_llm_mock_mode():
     assert result["parser_version"] == "mock-v1"
     assert result["parsed_command"]["action"] == "crop_by_class"
     assert result["parsed_command"]["class_name"] == "person"
+
+
+def test_get_real_llm_parser_metadata():
+    metadata = get_parser_metadata("real_llm")
+
+    assert metadata == {
+        "parser_mode": "real_llm",
+        "parser_type": "real_llm",
+        "parser_version": "not_configured",
+    }
+
+
+def test_parse_command_with_real_llm_mode_not_implemented():
+    with pytest.raises(HTTPException) as error:
+        parse_command_with_mode(
+            command="crop person",
+            parser_mode="real_llm",
+        )
+
+    assert error.value.status_code == 501
+    assert "not implemented yet" in error.value.detail
