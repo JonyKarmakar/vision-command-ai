@@ -249,6 +249,11 @@ type CommandEvaluationResponse = {
   results: CommandEvaluationCaseResult[]
 }
 
+type ParserComparisonResponse = {
+  parser_modes: string[]
+  evaluations: CommandEvaluationResponse[]
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
@@ -419,6 +424,7 @@ function App() {
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
+  const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
@@ -446,6 +452,7 @@ function App() {
   const [isRunningCommand, setIsRunningCommand] = useState(false)
   const [isParsingCommand, setIsParsingCommand] = useState(false)
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
+  const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
@@ -1404,6 +1411,30 @@ function App() {
     }
   }
 
+  const handleLoadParserComparison = async () => {
+    try {
+      setIsLoadingParserComparison(true)
+      setError(null)
+      setStatusMessage('Loading parser comparison...')
+
+      const response = await fetch('/api/commands/evaluate/compare')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load parser comparison')
+      }
+
+      const data: ParserComparisonResponse = await response.json()
+      setParserComparisonResult(data)
+      setStatusMessage(`Loaded parser comparison for ${data.parser_modes.length} parser modes.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load parser comparison.')
+    } finally {
+      setIsLoadingParserComparison(false)
+    }
+  }
+
   const handleCommand = async () => {
     const normalizedCommandText = commandText.toLowerCase().trim()
     const isVideoCommand =
@@ -1575,6 +1606,7 @@ function App() {
     isRunningCommand ||
     isParsingCommand ||
     isLoadingCommandEvaluation ||
+    isLoadingParserComparison ||
     isLoadingLogs ||
     isLoadingMediaFiles ||
     isLoadingStats ||
@@ -2170,6 +2202,14 @@ function App() {
             >
               {isLoadingCommandEvaluation ? 'Loading evaluation...' : 'Load Parser Evaluation'}
             </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleLoadParserComparison}
+              disabled={isBusy}
+            >
+              {isLoadingParserComparison ? 'Loading comparison...' : 'Load Parser Comparison'}
+            </button>
           </div>
 
           {commandParseResult && (
@@ -2204,6 +2244,25 @@ function App() {
                 <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
               )}
               <p><strong>Result type:</strong> {commandResult.result_type}</p>
+            </div>
+          )}
+
+          {parserComparisonResult && (
+            <div className="parser-comparison-panel">
+              <h3>Parser Comparison Results</h3>
+
+              <div className="parser-comparison-grid">
+                {parserComparisonResult.evaluations.map((evaluation) => (
+                  <div className="parser-comparison-card" key={evaluation.parser_type}>
+                    <h4>{evaluation.parser_type}</h4>
+                    <p><strong>Version:</strong> {evaluation.parser_version}</p>
+                    <p><strong>Total cases:</strong> {evaluation.total_cases}</p>
+                    <p><strong>Passed:</strong> {evaluation.passed_cases}</p>
+                    <p><strong>Failed:</strong> {evaluation.failed_cases}</p>
+                    <p><strong>Accuracy:</strong> {(evaluation.accuracy * 100).toFixed(1)}%</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
