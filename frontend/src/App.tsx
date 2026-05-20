@@ -285,6 +285,13 @@ type ParserAttemptLogsResponse = {
   logs: ParserAttemptLogEntry[]
 }
 
+type LLMProviderStatusResponse = {
+  provider_name: string
+  is_configured: boolean
+  real_llm_available: boolean
+  supported_parser_modes: string[]
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
@@ -459,6 +466,7 @@ function App() {
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
   const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
   const [parserAttemptLogsResult, setParserAttemptLogsResult] = useState<ParserAttemptLogsResponse | null>(null)
+  const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
@@ -490,6 +498,7 @@ function App() {
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
   const [isLoadingParserAttemptLogs, setIsLoadingParserAttemptLogs] = useState(false)
+  const [isLoadingLlmProviderStatus, setIsLoadingLlmProviderStatus] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
@@ -1574,6 +1583,30 @@ function App() {
     }
   }
 
+  const handleLoadLlmProviderStatus = async () => {
+    try {
+      setIsLoadingLlmProviderStatus(true)
+      setError(null)
+      setStatusMessage('Loading LLM provider status...')
+
+      const response = await fetch('/api/llm/provider/status')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load LLM provider status')
+      }
+
+      const data: LLMProviderStatusResponse = await response.json()
+      setLlmProviderStatusResult(data)
+      setStatusMessage(`Loaded LLM provider status: ${data.provider_name}.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load LLM provider status.')
+    } finally {
+      setIsLoadingLlmProviderStatus(false)
+    }
+  }
+
   const handleCommand = async () => {
     const normalizedCommandText = commandText.toLowerCase().trim()
     const isVideoCommand =
@@ -1749,6 +1782,7 @@ function App() {
     isLoadingCommandEvaluation ||
     isLoadingParserComparison ||
     isLoadingParserAttemptLogs ||
+    isLoadingLlmProviderStatus ||
     isLoadingLogs ||
     isLoadingMediaFiles ||
     isLoadingStats ||
@@ -2369,6 +2403,14 @@ function App() {
             >
               {isLoadingParserAttemptLogs ? 'Loading logs...' : 'Load Parser Attempt Logs'}
             </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleLoadLlmProviderStatus}
+              disabled={isBusy}
+            >
+              {isLoadingLlmProviderStatus ? 'Loading provider...' : 'Load LLM Provider Status'}
+            </button>
           </div>
 
           {commandPromptPreviewResult && (
@@ -2467,6 +2509,42 @@ function App() {
                 <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
               )}
               <p><strong>Result type:</strong> {commandResult.result_type}</p>
+            </div>
+          )}
+
+          {llmProviderStatusResult && (
+            <div className="llm-provider-status-panel">
+              <h3>LLM Provider Status</h3>
+
+              <div className="provider-status-grid">
+                <div>
+                  <span>provider_name</span>
+                  <strong>{llmProviderStatusResult.provider_name}</strong>
+                </div>
+                <div>
+                  <span>is_configured</span>
+                  <strong>{String(llmProviderStatusResult.is_configured)}</strong>
+                </div>
+                <div>
+                  <span>real_llm_available</span>
+                  <strong>{String(llmProviderStatusResult.real_llm_available)}</strong>
+                </div>
+              </div>
+
+              <div className="provider-mode-list">
+                <span>Supported parser modes</span>
+                <div>
+                  {llmProviderStatusResult.supported_parser_modes.map((mode) => (
+                    <strong key={mode}>{mode}</strong>
+                  ))}
+                </div>
+              </div>
+
+              {!llmProviderStatusResult.real_llm_available && (
+                <p className="small-note">
+                  Real LLM parsing is not configured yet. This is expected until an external provider is added.
+                </p>
+              )}
             </div>
           )}
 
