@@ -287,8 +287,10 @@ type ParserAttemptLogsResponse = {
 
 type LLMProviderStatusResponse = {
   provider_name: string
+  is_supported: boolean
   is_configured: boolean
   real_llm_available: boolean
+  supported_llm_providers: string[]
   supported_parser_modes: string[]
 }
 
@@ -2522,12 +2524,25 @@ function App() {
                   <strong>{llmProviderStatusResult.provider_name}</strong>
                 </div>
                 <div>
+                  <span>is_supported</span>
+                  <strong>{String(llmProviderStatusResult.is_supported)}</strong>
+                </div>
+                <div>
                   <span>is_configured</span>
                   <strong>{String(llmProviderStatusResult.is_configured)}</strong>
                 </div>
                 <div>
                   <span>real_llm_available</span>
                   <strong>{String(llmProviderStatusResult.real_llm_available)}</strong>
+                </div>
+              </div>
+
+              <div className="provider-mode-list">
+                <span>Supported LLM providers</span>
+                <div>
+                  {llmProviderStatusResult.supported_llm_providers.map((provider) => (
+                    <strong key={provider}>{provider}</strong>
+                  ))}
                 </div>
               </div>
 
@@ -2540,7 +2555,13 @@ function App() {
                 </div>
               </div>
 
-              {!llmProviderStatusResult.real_llm_available && (
+              {!llmProviderStatusResult.is_supported && (
+                <p className="small-note">
+                  The selected LLM provider is not supported by this backend yet.
+                </p>
+              )}
+
+              {llmProviderStatusResult.is_supported && !llmProviderStatusResult.real_llm_available && (
                 <p className="small-note">
                   Real LLM parsing is not configured yet. This is expected until an external provider is added.
                 </p>
