@@ -876,3 +876,54 @@ This project is designed to teach:
 - Full-stack AI system design
 - MLOps-style inference logging and analytics
 - LLMOps foundations through command logging and command history
+---
+
+## Environment Configuration
+
+Example environment files are included for local setup:
+
+- backend/.env.example
+- frontend/.env.example
+
+These files show which environment variables are needed without exposing real secrets.
+
+### Backend variables
+
+Required or useful backend environment variables:
+
+- DATABASE_URL
+- LLM_PROVIDER
+- PYTHONUNBUFFERED
+
+DATABASE_URL is used by the FastAPI backend to connect to PostgreSQL.
+
+For Docker Compose, the backend uses the PostgreSQL service name:
+
+DATABASE_URL=postgresql://vision_user:vision_password@postgres:5432/vision_command
+
+LLM_PROVIDER controls the future real LLM provider configuration.
+
+The current supported value is:
+
+disabled
+
+The real_llm parser mode already exists as a future integration path, but real external LLM parsing is not enabled until a provider is configured.
+
+PYTHONUNBUFFERED=1 helps Python logs appear immediately in Docker.
+
+### Frontend variables
+
+Required or useful frontend environment variables:
+
+- VITE_BACKEND_URL
+
+VITE_BACKEND_URL points the Vite frontend/proxy setup to the backend API.
+
+For local non-Docker development:
+
+VITE_BACKEND_URL=http://127.0.0.1:8000
+
+For Docker Compose, the frontend uses the backend service name internally:
+
+VITE_BACKEND_URL=http://backend:8000
+
