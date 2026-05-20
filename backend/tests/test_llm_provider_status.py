@@ -8,6 +8,8 @@ client = TestClient(main.app)
 
 def test_llm_provider_status_endpoint(monkeypatch):
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
 
     response = client.get("/llm/provider/status")
 
@@ -41,6 +43,24 @@ def test_llm_provider_status_endpoint_with_configured_openai(monkeypatch):
     assert data["provider_model"] == "test-model"
     assert data["is_supported"] is True
     assert data["is_configured"] is True
+    assert data["real_llm_available"] is True
+    assert data["supported_llm_providers"] == ["disabled", "openai"]
+
+
+def test_llm_provider_status_endpoint_with_unconfigured_openai(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+
+    response = client.get("/llm/provider/status")
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["provider_name"] == "openai"
+    assert data["provider_model"] is None
+    assert data["is_supported"] is True
+    assert data["is_configured"] is False
     assert data["real_llm_available"] is False
     assert data["supported_llm_providers"] == ["disabled", "openai"]
 

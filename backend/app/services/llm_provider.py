@@ -1,16 +1,63 @@
+import json
 import os
 
 from fastapi import HTTPException
+from openai import OpenAI
 
 
 SUPPORTED_LLM_PROVIDERS = {"disabled", "openai"}
+
+
+COMMAND_PARSER_OUTPUT_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "action",
+        "class_name",
+        "timestamp_seconds",
+        "start_seconds",
+        "end_seconds",
+        "interval_seconds",
+    ],
+    "properties": {
+        "action": {
+            "type": "string",
+            "enum": [
+                "detect",
+                "crop_by_class",
+                "blur_by_class",
+                "blur_all_by_class",
+                "extract_frame",
+                "extract_frames",
+                "detect_frames",
+                "track_video",
+                "trim_video",
+            ],
+        },
+        "class_name": {
+            "type": ["string", "null"],
+        },
+        "timestamp_seconds": {
+            "type": ["number", "null"],
+        },
+        "start_seconds": {
+            "type": ["number", "null"],
+        },
+        "end_seconds": {
+            "type": ["number", "null"],
+        },
+        "interval_seconds": {
+            "type": ["number", "null"],
+        },
+    },
+}
 
 
 class LLMProviderNotConfiguredError(Exception):
     pass
 
 
-class LLMProviderNotImplementedError(Exception):
+class LLMProviderOutputError(Exception):
     pass
 
 
@@ -50,9 +97,35 @@ class OpenAILLMProvider(BaseLLMProvider):
                 "OpenAI provider is selected but OPENAI_API_KEY or OPENAI_MODEL is missing."
             )
 
-        raise LLMProviderNotImplementedError(
-            "OpenAI provider configuration exists, but the real API call is not implemented yet."
+        client = OpenAI(api_key=self.api_key)
+
+        response = client.responses.create(
+            model=self.model,
+            instructions=system_prompt,
+            input=user_prompt,
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "vision_command_parser",
+                    "strict": True,
+                    "schema": COMMAND_PARSER_OUTPUT_SCHEMA,
+                }
+            },
         )
+
+        raw_output = getattr(response, "output_text", None)
+
+        if not raw_output:
+            raise LLMProviderOutputError(
+                "OpenAI response did not include output_text."
+            )
+
+        try:
+            return json.loads(raw_output)
+        except json.JSONDecodeError as error:
+            raise LLMProviderOutputError(
+                f"OpenAI response was not valid JSON: {str(error)}"
+            )
 
 
 def get_configured_provider_name() -> str:
@@ -87,9 +160,9 @@ def parse_command_with_provider(system_prompt: str, user_prompt: str) -> dict:
             status_code=503,
             detail=str(error),
         )
-    except LLMProviderNotImplementedError as error:
+    except LLMProviderOutputError as error:
         raise HTTPException(
-            status_code=501,
+            status_code=502,
             detail=str(error),
         )
 
@@ -113,7 +186,7 @@ def get_llm_provider_status():
         "provider_model": provider_model,
         "is_supported": is_supported,
         "is_configured": is_configured,
-        "real_llm_available": False,
+        "real_llm_available": is_supported and is_configured and provider_name == "openai",
         "supported_llm_providers": sorted(SUPPORTED_LLM_PROVIDERS),
         "supported_parser_modes": [
             "rule_based",
