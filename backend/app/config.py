@@ -9,5 +9,6 @@ OUTPUT_DIR = Path("storage/outputs")
 VIDEO_DIR = Path("storage/videos")
 LOG_DIR = Path("storage/logs")
 COMMAND_LOG_FILE = LOG_DIR / "command_logs.jsonl"
+PARSER_LOG_FILE = LOG_DIR / "parser_attempt_logs.jsonl"
 
 MODEL_NAME = "yolo26n.pt"
