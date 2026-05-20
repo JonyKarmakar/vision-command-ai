@@ -2,6 +2,8 @@ from fastapi import HTTPException
 
 from app.services.command_parser import parse_command
 from app.services.command_validation import validate_parsed_command
+from app.services.llm_prompt_builder import build_command_parser_prompt
+from app.services.llm_provider import parse_command_with_provider
 
 
 SUPPORTED_PARSER_MODES = {"rule_based", "llm_mock", "real_llm"}
@@ -36,13 +38,21 @@ def get_parser_metadata(parser_mode: str):
 
 
 def parse_command_with_real_llm(command: str):
-    raise HTTPException(
-        status_code=501,
-        detail=(
-            "real_llm parser mode is not implemented yet. "
-            "This parser mode is reserved for future external LLM integration."
-        ),
+    prompt_preview = build_command_parser_prompt(command)
+
+    parsed_command = parse_command_with_provider(
+        system_prompt=prompt_preview["system_prompt"],
+        user_prompt=prompt_preview["user_prompt"],
     )
+
+    validated_command = validate_parsed_command(parsed_command)
+
+    return {
+        "parser_mode": "real_llm",
+        "parser_type": "real_llm",
+        "parser_version": prompt_preview["prompt_version"],
+        "parsed_command": validated_command,
+    }
 
 
 def parse_command_with_mode(command: str, parser_mode: str = "rule_based"):
