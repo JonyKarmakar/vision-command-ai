@@ -57,6 +57,7 @@ from app.config import (
     LOG_DIR,
     MODEL_NAME,
     OUTPUT_DIR,
+    PARSER_LOG_FILE,
     UPLOAD_DIR,
     VIDEO_DIR,
 )
@@ -2255,15 +2256,49 @@ def track_sampled_video_objects(filename: str, request: VideoTrackingRequest):
 
 @app.post("/commands/parse")
 def parse_text_command(request: CommandParseRequest):
-    parse_result = parse_command_with_mode(
-        command=request.command,
-        parser_mode=request.parser_mode,
-    )
+    from time import perf_counter
 
-    return {
-        "command": request.command,
-        **parse_result,
-    }
+    start_time = perf_counter()
+
+    try:
+        parse_result = parse_command_with_mode(
+            command=request.command,
+            parser_mode=request.parser_mode,
+        )
+
+        latency_ms = round((perf_counter() - start_time) * 1000, 2)
+
+        log_parser_attempt(
+            command=request.command,
+            parser_mode=request.parser_mode,
+            parser_type=parse_result.get("parser_type"),
+            parser_version=parse_result.get("parser_version"),
+            success=True,
+            latency_ms=latency_ms,
+            parsed_command=parse_result.get("parsed_command"),
+            error=None,
+        )
+
+        return {
+            "command": request.command,
+            **parse_result,
+        }
+
+    except HTTPException as error:
+        latency_ms = round((perf_counter() - start_time) * 1000, 2)
+
+        log_parser_attempt(
+            command=request.command,
+            parser_mode=request.parser_mode,
+            parser_type=request.parser_mode,
+            parser_version=None,
+            success=False,
+            latency_ms=latency_ms,
+            parsed_command=None,
+            error=error.detail,
+        )
+
+        raise error
 
 @app.get("/commands/evaluate")
 def evaluate_text_command_parser(
@@ -2306,4 +2341,64 @@ def validate_parsed_text_command(request: ParsedCommandValidationRequest):
     return {
         "status": "valid",
         "validated_command": validated_command,
+    }
+
+
+def log_parser_attempt(
+    command: str,
+    parser_mode: str,
+    parser_type: str,
+    parser_version,
+    success: bool,
+    latency_ms: float,
+    parsed_command=None,
+    error=None,
+):
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+    log_entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "command": command,
+        "parser_mode": parser_mode,
+        "parser_type": parser_type,
+        "parser_version": parser_version,
+        "success": success,
+        "latency_ms": latency_ms,
+        "parsed_command": parsed_command,
+        "error": error,
+    }
+
+    with PARSER_LOG_FILE.open("a", encoding="utf-8") as log_file:
+        log_file.write(json.dumps(log_entry) + "\n")
+
+    return log_entry
+
+
+@app.get("/commands/parse/logs")
+def get_parser_attempt_logs(limit: int = Query(20, ge=1, le=100)):
+    if not PARSER_LOG_FILE.exists():
+        return {
+            "count": 0,
+            "logs": [],
+        }
+
+    logs = []
+
+    with PARSER_LOG_FILE.open("r", encoding="utf-8") as log_file:
+        lines = log_file.readlines()
+
+    for line in lines[-limit:]:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        try:
+            logs.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+
+    return {
+        "count": len(logs),
+        "logs": logs,
     }
