@@ -207,5 +207,5 @@ def test_parse_command_with_real_llm_mode_not_implemented():
         },
     )
 
-    assert response.status_code == 501
-    assert "not implemented yet" in response.json()["detail"]
+    assert response.status_code == 503
+    assert "not configured" in response.json()["detail"]

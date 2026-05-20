@@ -72,5 +72,5 @@ def test_parse_command_with_real_llm_mode_not_implemented():
             parser_mode="real_llm",
         )
 
-    assert error.value.status_code == 501
-    assert "not implemented yet" in error.value.detail
+    assert error.value.status_code == 503
+    assert "not configured" in error.value.detail
