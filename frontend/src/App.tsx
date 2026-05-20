@@ -287,6 +287,7 @@ type ParserAttemptLogsResponse = {
 
 type LLMProviderStatusResponse = {
   provider_name: string
+  provider_model: string | null
   is_supported: boolean
   is_configured: boolean
   real_llm_available: boolean
@@ -2522,6 +2523,10 @@ function App() {
                 <div>
                   <span>provider_name</span>
                   <strong>{llmProviderStatusResult.provider_name}</strong>
+                </div>
+                <div>
+                  <span>provider_model</span>
+                  <strong>{llmProviderStatusResult.provider_model ?? 'none'}</strong>
                 </div>
                 <div>
                   <span>is_supported</span>
