@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw, UnidentifiedImageError
 from app.routers import health, model
 from app.services.command_evaluation import evaluate_command_parser
 from app.services.llm_parser import parse_command_with_mode
+from app.services.llm_provider import get_llm_provider_status
 from app.services.llm_prompt_builder import build_command_parser_prompt
 from app.services.command_validation import validate_parsed_command
 from app.services.command_parser import normalize_requested_class_name, parse_command
@@ -2402,3 +2403,9 @@ def get_parser_attempt_logs(limit: int = Query(20, ge=1, le=100)):
         "count": len(logs),
         "logs": logs,
     }
+
+
+
+@app.get("/llm/provider/status")
+def get_llm_provider_status_endpoint():
+    return get_llm_provider_status()

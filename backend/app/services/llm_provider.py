@@ -36,3 +36,20 @@ def parse_command_with_provider(system_prompt: str, user_prompt: str) -> dict:
             status_code=503,
             detail=str(error),
         )
+
+
+
+def get_llm_provider_status():
+    provider = get_llm_provider()
+    is_configured = provider.provider_name != "disabled"
+
+    return {
+        "provider_name": provider.provider_name,
+        "is_configured": is_configured,
+        "real_llm_available": is_configured,
+        "supported_parser_modes": [
+            "rule_based",
+            "llm_mock",
+            "real_llm",
+        ],
+    }
