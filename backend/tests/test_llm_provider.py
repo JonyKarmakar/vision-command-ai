@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from app.services.llm_provider import (
     DisabledLLMProvider,
     LLMProviderNotConfiguredError,
+    OpenAILLMProvider,
     get_configured_provider_name,
     get_llm_provider,
     get_llm_provider_status,
@@ -18,9 +19,9 @@ def test_get_configured_provider_name_defaults_to_disabled(monkeypatch):
 
 
 def test_get_configured_provider_name_reads_env(monkeypatch):
-    monkeypatch.setenv("LLM_PROVIDER", " DISABLED ")
+    monkeypatch.setenv("LLM_PROVIDER", " OPENAI ")
 
-    assert get_configured_provider_name() == "disabled"
+    assert get_configured_provider_name() == "openai"
 
 
 def test_get_llm_provider_returns_disabled_provider_by_default(monkeypatch):
@@ -32,8 +33,20 @@ def test_get_llm_provider_returns_disabled_provider_by_default(monkeypatch):
     assert provider.provider_name == "disabled"
 
 
-def test_get_llm_provider_rejects_unsupported_provider(monkeypatch):
+def test_get_llm_provider_returns_openai_provider(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_MODEL", "test-model")
+
+    provider = get_llm_provider()
+
+    assert isinstance(provider, OpenAILLMProvider)
+    assert provider.provider_name == "openai"
+    assert provider.is_configured() is True
+
+
+def test_get_llm_provider_rejects_unsupported_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
 
     with pytest.raises(HTTPException) as error:
         get_llm_provider()
@@ -67,25 +80,72 @@ def test_parse_command_with_provider_returns_503_when_disabled(monkeypatch):
     assert "not configured" in error.value.detail
 
 
+def test_parse_command_with_openai_returns_503_when_missing_config(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+
+    with pytest.raises(HTTPException) as error:
+        parse_command_with_provider(
+            system_prompt="system",
+            user_prompt="user",
+        )
+
+    assert error.value.status_code == 503
+    assert "OPENAI_API_KEY" in error.value.detail
+
+
+def test_parse_command_with_openai_returns_501_when_configured_but_not_implemented(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_MODEL", "test-model")
+
+    with pytest.raises(HTTPException) as error:
+        parse_command_with_provider(
+            system_prompt="system",
+            user_prompt="user",
+        )
+
+    assert error.value.status_code == 501
+    assert "not implemented yet" in error.value.detail
+
+
 def test_llm_provider_status_default(monkeypatch):
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
 
     status = get_llm_provider_status()
 
     assert status["provider_name"] == "disabled"
+    assert status["provider_model"] is None
     assert status["is_supported"] is True
     assert status["is_configured"] is False
     assert status["real_llm_available"] is False
-    assert status["supported_llm_providers"] == ["disabled"]
+    assert status["supported_llm_providers"] == ["disabled", "openai"]
 
 
-def test_llm_provider_status_for_unsupported_provider(monkeypatch):
+def test_llm_provider_status_for_configured_openai(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_MODEL", "test-model")
 
     status = get_llm_provider_status()
 
     assert status["provider_name"] == "openai"
+    assert status["provider_model"] == "test-model"
+    assert status["is_supported"] is True
+    assert status["is_configured"] is True
+    assert status["real_llm_available"] is False
+    assert status["supported_llm_providers"] == ["disabled", "openai"]
+
+
+def test_llm_provider_status_for_unsupported_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+
+    status = get_llm_provider_status()
+
+    assert status["provider_name"] == "gemini"
+    assert status["provider_model"] is None
     assert status["is_supported"] is False
     assert status["is_configured"] is False
     assert status["real_llm_available"] is False
-    assert status["supported_llm_providers"] == ["disabled"]
+    assert status["supported_llm_providers"] == ["disabled", "openai"]

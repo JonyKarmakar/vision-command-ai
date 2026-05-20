@@ -15,10 +15,11 @@ def test_llm_provider_status_endpoint(monkeypatch):
 
     data = response.json()
     assert data["provider_name"] == "disabled"
+    assert data["provider_model"] is None
     assert data["is_supported"] is True
     assert data["is_configured"] is False
     assert data["real_llm_available"] is False
-    assert data["supported_llm_providers"] == ["disabled"]
+    assert data["supported_llm_providers"] == ["disabled", "openai"]
     assert data["supported_parser_modes"] == [
         "rule_based",
         "llm_mock",
@@ -26,8 +27,10 @@ def test_llm_provider_status_endpoint(monkeypatch):
     ]
 
 
-def test_llm_provider_status_endpoint_with_unsupported_provider(monkeypatch):
+def test_llm_provider_status_endpoint_with_configured_openai(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_MODEL", "test-model")
 
     response = client.get("/llm/provider/status")
 
@@ -35,7 +38,24 @@ def test_llm_provider_status_endpoint_with_unsupported_provider(monkeypatch):
 
     data = response.json()
     assert data["provider_name"] == "openai"
+    assert data["provider_model"] == "test-model"
+    assert data["is_supported"] is True
+    assert data["is_configured"] is True
+    assert data["real_llm_available"] is False
+    assert data["supported_llm_providers"] == ["disabled", "openai"]
+
+
+def test_llm_provider_status_endpoint_with_unsupported_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+
+    response = client.get("/llm/provider/status")
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["provider_name"] == "gemini"
+    assert data["provider_model"] is None
     assert data["is_supported"] is False
     assert data["is_configured"] is False
     assert data["real_llm_available"] is False
-    assert data["supported_llm_providers"] == ["disabled"]
+    assert data["supported_llm_providers"] == ["disabled", "openai"]
