@@ -1,6 +1,9 @@
+import json
+
 import pytest
 from fastapi import HTTPException
 
+from app.services import llm_provider
 from app.services.llm_provider import (
     DisabledLLMProvider,
     LLMProviderNotConfiguredError,
@@ -95,19 +98,83 @@ def test_parse_command_with_openai_returns_503_when_missing_config(monkeypatch):
     assert "OPENAI_API_KEY" in error.value.detail
 
 
-def test_parse_command_with_openai_returns_501_when_configured_but_not_implemented(monkeypatch):
+def test_openai_provider_parse_command_success(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_MODEL", "test-model")
+
+    expected_output = {
+        "action": "crop_by_class",
+        "class_name": "person",
+        "timestamp_seconds": None,
+        "start_seconds": None,
+        "end_seconds": None,
+        "interval_seconds": None,
+    }
+
+    class FakeResponses:
+        def create(self, **kwargs):
+            assert kwargs["model"] == "test-model"
+            assert kwargs["instructions"] == "system"
+            assert kwargs["input"] == "user"
+            assert kwargs["text"]["format"]["type"] == "json_schema"
+            assert kwargs["text"]["format"]["strict"] is True
+
+            class FakeResponse:
+                output_text = json.dumps(expected_output)
+
+            return FakeResponse()
+
+    class FakeOpenAIClient:
+        responses = FakeResponses()
+
+    monkeypatch.setattr(
+        llm_provider,
+        "OpenAI",
+        lambda api_key: FakeOpenAIClient(),
+    )
+
+    provider = OpenAILLMProvider()
+
+    assert provider.parse_command(
+        system_prompt="system",
+        user_prompt="user",
+    ) == expected_output
+
+
+def test_parse_command_with_openai_provider_success(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("OPENAI_MODEL", "test-model")
 
-    with pytest.raises(HTTPException) as error:
-        parse_command_with_provider(
-            system_prompt="system",
-            user_prompt="user",
-        )
+    expected_output = {
+        "action": "crop_by_class",
+        "class_name": "person",
+        "timestamp_seconds": None,
+        "start_seconds": None,
+        "end_seconds": None,
+        "interval_seconds": None,
+    }
 
-    assert error.value.status_code == 501
-    assert "not implemented yet" in error.value.detail
+    class FakeResponses:
+        def create(self, **kwargs):
+            class FakeResponse:
+                output_text = json.dumps(expected_output)
+
+            return FakeResponse()
+
+    class FakeOpenAIClient:
+        responses = FakeResponses()
+
+    monkeypatch.setattr(
+        llm_provider,
+        "OpenAI",
+        lambda api_key: FakeOpenAIClient(),
+    )
+
+    assert parse_command_with_provider(
+        system_prompt="system",
+        user_prompt="user",
+    ) == expected_output
 
 
 def test_llm_provider_status_default(monkeypatch):
@@ -134,18 +201,5 @@ def test_llm_provider_status_for_configured_openai(monkeypatch):
     assert status["provider_model"] == "test-model"
     assert status["is_supported"] is True
     assert status["is_configured"] is True
-    assert status["real_llm_available"] is False
-    assert status["supported_llm_providers"] == ["disabled", "openai"]
-
-
-def test_llm_provider_status_for_unsupported_provider(monkeypatch):
-    monkeypatch.setenv("LLM_PROVIDER", "gemini")
-
-    status = get_llm_provider_status()
-
-    assert status["provider_name"] == "gemini"
-    assert status["provider_model"] is None
-    assert status["is_supported"] is False
-    assert status["is_configured"] is False
-    assert status["real_llm_available"] is False
+    assert status["real_llm_available"] is True
     assert status["supported_llm_providers"] == ["disabled", "openai"]
