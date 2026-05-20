@@ -1332,3 +1332,109 @@ input[type="file"]::file-selector-button:hover {
 .validation-result p {
   margin-top: 0;
 }
+
+.parser-attempt-logs-panel {
+  margin-top: 18px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.parser-attempt-logs-panel h3 {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+.parser-attempt-log-list {
+  display: grid;
+  gap: 12px;
+}
+
+.parser-attempt-log-card {
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.parser-attempt-log-card.success {
+  border-color: #166534;
+}
+
+.parser-attempt-log-card.failure {
+  border-color: #991b1b;
+}
+
+.parser-attempt-log-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.parser-attempt-log-header strong {
+  color: #f8fafc;
+}
+
+.parser-attempt-log-header span {
+  color: #d4d4d8;
+}
+
+.parser-attempt-error {
+  margin-top: 12px;
+  background: #450a0a;
+  border: 1px solid #991b1b;
+  border-radius: 10px;
+  padding: 10px;
+  color: #fecaca;
+}
+
+.parser-attempt-logs-panel {
+  margin-top: 18px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.parser-attempt-logs-panel h3 {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+.parser-attempt-log-list {
+  display: grid;
+  gap: 12px;
+}
+
+.parser-attempt-log-card {
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.parser-attempt-log-card.success {
+  border-color: #166534;
+}
+
+.parser-attempt-log-card.failure {
+  border-color: #991b1b;
+}
+
+.parser-attempt-log-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.parser-attempt-error {
+  margin-top: 12px;
+  background: #450a0a;
+  border: 1px solid #991b1b;
+  border-radius: 10px;
+  padding: 10px;
+  color: #fecaca;
+}

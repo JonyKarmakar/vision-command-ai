@@ -268,6 +268,23 @@ type ParsedCommandValidationResponse = {
   validated_command: ParsedCommand
 }
 
+type ParserAttemptLogEntry = {
+  timestamp: string
+  command: string
+  parser_mode: string
+  parser_type: string | null
+  parser_version: string | null
+  success: boolean
+  latency_ms: number
+  parsed_command: ParsedCommand | null
+  error: string | null
+}
+
+type ParserAttemptLogsResponse = {
+  count: number
+  logs: ParserAttemptLogEntry[]
+}
+
 type CommandResponse = {
   command: string
   parsed_command: {
@@ -441,6 +458,7 @@ function App() {
   const [commandPromptPreviewResult, setCommandPromptPreviewResult] = useState<CommandPromptPreviewResponse | null>(null)
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
   const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
+  const [parserAttemptLogsResult, setParserAttemptLogsResult] = useState<ParserAttemptLogsResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
@@ -471,6 +489,7 @@ function App() {
   const [isLoadingPromptPreview, setIsLoadingPromptPreview] = useState(false)
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
+  const [isLoadingParserAttemptLogs, setIsLoadingParserAttemptLogs] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
@@ -1531,6 +1550,30 @@ function App() {
     }
   }
 
+  const handleLoadParserAttemptLogs = async () => {
+    try {
+      setIsLoadingParserAttemptLogs(true)
+      setError(null)
+      setStatusMessage('Loading parser attempt logs...')
+
+      const response = await fetch('/api/commands/parse/logs?limit=20')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load parser attempt logs')
+      }
+
+      const data: ParserAttemptLogsResponse = await response.json()
+      setParserAttemptLogsResult(data)
+      setStatusMessage(`Loaded ${data.count} parser attempt log(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load parser attempt logs.')
+    } finally {
+      setIsLoadingParserAttemptLogs(false)
+    }
+  }
+
   const handleCommand = async () => {
     const normalizedCommandText = commandText.toLowerCase().trim()
     const isVideoCommand =
@@ -1705,6 +1748,7 @@ function App() {
     isLoadingPromptPreview ||
     isLoadingCommandEvaluation ||
     isLoadingParserComparison ||
+    isLoadingParserAttemptLogs ||
     isLoadingLogs ||
     isLoadingMediaFiles ||
     isLoadingStats ||
@@ -2317,6 +2361,14 @@ function App() {
             >
               {isLoadingParserComparison ? 'Loading comparison...' : 'Load Parser Comparison'}
             </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleLoadParserAttemptLogs}
+              disabled={isBusy}
+            >
+              {isLoadingParserAttemptLogs ? 'Loading logs...' : 'Load Parser Attempt Logs'}
+            </button>
           </div>
 
           {commandPromptPreviewResult && (
@@ -2415,6 +2467,64 @@ function App() {
                 <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
               )}
               <p><strong>Result type:</strong> {commandResult.result_type}</p>
+            </div>
+          )}
+
+          {parserAttemptLogsResult && (
+            <div className="parser-attempt-logs-panel">
+              <h3>Parser Attempt Logs</h3>
+
+              {parserAttemptLogsResult.logs.length === 0 ? (
+                <p className="small-note">No parser attempts logged yet.</p>
+              ) : (
+                <div className="parser-attempt-log-list">
+                  {parserAttemptLogsResult.logs.map((log, index) => (
+                    <div
+                      className={`parser-attempt-log-card ${log.success ? 'success' : 'failure'}`}
+                      key={`${log.timestamp}-${index}`}
+                    >
+                      <div className="parser-attempt-log-header">
+                        <strong>{log.command}</strong>
+                        <span>{log.success ? 'Success' : 'Failed'}</span>
+                      </div>
+
+                      <div className="parse-field-list">
+                        <div className="parse-field">
+                          <span>parser_mode</span>
+                          <strong>{log.parser_mode}</strong>
+                        </div>
+                        <div className="parse-field">
+                          <span>parser_type</span>
+                          <strong>{log.parser_type ?? 'null'}</strong>
+                        </div>
+                        <div className="parse-field">
+                          <span>parser_version</span>
+                          <strong>{log.parser_version ?? 'null'}</strong>
+                        </div>
+                        <div className="parse-field">
+                          <span>latency_ms</span>
+                          <strong>{log.latency_ms}</strong>
+                        </div>
+                      </div>
+
+                      {log.parsed_command && (
+                        <div className="prompt-block">
+                          <h4>Parsed Command</h4>
+                          <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
+                        </div>
+                      )}
+
+                      {log.error && (
+                        <div className="parser-attempt-error">
+                          <strong>Error:</strong> {log.error}
+                        </div>
+                      )}
+
+                      <p className="small-note">Timestamp: {log.timestamp}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
