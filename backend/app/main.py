@@ -33,6 +33,9 @@ from app.services.database_service import (
     save_detections_to_database,
     save_inference_log_to_database,
     save_media_file_to_database,
+    get_database_parser_attempt_logs,
+    initialize_parser_attempt_logs_table,
+    save_parser_attempt_to_database,
 )
 from app.schemas import (
     BlurAllByClassRequest,
@@ -2372,6 +2375,12 @@ def log_parser_attempt(
     with PARSER_LOG_FILE.open("a", encoding="utf-8") as log_file:
         log_file.write(json.dumps(log_entry) + "\n")
 
+    try:
+        save_parser_attempt_to_database(log_entry)
+    except Exception:
+        # Database logging should not break command parsing.
+        pass
+
     return log_entry
 
 
@@ -2409,3 +2418,8 @@ def get_parser_attempt_logs(limit: int = Query(20, ge=1, le=100)):
 @app.get("/llm/provider/status")
 def get_llm_provider_status_endpoint():
     return get_llm_provider_status()
+
+
+@app.get("/db/parser-attempt-logs")
+def get_postgres_parser_attempt_logs(limit: int = Query(20, ge=1, le=100)):
+    return get_database_parser_attempt_logs(limit)

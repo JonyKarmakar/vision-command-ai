@@ -703,3 +703,145 @@ def get_database_stats():
         "media_files_count": media_files_count,
         "command_logs_count": command_logs_count,
     }
+
+
+def initialize_parser_attempt_logs_table():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return False
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS parser_attempt_logs (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TEXT NOT NULL,
+                    command TEXT NOT NULL,
+                    parser_mode TEXT NOT NULL,
+                    parser_type TEXT,
+                    parser_version TEXT,
+                    success BOOLEAN NOT NULL,
+                    latency_ms DOUBLE PRECISION NOT NULL,
+                    parsed_command TEXT,
+                    error TEXT
+                );
+                """
+            )
+        connection.commit()
+
+    return True
+
+
+def save_parser_attempt_to_database(log_entry: dict):
+    import json
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return False
+
+    initialize_parser_attempt_logs_table()
+
+    parsed_command = log_entry.get("parsed_command")
+    parsed_command_json = json.dumps(parsed_command) if parsed_command is not None else None
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO parser_attempt_logs (
+                    timestamp,
+                    command,
+                    parser_mode,
+                    parser_type,
+                    parser_version,
+                    success,
+                    latency_ms,
+                    parsed_command,
+                    error
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+                """,
+                (
+                    log_entry["timestamp"],
+                    log_entry["command"],
+                    log_entry["parser_mode"],
+                    log_entry.get("parser_type"),
+                    log_entry.get("parser_version"),
+                    log_entry["success"],
+                    log_entry["latency_ms"],
+                    parsed_command_json,
+                    log_entry.get("error"),
+                ),
+            )
+        connection.commit()
+
+    return True
+
+
+def get_database_parser_attempt_logs(limit: int = 20):
+    import json
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "count": 0,
+            "logs": [],
+        }
+
+    initialize_parser_attempt_logs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    timestamp,
+                    command,
+                    parser_mode,
+                    parser_type,
+                    parser_version,
+                    success,
+                    latency_ms,
+                    parsed_command,
+                    error
+                FROM parser_attempt_logs
+                ORDER BY id DESC
+                LIMIT %s;
+                """,
+                (limit,),
+            )
+            rows = cursor.fetchall()
+
+    logs = []
+
+    for row in rows:
+        parsed_command = json.loads(row[7]) if row[7] else None
+
+        logs.append(
+            {
+                "timestamp": row[0],
+                "command": row[1],
+                "parser_mode": row[2],
+                "parser_type": row[3],
+                "parser_version": row[4],
+                "success": row[5],
+                "latency_ms": row[6],
+                "parsed_command": parsed_command,
+                "error": row[8],
+            }
+        )
+
+    return {
+        "status": "healthy",
+        "count": len(logs),
+        "logs": logs,
+    }
