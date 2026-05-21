@@ -927,3 +927,90 @@ For Docker Compose, the frontend uses the backend service name internally:
 
 VITE_BACKEND_URL=http://backend:8000
 
+
+---
+
+## Real LLM Provider Setup
+
+VisionCommand AI has a provider-based LLM parser architecture.
+
+Current parser modes:
+
+- rule_based
+- llm_mock
+- real_llm
+
+Current LLM providers:
+
+- disabled
+- openai
+
+By default, the backend uses:
+
+LLM_PROVIDER=disabled
+
+In this mode, `real_llm` exists as a parser mode, but real external LLM parsing is not active.
+
+### OpenAI provider configuration
+
+To test the OpenAI provider locally, configure these environment variables in your backend environment:
+
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your-api-key
+OPENAI_MODEL=gpt-4.1-mini
+
+The API key should only be stored locally or in a private `.env` file.
+
+Never commit real API keys to Git.
+
+### Local `.env` usage
+
+You can create a local file:
+
+backend/.env
+
+based on:
+
+backend/.env.example
+
+The `.env` file should remain local and should not be committed.
+
+### Testing real LLM parsing
+
+After setting the environment variables, start the backend:
+
+cd backend
+source vision-env/bin/activate
+uvicorn app.main:app --reload
+
+Then open:
+
+http://127.0.0.1:8000/docs
+
+Test:
+
+POST /commands/parse
+
+Example request:
+
+{
+  "command": "crop person",
+  "parser_mode": "real_llm"
+}
+
+Expected behavior:
+
+- If OpenAI is configured correctly, the backend calls the OpenAI provider.
+- The response should contain a validated structured command.
+- If the provider is missing configuration, the backend returns a clear error.
+
+### Why this architecture exists
+
+The command parser layer is provider-agnostic.
+
+The frontend and backend parser flow should not depend directly on one provider. Provider selection happens through:
+
+LLM_PROVIDER
+
+This allows future providers such as local models, Gemini, Anthropic, or internal models to be added behind the same interface.
+
