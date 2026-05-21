@@ -7,6 +7,7 @@ from app.services import llm_provider
 from app.services.llm_provider import (
     DisabledLLMProvider,
     LLMProviderNotConfiguredError,
+    OllamaLLMProvider,
     OpenAILLMProvider,
     get_configured_provider_name,
     get_llm_provider,
@@ -22,9 +23,9 @@ def test_get_configured_provider_name_defaults_to_disabled(monkeypatch):
 
 
 def test_get_configured_provider_name_reads_env(monkeypatch):
-    monkeypatch.setenv("LLM_PROVIDER", " OPENAI ")
+    monkeypatch.setenv("LLM_PROVIDER", " OLLAMA ")
 
-    assert get_configured_provider_name() == "openai"
+    assert get_configured_provider_name() == "ollama"
 
 
 def test_get_llm_provider_returns_disabled_provider_by_default(monkeypatch):
@@ -46,6 +47,19 @@ def test_get_llm_provider_returns_openai_provider(monkeypatch):
     assert isinstance(provider, OpenAILLMProvider)
     assert provider.provider_name == "openai"
     assert provider.is_configured() is True
+
+
+def test_get_llm_provider_returns_ollama_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    monkeypatch.setenv("OLLAMA_MODEL", "llama3.2")
+
+    provider = get_llm_provider()
+
+    assert isinstance(provider, OllamaLLMProvider)
+    assert provider.provider_name == "ollama"
+    assert provider.is_configured() is True
+    assert provider.get_model_name() == "llama3.2"
 
 
 def test_get_llm_provider_rejects_unsupported_provider(monkeypatch):
@@ -96,6 +110,36 @@ def test_parse_command_with_openai_returns_503_when_missing_config(monkeypatch):
 
     assert error.value.status_code == 503
     assert "OPENAI_API_KEY" in error.value.detail
+
+
+def test_parse_command_with_ollama_returns_503_when_missing_config(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
+
+    with pytest.raises(HTTPException) as error:
+        parse_command_with_provider(
+            system_prompt="system",
+            user_prompt="user",
+        )
+
+    assert error.value.status_code == 503
+    assert "OLLAMA_BASE_URL" in error.value.detail
+
+
+def test_parse_command_with_ollama_returns_501_when_configured_but_not_implemented(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    monkeypatch.setenv("OLLAMA_MODEL", "llama3.2")
+
+    with pytest.raises(HTTPException) as error:
+        parse_command_with_provider(
+            system_prompt="system",
+            user_prompt="user",
+        )
+
+    assert error.value.status_code == 501
+    assert "not implemented yet" in error.value.detail
 
 
 def test_openai_provider_parse_command_success(monkeypatch):
@@ -187,7 +231,7 @@ def test_llm_provider_status_default(monkeypatch):
     assert status["is_supported"] is True
     assert status["is_configured"] is False
     assert status["real_llm_available"] is False
-    assert status["supported_llm_providers"] == ["disabled", "openai"]
+    assert status["supported_llm_providers"] == ["disabled", "ollama", "openai"]
 
 
 def test_llm_provider_status_for_configured_openai(monkeypatch):
@@ -202,4 +246,32 @@ def test_llm_provider_status_for_configured_openai(monkeypatch):
     assert status["is_supported"] is True
     assert status["is_configured"] is True
     assert status["real_llm_available"] is True
-    assert status["supported_llm_providers"] == ["disabled", "openai"]
+    assert status["supported_llm_providers"] == ["disabled", "ollama", "openai"]
+
+
+def test_llm_provider_status_for_configured_ollama(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    monkeypatch.setenv("OLLAMA_MODEL", "llama3.2")
+
+    status = get_llm_provider_status()
+
+    assert status["provider_name"] == "ollama"
+    assert status["provider_model"] == "llama3.2"
+    assert status["is_supported"] is True
+    assert status["is_configured"] is True
+    assert status["real_llm_available"] is False
+    assert status["supported_llm_providers"] == ["disabled", "ollama", "openai"]
+
+
+def test_llm_provider_status_for_unsupported_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+
+    status = get_llm_provider_status()
+
+    assert status["provider_name"] == "gemini"
+    assert status["provider_model"] is None
+    assert status["is_supported"] is False
+    assert status["is_configured"] is False
+    assert status["real_llm_available"] is False
+    assert status["supported_llm_providers"] == ["disabled", "ollama", "openai"]

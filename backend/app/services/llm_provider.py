@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from openai import OpenAI
 
 
-SUPPORTED_LLM_PROVIDERS = {"disabled", "openai"}
+SUPPORTED_LLM_PROVIDERS = {"disabled", "openai", "ollama"}
 
 
 COMMAND_PARSER_OUTPUT_SCHEMA = {
@@ -61,10 +61,20 @@ class LLMProviderOutputError(Exception):
     pass
 
 
+class LLMProviderNotImplementedError(Exception):
+    pass
+
+
 class BaseLLMProvider:
     provider_name = "base"
 
     def is_configured(self) -> bool:
+        return False
+
+    def get_model_name(self):
+        return None
+
+    def is_available_for_real_llm(self) -> bool:
         return False
 
     def parse_command(self, system_prompt: str, user_prompt: str) -> dict:
@@ -90,6 +100,12 @@ class OpenAILLMProvider(BaseLLMProvider):
 
     def is_configured(self) -> bool:
         return bool(self.api_key and self.model)
+
+    def get_model_name(self):
+        return self.model or None
+
+    def is_available_for_real_llm(self) -> bool:
+        return self.is_configured()
 
     def parse_command(self, system_prompt: str, user_prompt: str) -> dict:
         if not self.is_configured():
@@ -128,6 +144,30 @@ class OpenAILLMProvider(BaseLLMProvider):
             )
 
 
+class OllamaLLMProvider(BaseLLMProvider):
+    provider_name = "ollama"
+
+    def __init__(self):
+        self.base_url = os.getenv("OLLAMA_BASE_URL", "").strip()
+        self.model = os.getenv("OLLAMA_MODEL", "").strip()
+
+    def is_configured(self) -> bool:
+        return bool(self.base_url and self.model)
+
+    def get_model_name(self):
+        return self.model or None
+
+    def parse_command(self, system_prompt: str, user_prompt: str) -> dict:
+        if not self.is_configured():
+            raise LLMProviderNotConfiguredError(
+                "Ollama provider is selected but OLLAMA_BASE_URL or OLLAMA_MODEL is missing."
+            )
+
+        raise LLMProviderNotImplementedError(
+            "Ollama provider configuration exists, but the local LLM API call is not implemented yet."
+        )
+
+
 def get_configured_provider_name() -> str:
     return os.getenv("LLM_PROVIDER", "disabled").strip().lower()
 
@@ -140,6 +180,9 @@ def get_llm_provider() -> BaseLLMProvider:
 
     if provider_name == "openai":
         return OpenAILLMProvider()
+
+    if provider_name == "ollama":
+        return OllamaLLMProvider()
 
     raise HTTPException(
         status_code=400,
@@ -160,6 +203,11 @@ def parse_command_with_provider(system_prompt: str, user_prompt: str) -> dict:
             status_code=503,
             detail=str(error),
         )
+    except LLMProviderNotImplementedError as error:
+        raise HTTPException(
+            status_code=501,
+            detail=str(error),
+        )
     except LLMProviderOutputError as error:
         raise HTTPException(
             status_code=502,
@@ -173,20 +221,20 @@ def get_llm_provider_status():
 
     provider_model = None
     is_configured = False
+    real_llm_available = False
 
     if is_supported:
         provider = get_llm_provider()
         is_configured = provider.is_configured()
-
-        if isinstance(provider, OpenAILLMProvider):
-            provider_model = provider.model or None
+        provider_model = provider.get_model_name()
+        real_llm_available = provider.is_available_for_real_llm()
 
     return {
         "provider_name": provider_name,
         "provider_model": provider_model,
         "is_supported": is_supported,
         "is_configured": is_configured,
-        "real_llm_available": is_supported and is_configured and provider_name == "openai",
+        "real_llm_available": real_llm_available,
         "supported_llm_providers": sorted(SUPPORTED_LLM_PROVIDERS),
         "supported_parser_modes": [
             "rule_based",
