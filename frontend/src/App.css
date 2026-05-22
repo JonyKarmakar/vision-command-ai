@@ -1596,3 +1596,81 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.database-parser-attempt-summary-panel {
+  margin-top: 18px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.database-parser-attempt-summary-panel h3 {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+.database-parser-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.database-parser-summary-grid div {
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.database-parser-summary-grid span {
+  display: block;
+  color: #a1a1aa;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.database-parser-summary-grid strong {
+  color: #f8fafc;
+}
+
+.database-parser-breakdown-section {
+  margin-top: 18px;
+}
+
+.database-parser-breakdown-section h4 {
+  margin: 0 0 10px;
+  color: #e5e7eb;
+}
+
+.database-parser-breakdown-list {
+  display: grid;
+  gap: 10px;
+}
+
+.database-parser-breakdown-card {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1.4fr 1fr;
+  gap: 10px;
+  align-items: center;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.database-parser-breakdown-card strong {
+  color: #f8fafc;
+}
+
+.database-parser-breakdown-card span {
+  color: #cbd5e1;
+}
+
+@media (max-width: 900px) {
+  .database-parser-summary-grid,
+  .database-parser-breakdown-card {
+    grid-template-columns: 1fr;
+  }
+}
