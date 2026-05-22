@@ -510,6 +510,7 @@ function App() {
   const [databaseParserAttemptLogsResult, setDatabaseParserAttemptLogsResult] = useState<DatabaseParserAttemptLogsResponse | null>(null)
   const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
+  const [llmOpsDashboardLoaded, setLlmOpsDashboardLoaded] = useState(false)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
@@ -544,6 +545,7 @@ function App() {
   const [isLoadingDatabaseParserAttemptLogs, setIsLoadingDatabaseParserAttemptLogs] = useState(false)
   const [isLoadingDatabaseParserAttemptSummary, setIsLoadingDatabaseParserAttemptSummary] = useState(false)
   const [isLoadingLlmProviderStatus, setIsLoadingLlmProviderStatus] = useState(false)
+  const [isLoadingLlmOpsDashboard, setIsLoadingLlmOpsDashboard] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
@@ -1700,6 +1702,54 @@ function App() {
     }
   }
 
+  const handleLoadLlmOpsDashboard = async () => {
+    try {
+      setIsLoadingLlmOpsDashboard(true)
+      setError(null)
+      setLlmOpsDashboardLoaded(false)
+      setStatusMessage('Loading LLMOps dashboard...')
+
+      const [providerResponse, summaryResponse, logsResponse] = await Promise.all([
+        fetch('/api/llm/provider/status'),
+        fetch('/api/db/parser-attempt-summary'),
+        fetch('/api/db/parser-attempt-logs'),
+      ])
+
+      if (!providerResponse.ok) {
+        const errorData = await providerResponse.json()
+        throw new Error(errorData.detail || 'Could not load LLM provider status')
+      }
+
+      if (!summaryResponse.ok) {
+        const errorData = await summaryResponse.json()
+        throw new Error(errorData.detail || 'Could not load PostgreSQL parser summary')
+      }
+
+      if (!logsResponse.ok) {
+        const errorData = await logsResponse.json()
+        throw new Error(errorData.detail || 'Could not load PostgreSQL parser logs')
+      }
+
+      const providerData: LLMProviderStatusResponse = await providerResponse.json()
+      const summaryData: DatabaseParserAttemptSummaryResponse = await summaryResponse.json()
+      const logsData: DatabaseParserAttemptLogsResponse = await logsResponse.json()
+
+      setLlmProviderStatusResult(providerData)
+      setDatabaseParserAttemptSummaryResult(summaryData)
+      setDatabaseParserAttemptLogsResult(logsData)
+      setLlmOpsDashboardLoaded(true)
+
+      setStatusMessage(
+        `Loaded LLMOps dashboard: ${summaryData.total_attempts} parser attempt(s), provider ${providerData.provider_name}.`
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load LLMOps dashboard.')
+    } finally {
+      setIsLoadingLlmOpsDashboard(false)
+    }
+  }
+
   const handleCommand = async () => {
     const normalizedCommandText = commandText.toLowerCase().trim()
     const isVideoCommand =
@@ -1878,6 +1928,7 @@ function App() {
     isLoadingDatabaseParserAttemptLogs ||
     isLoadingDatabaseParserAttemptSummary ||
     isLoadingLlmProviderStatus ||
+    isLoadingLlmOpsDashboard ||
     isLoadingLogs ||
     isLoadingMediaFiles ||
     isLoadingStats ||
@@ -2522,6 +2573,14 @@ function App() {
             >
               {isLoadingLlmProviderStatus ? 'Loading provider...' : 'Load LLM Provider Status'}
             </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleLoadLlmOpsDashboard}
+              disabled={isBusy}
+            >
+              {isLoadingLlmOpsDashboard ? 'Loading LLMOps...' : 'Load LLMOps Dashboard'}
+            </button>
           </div>
 
           {commandPromptPreviewResult && (
@@ -2620,6 +2679,51 @@ function App() {
                 <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
               )}
               <p><strong>Result type:</strong> {commandResult.result_type}</p>
+            </div>
+          )}
+
+          {llmOpsDashboardLoaded && (
+            <div className="llmops-dashboard-panel">
+              <h3>LLMOps Dashboard</h3>
+
+              <div className="llmops-dashboard-grid">
+                <div>
+                  <span>Provider</span>
+                  <strong>{llmProviderStatusResult?.provider_name ?? 'not loaded'}</strong>
+                </div>
+                <div>
+                  <span>Model</span>
+                  <strong>{llmProviderStatusResult?.provider_model ?? 'none'}</strong>
+                </div>
+                <div>
+                  <span>Real LLM available</span>
+                  <strong>{String(llmProviderStatusResult?.real_llm_available ?? false)}</strong>
+                </div>
+                <div>
+                  <span>Total parser attempts</span>
+                  <strong>{databaseParserAttemptSummaryResult?.total_attempts ?? 0}</strong>
+                </div>
+                <div>
+                  <span>Success rate</span>
+                  <strong>
+                    {databaseParserAttemptSummaryResult
+                      ? `${(databaseParserAttemptSummaryResult.success_rate * 100).toFixed(1)}%`
+                      : '0.0%'}
+                  </strong>
+                </div>
+                <div>
+                  <span>Average latency</span>
+                  <strong>
+                    {databaseParserAttemptSummaryResult
+                      ? `${databaseParserAttemptSummaryResult.average_latency_ms.toFixed(2)} ms`
+                      : '0.00 ms'}
+                  </strong>
+                </div>
+              </div>
+
+              <p className="small-note">
+                This dashboard combines provider status, PostgreSQL parser summary, and recent PostgreSQL parser logs.
+              </p>
             </div>
           )}
 
