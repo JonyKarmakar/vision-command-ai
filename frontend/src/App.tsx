@@ -1734,7 +1734,22 @@ function App() {
       setLlmOpsDashboardLoaded(false)
       setStatusMessage('Loading LLMOps dashboard...')
 
-      const response = await fetch('/api/llmops/dashboard?limit=10')
+      const queryParams = new URLSearchParams()
+      queryParams.set('limit', '10')
+
+      if (databaseParserLogParserModeFilter !== 'all') {
+        queryParams.set('parser_mode', databaseParserLogParserModeFilter)
+      }
+
+      if (databaseParserLogSuccessFilter === 'success') {
+        queryParams.set('success', 'true')
+      }
+
+      if (databaseParserLogSuccessFilter === 'failed') {
+        queryParams.set('success', 'false')
+      }
+
+      const response = await fetch(`/api/llmops/dashboard?${queryParams.toString()}`)
 
       if (!response.ok) {
         const errorData = await response.json()
