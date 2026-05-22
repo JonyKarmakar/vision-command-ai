@@ -17,3 +17,18 @@ def test_database_parser_attempt_logs_not_configured(monkeypatch):
         "count": 0,
         "logs": [],
     }
+
+
+def test_database_parser_attempt_logs_filters_not_configured(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    response = client.get(
+        "/db/parser-attempt-logs?parser_mode=rule_based&success=true"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "not_configured",
+        "count": 0,
+        "logs": [],
+    }

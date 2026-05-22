@@ -2422,8 +2422,16 @@ def get_llm_provider_status_endpoint():
 
 
 @app.get("/db/parser-attempt-logs")
-def get_postgres_parser_attempt_logs(limit: int = Query(20, ge=1, le=100)):
-    return get_database_parser_attempt_logs(limit)
+def get_postgres_parser_attempt_logs(
+    limit: int = Query(20, ge=1, le=100),
+    parser_mode: str = Query(None),
+    success: bool = Query(None),
+):
+    return get_database_parser_attempt_logs(
+        limit=limit,
+        parser_mode=parser_mode,
+        success=success,
+    )
 
 
 @app.get("/db/parser-attempt-summary")
