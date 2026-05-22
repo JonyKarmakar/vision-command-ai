@@ -280,6 +280,24 @@ type ParserAttemptLogEntry = {
   error: string | null
 }
 
+type DatabaseParserAttemptLog = {
+  timestamp: string
+  command: string
+  parser_mode: string
+  parser_type: string | null
+  parser_version: string | null
+  success: boolean
+  latency_ms: number
+  parsed_command: Record<string, unknown> | null
+  error: string | null
+}
+
+type DatabaseParserAttemptLogsResponse = {
+  status: string
+  count: number
+  logs: DatabaseParserAttemptLog[]
+}
+
 type ParserAttemptLogsResponse = {
   count: number
   logs: ParserAttemptLogEntry[]
@@ -469,6 +487,7 @@ function App() {
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
   const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
   const [parserAttemptLogsResult, setParserAttemptLogsResult] = useState<ParserAttemptLogsResponse | null>(null)
+  const [databaseParserAttemptLogsResult, setDatabaseParserAttemptLogsResult] = useState<DatabaseParserAttemptLogsResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
@@ -501,6 +520,7 @@ function App() {
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
   const [isLoadingParserAttemptLogs, setIsLoadingParserAttemptLogs] = useState(false)
+  const [isLoadingDatabaseParserAttemptLogs, setIsLoadingDatabaseParserAttemptLogs] = useState(false)
   const [isLoadingLlmProviderStatus, setIsLoadingLlmProviderStatus] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
@@ -1610,6 +1630,30 @@ function App() {
     }
   }
 
+  const handleLoadDatabaseParserAttemptLogs = async () => {
+    try {
+      setIsLoadingDatabaseParserAttemptLogs(true)
+      setError(null)
+      setStatusMessage('Loading PostgreSQL parser attempt logs...')
+
+      const response = await fetch('/api/db/parser-attempt-logs')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load PostgreSQL parser attempt logs')
+      }
+
+      const data: DatabaseParserAttemptLogsResponse = await response.json()
+      setDatabaseParserAttemptLogsResult(data)
+      setStatusMessage(`Loaded ${data.count} PostgreSQL parser attempt log(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load PostgreSQL parser attempt logs.')
+    } finally {
+      setIsLoadingDatabaseParserAttemptLogs(false)
+    }
+  }
+
   const handleCommand = async () => {
     const normalizedCommandText = commandText.toLowerCase().trim()
     const isVideoCommand =
@@ -1785,6 +1829,7 @@ function App() {
     isLoadingCommandEvaluation ||
     isLoadingParserComparison ||
     isLoadingParserAttemptLogs ||
+    isLoadingDatabaseParserAttemptLogs ||
     isLoadingLlmProviderStatus ||
     isLoadingLogs ||
     isLoadingMediaFiles ||
@@ -2409,6 +2454,14 @@ function App() {
 
             <button
               className="secondary-button"
+              onClick={handleLoadDatabaseParserAttemptLogs}
+              disabled={isBusy}
+            >
+              {isLoadingDatabaseParserAttemptLogs ? 'Loading DB logs...' : 'Load DB Parser Logs'}
+            </button>
+
+            <button
+              className="secondary-button"
               onClick={handleLoadLlmProviderStatus}
               disabled={isBusy}
             >
@@ -2570,6 +2623,67 @@ function App() {
                 <p className="small-note">
                   Real LLM parsing is not configured yet. This is expected until an external provider is added.
                 </p>
+              )}
+            </div>
+          )}
+
+          {databaseParserAttemptLogsResult && (
+            <div className="database-parser-attempt-logs-panel">
+              <h3>PostgreSQL Parser Attempt Logs</h3>
+
+              <div className="database-parser-log-summary">
+                <div>
+                  <span>Status</span>
+                  <strong>{databaseParserAttemptLogsResult.status}</strong>
+                </div>
+                <div>
+                  <span>Count</span>
+                  <strong>{databaseParserAttemptLogsResult.count}</strong>
+                </div>
+              </div>
+
+              {databaseParserAttemptLogsResult.logs.length === 0 ? (
+                <p className="small-note">No PostgreSQL parser attempt logs found yet.</p>
+              ) : (
+                <div className="database-parser-log-list">
+                  {databaseParserAttemptLogsResult.logs.map((log, index) => (
+                    <div
+                      key={`${log.timestamp}-${index}`}
+                      className={`database-parser-log-card ${log.success ? 'success' : 'failure'}`}
+                    >
+                      <div className="database-parser-log-header">
+                        <strong>{log.command}</strong>
+                        <span>{log.success ? 'Success' : 'Failed'}</span>
+                      </div>
+
+                      <p>
+                        <strong>Parser mode:</strong> {log.parser_mode}
+                      </p>
+                      <p>
+                        <strong>Parser type:</strong> {log.parser_type ?? 'none'}
+                      </p>
+                      <p>
+                        <strong>Parser version:</strong> {log.parser_version ?? 'none'}
+                      </p>
+                      <p>
+                        <strong>Latency:</strong> {log.latency_ms.toFixed(2)} ms
+                      </p>
+                      <p>
+                        <strong>Timestamp:</strong> {log.timestamp}
+                      </p>
+
+                      {log.error && (
+                        <p className="database-parser-log-error">
+                          <strong>Error:</strong> {log.error}
+                        </p>
+                      )}
+
+                      {log.parsed_command && (
+                        <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}
