@@ -61,3 +61,21 @@ def test_llmops_dashboard_accepts_log_filters_when_database_not_configured(monke
     assert data["recent_parser_attempt_logs"]["status"] == "not_configured"
     assert data["recent_parser_attempt_logs"]["count"] == 0
     assert data["recent_parser_attempt_logs"]["logs"] == []
+
+
+def test_llmops_dashboard_filters_summary_and_logs_when_database_not_configured(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+
+    response = client.get(
+        "/llmops/dashboard?limit=5&parser_mode=rule_based&success=true"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["parser_attempt_summary"]["status"] == "not_configured"
+    assert data["parser_attempt_summary"]["total_attempts"] == 0
+    assert data["recent_parser_attempt_logs"]["status"] == "not_configured"
+    assert data["recent_parser_attempt_logs"]["count"] == 0

@@ -868,7 +868,10 @@ def get_database_parser_attempt_logs(
     }
 
 
-def get_database_parser_attempt_summary():
+def get_database_parser_attempt_summary(
+    parser_mode=None,
+    success=None,
+):
     import psycopg
 
     database_url = get_database_url()
@@ -887,22 +890,41 @@ def get_database_parser_attempt_summary():
 
     initialize_parser_attempt_logs_table()
 
+    where_clauses = []
+    params = []
+
+    if parser_mode:
+        where_clauses.append("parser_mode = %s")
+        params.append(parser_mode)
+
+    if success is not None:
+        where_clauses.append("success = %s")
+        params.append(success)
+
+    where_sql = ""
+    if where_clauses:
+        where_sql = "WHERE " + " AND ".join(where_clauses)
+
+    query_params = tuple(params)
+
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                """
+                f"""
                 SELECT
                     COUNT(*) AS total_attempts,
                     COALESCE(SUM(CASE WHEN success THEN 1 ELSE 0 END), 0) AS successful_attempts,
                     COALESCE(SUM(CASE WHEN success THEN 0 ELSE 1 END), 0) AS failed_attempts,
                     COALESCE(AVG(latency_ms), 0) AS average_latency_ms
-                FROM parser_attempt_logs;
-                """
+                FROM parser_attempt_logs
+                {where_sql};
+                """,
+                query_params,
             )
             total_attempts, successful_attempts, failed_attempts, average_latency_ms = cursor.fetchone()
 
             cursor.execute(
-                """
+                f"""
                 SELECT
                     parser_mode,
                     COUNT(*) AS attempts,
@@ -910,14 +932,16 @@ def get_database_parser_attempt_summary():
                     COALESCE(SUM(CASE WHEN success THEN 0 ELSE 1 END), 0) AS failed_attempts,
                     COALESCE(AVG(latency_ms), 0) AS average_latency_ms
                 FROM parser_attempt_logs
+                {where_sql}
                 GROUP BY parser_mode
                 ORDER BY attempts DESC, parser_mode ASC;
-                """
+                """,
+                query_params,
             )
             parser_mode_rows = cursor.fetchall()
 
             cursor.execute(
-                """
+                f"""
                 SELECT
                     COALESCE(parser_type, 'unknown') AS parser_type,
                     COUNT(*) AS attempts,
@@ -925,9 +949,11 @@ def get_database_parser_attempt_summary():
                     COALESCE(SUM(CASE WHEN success THEN 0 ELSE 1 END), 0) AS failed_attempts,
                     COALESCE(AVG(latency_ms), 0) AS average_latency_ms
                 FROM parser_attempt_logs
+                {where_sql}
                 GROUP BY COALESCE(parser_type, 'unknown')
                 ORDER BY attempts DESC, parser_type ASC;
-                """
+                """,
+                query_params,
             )
             parser_type_rows = cursor.fetchall()
 

@@ -2435,8 +2435,14 @@ def get_postgres_parser_attempt_logs(
 
 
 @app.get("/db/parser-attempt-summary")
-def get_postgres_parser_attempt_summary():
-    return get_database_parser_attempt_summary()
+def get_postgres_parser_attempt_summary(
+    parser_mode: str = Query(None),
+    success: bool = Query(None),
+):
+    return get_database_parser_attempt_summary(
+        parser_mode=parser_mode,
+        success=success,
+    )
 
 
 @app.get("/llmops/dashboard")
@@ -2447,7 +2453,10 @@ def get_llmops_dashboard(
 ):
     return {
         "provider_status": get_llm_provider_status(),
-        "parser_attempt_summary": get_database_parser_attempt_summary(),
+        "parser_attempt_summary": get_database_parser_attempt_summary(
+            parser_mode=parser_mode,
+            success=success,
+        ),
         "recent_parser_attempt_logs": get_database_parser_attempt_logs(
             limit=limit,
             parser_mode=parser_mode,
