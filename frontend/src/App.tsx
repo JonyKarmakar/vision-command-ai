@@ -312,6 +312,12 @@ type DatabaseParserAttemptSummaryResponse = {
   by_parser_type: ParserAttemptBreakdown[]
 }
 
+type LLMOpsDashboardResponse = {
+  provider_status: LLMProviderStatusResponse
+  parser_attempt_summary: DatabaseParserAttemptSummaryResponse
+  recent_parser_attempt_logs: DatabaseParserAttemptLogsResponse
+}
+
 type DatabaseParserAttemptLogsResponse = {
   status: string
   count: number
@@ -1728,38 +1734,22 @@ function App() {
       setLlmOpsDashboardLoaded(false)
       setStatusMessage('Loading LLMOps dashboard...')
 
-      const [providerResponse, summaryResponse, logsResponse] = await Promise.all([
-        fetch('/api/llm/provider/status'),
-        fetch('/api/db/parser-attempt-summary'),
-        fetch('/api/db/parser-attempt-logs'),
-      ])
+      const response = await fetch('/api/llmops/dashboard?limit=10')
 
-      if (!providerResponse.ok) {
-        const errorData = await providerResponse.json()
-        throw new Error(errorData.detail || 'Could not load LLM provider status')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load LLMOps dashboard')
       }
 
-      if (!summaryResponse.ok) {
-        const errorData = await summaryResponse.json()
-        throw new Error(errorData.detail || 'Could not load PostgreSQL parser summary')
-      }
+      const data: LLMOpsDashboardResponse = await response.json()
 
-      if (!logsResponse.ok) {
-        const errorData = await logsResponse.json()
-        throw new Error(errorData.detail || 'Could not load PostgreSQL parser logs')
-      }
-
-      const providerData: LLMProviderStatusResponse = await providerResponse.json()
-      const summaryData: DatabaseParserAttemptSummaryResponse = await summaryResponse.json()
-      const logsData: DatabaseParserAttemptLogsResponse = await logsResponse.json()
-
-      setLlmProviderStatusResult(providerData)
-      setDatabaseParserAttemptSummaryResult(summaryData)
-      setDatabaseParserAttemptLogsResult(logsData)
+      setLlmProviderStatusResult(data.provider_status)
+      setDatabaseParserAttemptSummaryResult(data.parser_attempt_summary)
+      setDatabaseParserAttemptLogsResult(data.recent_parser_attempt_logs)
       setLlmOpsDashboardLoaded(true)
 
       setStatusMessage(
-        `Loaded LLMOps dashboard: ${summaryData.total_attempts} parser attempt(s), provider ${providerData.provider_name}.`
+        `Loaded LLMOps dashboard: ${data.parser_attempt_summary.total_attempts} parser attempt(s), provider ${data.provider_status.provider_name}.`
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
