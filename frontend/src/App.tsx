@@ -292,6 +292,26 @@ type DatabaseParserAttemptLog = {
   error: string | null
 }
 
+type ParserAttemptBreakdown = {
+  parser_mode?: string
+  parser_type?: string
+  attempts: number
+  successful_attempts: number
+  failed_attempts: number
+  average_latency_ms: number
+}
+
+type DatabaseParserAttemptSummaryResponse = {
+  status: string
+  total_attempts: number
+  successful_attempts: number
+  failed_attempts: number
+  success_rate: number
+  average_latency_ms: number
+  by_parser_mode: ParserAttemptBreakdown[]
+  by_parser_type: ParserAttemptBreakdown[]
+}
+
 type DatabaseParserAttemptLogsResponse = {
   status: string
   count: number
@@ -488,6 +508,7 @@ function App() {
   const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
   const [parserAttemptLogsResult, setParserAttemptLogsResult] = useState<ParserAttemptLogsResponse | null>(null)
   const [databaseParserAttemptLogsResult, setDatabaseParserAttemptLogsResult] = useState<DatabaseParserAttemptLogsResponse | null>(null)
+  const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
@@ -521,6 +542,7 @@ function App() {
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
   const [isLoadingParserAttemptLogs, setIsLoadingParserAttemptLogs] = useState(false)
   const [isLoadingDatabaseParserAttemptLogs, setIsLoadingDatabaseParserAttemptLogs] = useState(false)
+  const [isLoadingDatabaseParserAttemptSummary, setIsLoadingDatabaseParserAttemptSummary] = useState(false)
   const [isLoadingLlmProviderStatus, setIsLoadingLlmProviderStatus] = useState(false)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
@@ -1654,6 +1676,30 @@ function App() {
     }
   }
 
+  const handleLoadDatabaseParserAttemptSummary = async () => {
+    try {
+      setIsLoadingDatabaseParserAttemptSummary(true)
+      setError(null)
+      setStatusMessage('Loading PostgreSQL parser attempt summary...')
+
+      const response = await fetch('/api/db/parser-attempt-summary')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load PostgreSQL parser attempt summary')
+      }
+
+      const data: DatabaseParserAttemptSummaryResponse = await response.json()
+      setDatabaseParserAttemptSummaryResult(data)
+      setStatusMessage(`Loaded PostgreSQL parser summary with ${data.total_attempts} total attempt(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load PostgreSQL parser attempt summary.')
+    } finally {
+      setIsLoadingDatabaseParserAttemptSummary(false)
+    }
+  }
+
   const handleCommand = async () => {
     const normalizedCommandText = commandText.toLowerCase().trim()
     const isVideoCommand =
@@ -1830,6 +1876,7 @@ function App() {
     isLoadingParserComparison ||
     isLoadingParserAttemptLogs ||
     isLoadingDatabaseParserAttemptLogs ||
+    isLoadingDatabaseParserAttemptSummary ||
     isLoadingLlmProviderStatus ||
     isLoadingLogs ||
     isLoadingMediaFiles ||
@@ -2462,6 +2509,14 @@ function App() {
 
             <button
               className="secondary-button"
+              onClick={handleLoadDatabaseParserAttemptSummary}
+              disabled={isBusy}
+            >
+              {isLoadingDatabaseParserAttemptSummary ? 'Loading DB summary...' : 'Load DB Parser Summary'}
+            </button>
+
+            <button
+              className="secondary-button"
               onClick={handleLoadLlmProviderStatus}
               disabled={isBusy}
             >
@@ -2624,6 +2679,75 @@ function App() {
                   Real LLM parsing is not configured yet. This is expected until an external provider is added.
                 </p>
               )}
+            </div>
+          )}
+
+          {databaseParserAttemptSummaryResult && (
+            <div className="database-parser-attempt-summary-panel">
+              <h3>PostgreSQL Parser Attempt Summary</h3>
+
+              <div className="database-parser-summary-grid">
+                <div>
+                  <span>Status</span>
+                  <strong>{databaseParserAttemptSummaryResult.status}</strong>
+                </div>
+                <div>
+                  <span>Total attempts</span>
+                  <strong>{databaseParserAttemptSummaryResult.total_attempts}</strong>
+                </div>
+                <div>
+                  <span>Successful</span>
+                  <strong>{databaseParserAttemptSummaryResult.successful_attempts}</strong>
+                </div>
+                <div>
+                  <span>Failed</span>
+                  <strong>{databaseParserAttemptSummaryResult.failed_attempts}</strong>
+                </div>
+                <div>
+                  <span>Success rate</span>
+                  <strong>{(databaseParserAttemptSummaryResult.success_rate * 100).toFixed(1)}%</strong>
+                </div>
+                <div>
+                  <span>Average latency</span>
+                  <strong>{databaseParserAttemptSummaryResult.average_latency_ms.toFixed(2)} ms</strong>
+                </div>
+              </div>
+
+              <div className="database-parser-breakdown-section">
+                <h4>By parser mode</h4>
+                {databaseParserAttemptSummaryResult.by_parser_mode.length === 0 ? (
+                  <p className="small-note">No parser mode summary available.</p>
+                ) : (
+                  <div className="database-parser-breakdown-list">
+                    {databaseParserAttemptSummaryResult.by_parser_mode.map((item) => (
+                      <div key={item.parser_mode ?? 'unknown'} className="database-parser-breakdown-card">
+                        <strong>{item.parser_mode ?? 'unknown'}</strong>
+                        <span>{item.attempts} attempt(s)</span>
+                        <span>{item.successful_attempts} success / {item.failed_attempts} failed</span>
+                        <span>{item.average_latency_ms.toFixed(2)} ms avg</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="database-parser-breakdown-section">
+                <h4>By parser type</h4>
+                {databaseParserAttemptSummaryResult.by_parser_type.length === 0 ? (
+                  <p className="small-note">No parser type summary available.</p>
+                ) : (
+                  <div className="database-parser-breakdown-list">
+                    {databaseParserAttemptSummaryResult.by_parser_type.map((item) => (
+                      <div key={item.parser_type ?? 'unknown'} className="database-parser-breakdown-card">
+                        <strong>{item.parser_type ?? 'unknown'}</strong>
+                        <span>{item.attempts} attempt(s)</span>
+                        <span>{item.successful_attempts} success / {item.failed_attempts} failed</span>
+                        <span>{item.average_latency_ms.toFixed(2)} ms avg</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
