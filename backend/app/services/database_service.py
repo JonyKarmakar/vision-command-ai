@@ -784,7 +784,11 @@ def save_parser_attempt_to_database(log_entry: dict):
     return True
 
 
-def get_database_parser_attempt_logs(limit: int = 20):
+def get_database_parser_attempt_logs(
+    limit: int = 20,
+    parser_mode=None,
+    success=None,
+):
     import json
     import psycopg
 
@@ -799,26 +803,43 @@ def get_database_parser_attempt_logs(limit: int = 20):
 
     initialize_parser_attempt_logs_table()
 
+    where_clauses = []
+    params = []
+
+    if parser_mode:
+        where_clauses.append("parser_mode = %s")
+        params.append(parser_mode)
+
+    if success is not None:
+        where_clauses.append("success = %s")
+        params.append(success)
+
+    where_sql = ""
+    if where_clauses:
+        where_sql = "WHERE " + " AND ".join(where_clauses)
+
+    params.append(limit)
+
+    query = f"""
+        SELECT
+            timestamp,
+            command,
+            parser_mode,
+            parser_type,
+            parser_version,
+            success,
+            latency_ms,
+            parsed_command,
+            error
+        FROM parser_attempt_logs
+        {where_sql}
+        ORDER BY id DESC
+        LIMIT %s;
+    """
+
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT
-                    timestamp,
-                    command,
-                    parser_mode,
-                    parser_type,
-                    parser_version,
-                    success,
-                    latency_ms,
-                    parsed_command,
-                    error
-                FROM parser_attempt_logs
-                ORDER BY id DESC
-                LIMIT %s;
-                """,
-                (limit,),
-            )
+            cursor.execute(query, tuple(params))
             rows = cursor.fetchall()
 
     logs = []
