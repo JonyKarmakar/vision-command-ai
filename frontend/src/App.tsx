@@ -1709,7 +1709,24 @@ function App() {
       setError(null)
       setStatusMessage('Loading PostgreSQL parser attempt summary...')
 
-      const response = await fetch('/api/db/parser-attempt-summary')
+      const queryParams = new URLSearchParams()
+
+      if (databaseParserLogParserModeFilter !== 'all') {
+        queryParams.set('parser_mode', databaseParserLogParserModeFilter)
+      }
+
+      if (databaseParserLogSuccessFilter === 'success') {
+        queryParams.set('success', 'true')
+      }
+
+      if (databaseParserLogSuccessFilter === 'failed') {
+        queryParams.set('success', 'false')
+      }
+
+      const queryString = queryParams.toString()
+      const response = await fetch(
+        `/api/db/parser-attempt-summary${queryString ? `?${queryString}` : ''}`
+      )
 
       if (!response.ok) {
         const errorData = await response.json()
