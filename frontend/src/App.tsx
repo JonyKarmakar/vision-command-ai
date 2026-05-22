@@ -508,6 +508,8 @@ function App() {
   const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
   const [parserAttemptLogsResult, setParserAttemptLogsResult] = useState<ParserAttemptLogsResponse | null>(null)
   const [databaseParserAttemptLogsResult, setDatabaseParserAttemptLogsResult] = useState<DatabaseParserAttemptLogsResponse | null>(null)
+  const [databaseParserLogParserModeFilter, setDatabaseParserLogParserModeFilter] = useState('all')
+  const [databaseParserLogSuccessFilter, setDatabaseParserLogSuccessFilter] = useState('all')
   const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
   const [llmOpsDashboardLoaded, setLlmOpsDashboardLoaded] = useState(false)
@@ -1660,7 +1662,24 @@ function App() {
       setError(null)
       setStatusMessage('Loading PostgreSQL parser attempt logs...')
 
-      const response = await fetch('/api/db/parser-attempt-logs')
+      const queryParams = new URLSearchParams()
+
+      if (databaseParserLogParserModeFilter !== 'all') {
+        queryParams.set('parser_mode', databaseParserLogParserModeFilter)
+      }
+
+      if (databaseParserLogSuccessFilter === 'success') {
+        queryParams.set('success', 'true')
+      }
+
+      if (databaseParserLogSuccessFilter === 'failed') {
+        queryParams.set('success', 'false')
+      }
+
+      const queryString = queryParams.toString()
+      const response = await fetch(
+        `/api/db/parser-attempt-logs${queryString ? `?${queryString}` : ''}`
+      )
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -2550,6 +2569,35 @@ function App() {
               {isLoadingParserAttemptLogs ? 'Loading logs...' : 'Load Parser Attempt Logs'}
             </button>
 
+            <div className="database-parser-log-filters">
+              <label>
+                Parser mode
+                <select
+                  value={databaseParserLogParserModeFilter}
+                  onChange={(event) => setDatabaseParserLogParserModeFilter(event.target.value)}
+                  disabled={isBusy}
+                >
+                  <option value="all">All</option>
+                  <option value="rule_based">rule_based</option>
+                  <option value="llm_mock">llm_mock</option>
+                  <option value="real_llm">real_llm</option>
+                </select>
+              </label>
+
+              <label>
+                Result
+                <select
+                  value={databaseParserLogSuccessFilter}
+                  onChange={(event) => setDatabaseParserLogSuccessFilter(event.target.value)}
+                  disabled={isBusy}
+                >
+                  <option value="all">All</option>
+                  <option value="success">Success</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </label>
+            </div>
+
             <button
               className="secondary-button"
               onClick={handleLoadDatabaseParserAttemptLogs}
@@ -2869,6 +2917,10 @@ function App() {
                   <strong>{databaseParserAttemptLogsResult.count}</strong>
                 </div>
               </div>
+
+              <p className="small-note">
+                Active filters: parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}
+              </p>
 
               {databaseParserAttemptLogsResult.logs.length === 0 ? (
                 <p className="small-note">No PostgreSQL parser attempt logs found yet.</p>
