@@ -845,3 +845,110 @@ def get_database_parser_attempt_logs(limit: int = 20):
         "count": len(logs),
         "logs": logs,
     }
+
+
+def get_database_parser_attempt_summary():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "total_attempts": 0,
+            "successful_attempts": 0,
+            "failed_attempts": 0,
+            "success_rate": 0,
+            "average_latency_ms": 0,
+            "by_parser_mode": [],
+            "by_parser_type": [],
+        }
+
+    initialize_parser_attempt_logs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    COUNT(*) AS total_attempts,
+                    COALESCE(SUM(CASE WHEN success THEN 1 ELSE 0 END), 0) AS successful_attempts,
+                    COALESCE(SUM(CASE WHEN success THEN 0 ELSE 1 END), 0) AS failed_attempts,
+                    COALESCE(AVG(latency_ms), 0) AS average_latency_ms
+                FROM parser_attempt_logs;
+                """
+            )
+            total_attempts, successful_attempts, failed_attempts, average_latency_ms = cursor.fetchone()
+
+            cursor.execute(
+                """
+                SELECT
+                    parser_mode,
+                    COUNT(*) AS attempts,
+                    COALESCE(SUM(CASE WHEN success THEN 1 ELSE 0 END), 0) AS successful_attempts,
+                    COALESCE(SUM(CASE WHEN success THEN 0 ELSE 1 END), 0) AS failed_attempts,
+                    COALESCE(AVG(latency_ms), 0) AS average_latency_ms
+                FROM parser_attempt_logs
+                GROUP BY parser_mode
+                ORDER BY attempts DESC, parser_mode ASC;
+                """
+            )
+            parser_mode_rows = cursor.fetchall()
+
+            cursor.execute(
+                """
+                SELECT
+                    COALESCE(parser_type, 'unknown') AS parser_type,
+                    COUNT(*) AS attempts,
+                    COALESCE(SUM(CASE WHEN success THEN 1 ELSE 0 END), 0) AS successful_attempts,
+                    COALESCE(SUM(CASE WHEN success THEN 0 ELSE 1 END), 0) AS failed_attempts,
+                    COALESCE(AVG(latency_ms), 0) AS average_latency_ms
+                FROM parser_attempt_logs
+                GROUP BY COALESCE(parser_type, 'unknown')
+                ORDER BY attempts DESC, parser_type ASC;
+                """
+            )
+            parser_type_rows = cursor.fetchall()
+
+    total_attempts = int(total_attempts)
+    successful_attempts = int(successful_attempts)
+    failed_attempts = int(failed_attempts)
+
+    success_rate = (
+        round(successful_attempts / total_attempts, 4)
+        if total_attempts > 0
+        else 0
+    )
+
+    by_parser_mode = [
+        {
+            "parser_mode": row[0],
+            "attempts": int(row[1]),
+            "successful_attempts": int(row[2]),
+            "failed_attempts": int(row[3]),
+            "average_latency_ms": float(row[4]),
+        }
+        for row in parser_mode_rows
+    ]
+
+    by_parser_type = [
+        {
+            "parser_type": row[0],
+            "attempts": int(row[1]),
+            "successful_attempts": int(row[2]),
+            "failed_attempts": int(row[3]),
+            "average_latency_ms": float(row[4]),
+        }
+        for row in parser_type_rows
+    ]
+
+    return {
+        "status": "healthy",
+        "total_attempts": total_attempts,
+        "successful_attempts": successful_attempts,
+        "failed_attempts": failed_attempts,
+        "success_rate": success_rate,
+        "average_latency_ms": float(average_latency_ms),
+        "by_parser_mode": by_parser_mode,
+        "by_parser_type": by_parser_type,
+    }

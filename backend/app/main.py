@@ -36,6 +36,7 @@ from app.services.database_service import (
     get_database_parser_attempt_logs,
     initialize_parser_attempt_logs_table,
     save_parser_attempt_to_database,
+    get_database_parser_attempt_summary,
 )
 from app.schemas import (
     BlurAllByClassRequest,
@@ -2423,3 +2424,8 @@ def get_llm_provider_status_endpoint():
 @app.get("/db/parser-attempt-logs")
 def get_postgres_parser_attempt_logs(limit: int = Query(20, ge=1, le=100)):
     return get_database_parser_attempt_logs(limit)
+
+
+@app.get("/db/parser-attempt-summary")
+def get_postgres_parser_attempt_summary():
+    return get_database_parser_attempt_summary()
