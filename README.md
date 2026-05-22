@@ -1014,3 +1014,151 @@ LLM_PROVIDER
 
 This allows future providers such as local models, Gemini, Anthropic, or internal models to be added behind the same interface.
 
+
+---
+
+## Runtime Modes
+
+VisionCommand AI can be run in two different ways during development.
+
+### Mode A: Full Docker mode
+
+In this mode, Docker runs everything:
+
+- PostgreSQL
+- Backend
+- Frontend
+
+Start the full stack with:
+
+```bash
+docker compose up --build
+```
+
+The backend runs inside Docker and connects to PostgreSQL using the Docker service name:
+
+```text
+DATABASE_URL=postgresql://vision_user:vision_password@postgres:5432/vision_command
+```
+
+Use this mode when you want to test the full containerized application.
+
+Useful URLs:
+
+```text
+Frontend: http://localhost:5173
+Backend API docs: http://127.0.0.1:8000/docs
+PostgreSQL: localhost:5432
+```
+
+Stop the full stack with:
+
+```bash
+docker compose down --remove-orphans
+```
+
+### Mode B: Local development mode
+
+In this mode, only PostgreSQL runs in Docker. The backend and frontend run directly on your machine.
+
+Terminal 1: start PostgreSQL only
+
+```bash
+docker compose up -d postgres
+```
+
+Terminal 2: start backend locally
+
+```bash
+cd backend
+source vision-env/bin/activate
+export DATABASE_URL="postgresql://vision_user:vision_password@localhost:5432/vision_command"
+uvicorn app.main:app --reload
+```
+
+Terminal 3: start frontend locally
+
+```bash
+cd frontend
+npm run dev
+```
+
+Use this mode when actively developing backend or frontend code because changes are easier to test without rebuilding Docker images.
+
+Useful URLs:
+
+```text
+Frontend: http://localhost:5173
+Backend API docs: http://127.0.0.1:8000/docs
+```
+
+### Important DATABASE_URL difference
+
+The database host depends on where the backend is running:
+
+```text
+Docker backend  -> postgres:5432
+Local backend   -> localhost:5432
+```
+
+If the backend is running inside Docker, use:
+
+```text
+postgresql://vision_user:vision_password@postgres:5432/vision_command
+```
+
+If the backend is running locally on your machine, use:
+
+```text
+postgresql://vision_user:vision_password@localhost:5432/vision_command
+```
+
+### Quick database check
+
+After starting the backend, verify database connectivity with:
+
+```bash
+curl -s http://127.0.0.1:8000/db/health | python -m json.tool
+```
+
+Expected result:
+
+```json
+{
+  "status": "healthy",
+  "database": "postgresql",
+  "result": 1
+}
+```
+
+### Parser database logs check
+
+After running a parser command, check PostgreSQL parser logs with:
+
+```bash
+curl -s http://127.0.0.1:8000/db/parser-attempt-logs | python -m json.tool
+```
+
+Check the parser summary with:
+
+```bash
+curl -s http://127.0.0.1:8000/db/parser-attempt-summary | python -m json.tool
+```
+
+### Common issue
+
+If the frontend shows:
+
+```text
+Status: not_configured
+```
+
+for PostgreSQL parser logs, it usually means the backend is running locally without `DATABASE_URL`.
+
+Restart the local backend with:
+
+```bash
+export DATABASE_URL="postgresql://vision_user:vision_password@localhost:5432/vision_command"
+uvicorn app.main:app --reload
+```
+
