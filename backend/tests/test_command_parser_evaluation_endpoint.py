@@ -40,5 +40,15 @@ def test_command_parser_evaluation_endpoint_rejects_invalid_parser_mode():
 
     assert response.status_code == 400
     assert response.json() == {
-        "detail": "Supported parser modes are: rule_based, llm_mock"
+        "detail": "Supported parser modes are: rule_based, llm_mock, real_llm"
     }
+
+
+
+def test_command_parser_evaluation_endpoint_real_llm_requires_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "disabled")
+
+    response = client.get("/commands/evaluate?parser_mode=real_llm")
+
+    assert response.status_code == 503
+    assert "requires a configured provider" in response.json()["detail"]

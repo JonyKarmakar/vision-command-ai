@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 
 from app.services.llm_parser import get_parser_metadata, parse_command_with_mode
+from app.services.llm_provider import get_llm_provider_status
 
 
 
@@ -104,15 +105,29 @@ COMMAND_EVALUATION_CASES = [
 
 
 def evaluate_command_parser(parser_mode: str = "rule_based"):
-    supported_parser_modes = {"rule_based", "llm_mock"}
+    supported_parser_modes = {"rule_based", "llm_mock", "real_llm"}
 
     if parser_mode not in supported_parser_modes:
         raise HTTPException(
             status_code=400,
-            detail="Supported parser modes are: rule_based, llm_mock",
+            detail="Supported parser modes are: rule_based, llm_mock, real_llm",
         )
 
+    if parser_mode == "real_llm":
+        provider_status = get_llm_provider_status()
+
+        if not provider_status["real_llm_available"]:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Real LLM parser evaluation requires a configured provider. "
+                    "Set LLM_PROVIDER=ollama or LLM_PROVIDER=openai and configure the required model settings."
+                ),
+            )
+
     parser_metadata = get_parser_metadata(parser_mode)
+    parser_type = parser_metadata["parser_type"]
+    parser_version = parser_metadata["parser_version"]
 
     results = []
 
@@ -125,6 +140,8 @@ def evaluate_command_parser(parser_mode: str = "rule_based"):
                 command=command,
                 parser_mode=parser_mode,
             )
+            parser_type = parse_result.get("parser_type", parser_type)
+            parser_version = parse_result.get("parser_version", parser_version)
             actual = parse_result["parsed_command"]
             passed = command_matches_expected(actual, expected)
             error = None
@@ -150,8 +167,8 @@ def evaluate_command_parser(parser_mode: str = "rule_based"):
     accuracy = passed_cases / total_cases if total_cases > 0 else 0
 
     return {
-        "parser_type": parser_metadata["parser_type"],
-        "parser_version": parser_metadata["parser_version"],
+        "parser_type": parser_type,
+        "parser_version": parser_version,
         "total_cases": total_cases,
         "passed_cases": passed_cases,
         "failed_cases": failed_cases,
