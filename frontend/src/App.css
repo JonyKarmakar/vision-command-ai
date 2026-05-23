@@ -1848,3 +1848,73 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.local-ollama-help-panel {
+  margin-top: 16px;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  background: #18181b;
+  overflow: hidden;
+}
+
+.local-ollama-help-panel summary {
+  cursor: pointer;
+  padding: 14px 16px;
+  font-weight: 700;
+  color: #f8fafc;
+  background: #27272a;
+}
+
+.local-ollama-help-content {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.local-ollama-help-content code,
+.local-ollama-help-content pre {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #e2e8f0;
+  padding: 8px 10px;
+  overflow-x: auto;
+}
+
+.local-ollama-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.local-ollama-status-grid div,
+.local-ollama-steps div {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #27272a;
+}
+
+.local-ollama-status-grid span,
+.local-ollama-steps span {
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.local-ollama-status-grid strong {
+  color: #f8fafc;
+}
+
+.local-ollama-steps {
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .local-ollama-status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
