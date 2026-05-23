@@ -886,6 +886,7 @@ def get_database_parser_attempt_summary(
             "average_latency_ms": 0,
             "by_parser_mode": [],
             "by_parser_type": [],
+            "by_error": [],
         }
 
     initialize_parser_attempt_logs_table()
@@ -904,6 +905,12 @@ def get_database_parser_attempt_summary(
     where_sql = ""
     if where_clauses:
         where_sql = "WHERE " + " AND ".join(where_clauses)
+
+    error_where_clauses = where_clauses + [
+        "error IS NOT NULL",
+        "error <> ''",
+    ]
+    error_where_sql = "WHERE " + " AND ".join(error_where_clauses)
 
     query_params = tuple(params)
 
@@ -957,6 +964,21 @@ def get_database_parser_attempt_summary(
             )
             parser_type_rows = cursor.fetchall()
 
+            cursor.execute(
+                f"""
+                SELECT
+                    error,
+                    COUNT(*) AS attempts,
+                    COALESCE(AVG(latency_ms), 0) AS average_latency_ms
+                FROM parser_attempt_logs
+                {error_where_sql}
+                GROUP BY error
+                ORDER BY attempts DESC, error ASC;
+                """,
+                query_params,
+            )
+            error_rows = cursor.fetchall()
+
     total_attempts = int(total_attempts)
     successful_attempts = int(successful_attempts)
     failed_attempts = int(failed_attempts)
@@ -989,6 +1011,15 @@ def get_database_parser_attempt_summary(
         for row in parser_type_rows
     ]
 
+    by_error = [
+        {
+            "error": row[0],
+            "attempts": int(row[1]),
+            "average_latency_ms": float(row[2]),
+        }
+        for row in error_rows
+    ]
+
     return {
         "status": "healthy",
         "total_attempts": total_attempts,
@@ -998,4 +1029,5 @@ def get_database_parser_attempt_summary(
         "average_latency_ms": float(average_latency_ms),
         "by_parser_mode": by_parser_mode,
         "by_parser_type": by_parser_type,
+        "by_error": by_error,
     }
