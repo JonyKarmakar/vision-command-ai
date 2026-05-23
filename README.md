@@ -1162,3 +1162,165 @@ export DATABASE_URL="postgresql://vision_user:vision_password@localhost:5432/vis
 uvicorn app.main:app --reload
 ```
 
+---
+
+## LLMOps Monitoring
+
+VisionCommand AI includes an LLMOps-style monitoring layer for command parsing.
+
+The goal is to make parser behavior observable across:
+
+- rule-based parsing
+- mock LLM parsing
+- future real LLM parsing
+- local/offline provider paths
+- failed parser attempts
+- latency and reliability trends
+
+### Provider status
+
+The backend exposes the current LLM provider configuration through:
+
+    GET /llm/provider/status
+
+This returns information such as:
+
+- provider name
+- provider model
+- whether the provider is supported
+- whether the provider is configured
+- whether real LLM parsing is available
+- supported parser modes
+- supported LLM providers
+
+Example providers:
+
+    disabled
+    openai
+    ollama
+
+By default, the project uses:
+
+    LLM_PROVIDER=disabled
+
+This keeps the project free to run without requiring paid API usage.
+
+### Parser attempt logs
+
+Parser attempts are logged locally and, when PostgreSQL is configured, also stored in the database.
+
+Database-backed parser logs are available through:
+
+    GET /db/parser-attempt-logs
+
+Optional filters:
+
+    GET /db/parser-attempt-logs?parser_mode=rule_based
+    GET /db/parser-attempt-logs?success=true
+    GET /db/parser-attempt-logs?parser_mode=real_llm&success=false
+    GET /db/parser-attempt-logs?limit=10
+
+Each parser attempt log can include:
+
+- timestamp
+- command
+- parser mode
+- parser type
+- parser version
+- success status
+- latency
+- parsed command
+- error message
+
+### Parser attempt summary
+
+Parser summary statistics are available through:
+
+    GET /db/parser-attempt-summary
+
+Optional filters:
+
+    GET /db/parser-attempt-summary?parser_mode=rule_based
+    GET /db/parser-attempt-summary?success=false
+    GET /db/parser-attempt-summary?parser_mode=real_llm&success=false
+
+The summary includes:
+
+- total attempts
+- successful attempts
+- failed attempts
+- success rate
+- average latency
+- breakdown by parser mode
+- breakdown by parser type
+- breakdown by parser error
+
+The error breakdown helps identify common parser failure reasons.
+
+### Combined LLMOps dashboard endpoint
+
+The backend also exposes a consolidated dashboard endpoint:
+
+    GET /llmops/dashboard
+
+Optional filters:
+
+    GET /llmops/dashboard?limit=10
+    GET /llmops/dashboard?parser_mode=rule_based
+    GET /llmops/dashboard?success=true
+    GET /llmops/dashboard?parser_mode=real_llm&success=false&limit=5
+
+This endpoint combines:
+
+- LLM provider status
+- parser attempt summary
+- recent parser attempt logs
+
+### Frontend LLMOps dashboard
+
+The frontend includes an LLMOps dashboard section with controls for:
+
+- loading provider status
+- loading database parser logs
+- loading parser summary
+- loading the combined LLMOps dashboard
+- filtering by parser mode
+- filtering by success or failure
+- selecting recent log limit
+- resetting parser filters
+
+The frontend also displays:
+
+- active parser filters
+- parser success rate
+- average latency
+- parser mode breakdown
+- parser type breakdown
+- parser error breakdown
+- recent parser attempts
+
+### Running with PostgreSQL logs
+
+For local development with database-backed parser logs, use three terminals.
+
+Terminal 1:
+
+    docker compose up -d postgres
+
+Terminal 2:
+
+    cd backend
+    source vision-env/bin/activate
+    export DATABASE_URL="postgresql://vision_user:vision_password@localhost:5432/vision_command"
+    uvicorn app.main:app --reload
+
+Terminal 3:
+
+    cd frontend
+    npm run dev
+
+Then open:
+
+    http://localhost:5173
+
+Use the frontend LLMOps controls to inspect parser logs, summary, and provider status.
