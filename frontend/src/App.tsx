@@ -1677,6 +1677,54 @@ function App() {
     setStatusMessage('Parser filters reset.')
   }
 
+  const handleExportDatabaseParserAttemptLogs = async () => {
+    try {
+      setError(null)
+      setStatusMessage('Exporting PostgreSQL parser attempt logs...')
+
+      const queryParams = new URLSearchParams()
+      queryParams.set('limit', databaseParserLogLimit)
+
+      if (databaseParserLogParserModeFilter !== 'all') {
+        queryParams.set('parser_mode', databaseParserLogParserModeFilter)
+      }
+
+      if (databaseParserLogSuccessFilter === 'success') {
+        queryParams.set('success', 'true')
+      }
+
+      if (databaseParserLogSuccessFilter === 'failed') {
+        queryParams.set('success', 'false')
+      }
+
+      const response = await fetch(
+        `/api/db/parser-attempt-logs/export?${queryParams.toString()}`
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not export PostgreSQL parser attempt logs')
+      }
+
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+
+      link.href = downloadUrl
+      link.download = 'parser_attempt_logs.csv'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      window.URL.revokeObjectURL(downloadUrl)
+
+      setStatusMessage('Exported PostgreSQL parser attempt logs as CSV.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not export PostgreSQL parser attempt logs.')
+    }
+  }
+
   const handleLoadDatabaseParserAttemptLogs = async () => {
     try {
       setIsLoadingDatabaseParserAttemptLogs(true)
@@ -2664,6 +2712,14 @@ function App() {
               disabled={isBusy}
             >
               {isLoadingDatabaseParserAttemptLogs ? 'Loading DB logs...' : 'Load DB Parser Logs'}
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleExportDatabaseParserAttemptLogs}
+              disabled={isBusy}
+            >
+              Export DB Parser Logs
             </button>
 
             <button
