@@ -79,3 +79,46 @@ def test_llmops_dashboard_filters_summary_and_logs_when_database_not_configured(
     assert data["parser_attempt_summary"]["total_attempts"] == 0
     assert data["recent_parser_attempt_logs"]["status"] == "not_configured"
     assert data["recent_parser_attempt_logs"]["count"] == 0
+
+
+def test_llmops_dashboard_includes_parser_evaluation(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    response = client.get("/llmops/dashboard")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert "parser_evaluation" in data
+    assert "evaluations" in data["parser_evaluation"]
+
+    evaluations = data["parser_evaluation"]["evaluations"]
+
+    assert len(evaluations) == 2
+
+    parser_types = {evaluation["parser_type"] for evaluation in evaluations}
+
+    assert parser_types == {"rule_based", "llm_mock"}
+
+    for evaluation in evaluations:
+        assert "parser_version" in evaluation
+        assert "total_cases" in evaluation
+        assert "passed_cases" in evaluation
+        assert "failed_cases" in evaluation
+        assert "accuracy" in evaluation
+        assert evaluation["total_cases"] > 0
+        assert evaluation["accuracy"] >= 0
+
+
+def test_llmops_dashboard_parser_evaluation_is_compact(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    response = client.get("/llmops/dashboard")
+
+    assert response.status_code == 200
+
+    evaluations = response.json()["parser_evaluation"]["evaluations"]
+
+    for evaluation in evaluations:
+        assert "results" not in evaluation

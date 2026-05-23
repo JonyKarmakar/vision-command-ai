@@ -2451,6 +2451,25 @@ def get_llmops_dashboard(
     parser_mode: str = Query(None),
     success: bool = Query(None),
 ):
+    parser_evaluation_results = [
+        evaluate_command_parser("rule_based"),
+        evaluate_command_parser("llm_mock"),
+    ]
+
+    parser_evaluation_summary = {
+        "evaluations": [
+            {
+                "parser_type": result["parser_type"],
+                "parser_version": result["parser_version"],
+                "total_cases": result["total_cases"],
+                "passed_cases": result["passed_cases"],
+                "failed_cases": result["failed_cases"],
+                "accuracy": result["accuracy"],
+            }
+            for result in parser_evaluation_results
+        ]
+    }
+
     return {
         "provider_status": get_llm_provider_status(),
         "parser_attempt_summary": get_database_parser_attempt_summary(
@@ -2462,6 +2481,7 @@ def get_llmops_dashboard(
             parser_mode=parser_mode,
             success=success,
         ),
+        "parser_evaluation": parser_evaluation_summary,
     }
 
 
