@@ -63,7 +63,7 @@ def test_llm_provider_status_endpoint_with_configured_ollama(monkeypatch):
     assert data["provider_model"] == "llama3.2"
     assert data["is_supported"] is True
     assert data["is_configured"] is True
-    assert data["real_llm_available"] is False
+    assert data["real_llm_available"] is True
     assert data["supported_llm_providers"] == ["disabled", "ollama", "openai"]
 
 
