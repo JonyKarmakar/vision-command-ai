@@ -44,6 +44,16 @@ COMMAND_EVALUATION_CASES = [
         },
     },
     {
+        "command": "extract frames from 0 to 4 every 2 seconds",
+        "expected": {
+            "action": "extract_frames",
+            "class_name": None,
+            "start_seconds": 0.0,
+            "end_seconds": 4.0,
+            "interval_seconds": 2.0,
+        },
+    },
+    {
         "command": "detect frames from 0 to 3 seconds",
         "expected": {
             "action": "detect_frames",
