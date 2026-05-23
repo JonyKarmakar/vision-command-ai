@@ -2463,3 +2463,66 @@ def get_llmops_dashboard(
             success=success,
         ),
     }
+
+
+@app.get("/db/parser-attempt-logs/export")
+def export_postgres_parser_attempt_logs(
+    limit: int = Query(100, ge=1, le=500),
+    parser_mode: str = Query(None),
+    success: bool = Query(None),
+):
+    import csv
+    import io
+    import json
+
+    from fastapi.responses import Response
+
+    result = get_database_parser_attempt_logs(
+        limit=limit,
+        parser_mode=parser_mode,
+        success=success,
+    )
+
+    output = io.StringIO()
+
+    fieldnames = [
+        "timestamp",
+        "command",
+        "parser_mode",
+        "parser_type",
+        "parser_version",
+        "success",
+        "latency_ms",
+        "parsed_command",
+        "error",
+    ]
+
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+
+    for log in result.get("logs", []):
+        writer.writerow(
+            {
+                "timestamp": log.get("timestamp"),
+                "command": log.get("command"),
+                "parser_mode": log.get("parser_mode"),
+                "parser_type": log.get("parser_type"),
+                "parser_version": log.get("parser_version"),
+                "success": log.get("success"),
+                "latency_ms": log.get("latency_ms"),
+                "parsed_command": json.dumps(log.get("parsed_command")),
+                "error": log.get("error"),
+            }
+        )
+
+    filename = "parser_attempt_logs.csv"
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Parser-Logs-Status": result.get("status", "unknown"),
+            "X-Parser-Logs-Count": str(result.get("count", 0)),
+        },
+    )
