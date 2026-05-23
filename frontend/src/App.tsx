@@ -516,6 +516,7 @@ function App() {
   const [databaseParserAttemptLogsResult, setDatabaseParserAttemptLogsResult] = useState<DatabaseParserAttemptLogsResponse | null>(null)
   const [databaseParserLogParserModeFilter, setDatabaseParserLogParserModeFilter] = useState('all')
   const [databaseParserLogSuccessFilter, setDatabaseParserLogSuccessFilter] = useState('all')
+  const [databaseParserLogLimit, setDatabaseParserLogLimit] = useState('10')
   const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
   const [llmOpsDashboardLoaded, setLlmOpsDashboardLoaded] = useState(false)
@@ -1665,6 +1666,7 @@ function App() {
   const handleResetParserFilters = () => {
     setDatabaseParserLogParserModeFilter('all')
     setDatabaseParserLogSuccessFilter('all')
+    setDatabaseParserLogLimit('10')
     setStatusMessage('Parser filters reset.')
   }
 
@@ -1675,6 +1677,7 @@ function App() {
       setStatusMessage('Loading PostgreSQL parser attempt logs...')
 
       const queryParams = new URLSearchParams()
+      queryParams.set('limit', databaseParserLogLimit)
 
       if (databaseParserLogParserModeFilter !== 'all') {
         queryParams.set('parser_mode', databaseParserLogParserModeFilter)
@@ -1758,7 +1761,7 @@ function App() {
       setStatusMessage('Loading LLMOps dashboard...')
 
       const queryParams = new URLSearchParams()
-      queryParams.set('limit', '10')
+      queryParams.set('limit', databaseParserLogLimit)
 
       if (databaseParserLogParserModeFilter !== 'all') {
         queryParams.set('parser_mode', databaseParserLogParserModeFilter)
@@ -2625,6 +2628,20 @@ function App() {
                 </select>
               </label>
 
+              <label>
+                Recent logs
+                <select
+                  value={databaseParserLogLimit}
+                  onChange={(event) => setDatabaseParserLogLimit(event.target.value)}
+                  disabled={isBusy}
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                </select>
+              </label>
+
               <button
                 className="secondary-button"
                 onClick={handleResetParserFilters}
@@ -2806,7 +2823,7 @@ function App() {
               </div>
 
               <p className="small-note">
-                <strong>LLMOps active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}
+                <strong>LLMOps active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}
               </p>
 
               <p className="small-note">
@@ -2906,7 +2923,7 @@ function App() {
               </div>
 
               <p className="small-note">
-                <strong>Summary active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}
+                <strong>Summary active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}
               </p>
 
               <div className="database-parser-breakdown-section">
@@ -2963,7 +2980,7 @@ function App() {
               </div>
 
               <p className="small-note">
-                Active filters: parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}
+                Active filters: parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}
               </p>
 
               {databaseParserAttemptLogsResult.logs.length === 0 ? (
