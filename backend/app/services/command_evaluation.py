@@ -1,6 +1,14 @@
 from fastapi import HTTPException
 
-from app.services.command_parser import parse_command
+from app.services.llm_parser import get_parser_metadata, parse_command_with_mode
+
+
+
+def command_matches_expected(actual: dict, expected: dict) -> bool:
+    return all(
+        actual.get(field_name) == expected_value
+        for field_name, expected_value in expected.items()
+    )
 
 
 COMMAND_EVALUATION_CASES = [
@@ -104,8 +112,7 @@ def evaluate_command_parser(parser_mode: str = "rule_based"):
             detail="Supported parser modes are: rule_based, llm_mock",
         )
 
-    parser_type = parser_mode
-    parser_version = "v1" if parser_mode == "rule_based" else "mock-v1"
+    parser_metadata = get_parser_metadata(parser_mode)
 
     results = []
 
@@ -114,8 +121,12 @@ def evaluate_command_parser(parser_mode: str = "rule_based"):
         expected = case["expected"]
 
         try:
-            actual = parse_command(command)
-            passed = actual == expected
+            parse_result = parse_command_with_mode(
+                command=command,
+                parser_mode=parser_mode,
+            )
+            actual = parse_result["parsed_command"]
+            passed = command_matches_expected(actual, expected)
             error = None
         except Exception as exception:
             actual = None
@@ -139,8 +150,8 @@ def evaluate_command_parser(parser_mode: str = "rule_based"):
     accuracy = passed_cases / total_cases if total_cases > 0 else 0
 
     return {
-        "parser_type": parser_type,
-        "parser_version": parser_version,
+        "parser_type": parser_metadata["parser_type"],
+        "parser_version": parser_metadata["parser_version"],
         "total_cases": total_cases,
         "passed_cases": passed_cases,
         "failed_cases": failed_cases,
