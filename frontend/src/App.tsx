@@ -319,10 +319,24 @@ type DatabaseParserAttemptSummaryResponse = {
   by_error: ParserAttemptErrorBreakdown[]
 }
 
+type ParserEvaluationSummaryEntry = {
+  parser_type: string
+  parser_version: string
+  total_cases: number
+  passed_cases: number
+  failed_cases: number
+  accuracy: number
+}
+
+type ParserEvaluationSummaryResponse = {
+  evaluations: ParserEvaluationSummaryEntry[]
+}
+
 type LLMOpsDashboardResponse = {
   provider_status: LLMProviderStatusResponse
   parser_attempt_summary: DatabaseParserAttemptSummaryResponse
   recent_parser_attempt_logs: DatabaseParserAttemptLogsResponse
+  parser_evaluation: ParserEvaluationSummaryResponse
 }
 
 type DatabaseParserAttemptLogsResponse = {
@@ -527,6 +541,7 @@ function App() {
   const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
   const [llmOpsDashboardLoaded, setLlmOpsDashboardLoaded] = useState(false)
+  const [llmOpsParserEvaluationResult, setLlmOpsParserEvaluationResult] = useState<ParserEvaluationSummaryResponse | null>(null)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
@@ -1813,6 +1828,7 @@ function App() {
       setIsLoadingLlmOpsDashboard(true)
       setError(null)
       setLlmOpsDashboardLoaded(false)
+      setLlmOpsParserEvaluationResult(null)
       setStatusMessage('Loading LLMOps dashboard...')
 
       const queryParams = new URLSearchParams()
@@ -1842,6 +1858,7 @@ function App() {
       setLlmProviderStatusResult(data.provider_status)
       setDatabaseParserAttemptSummaryResult(data.parser_attempt_summary)
       setDatabaseParserAttemptLogsResult(data.recent_parser_attempt_logs)
+      setLlmOpsParserEvaluationResult(data.parser_evaluation)
       setLlmOpsDashboardLoaded(true)
 
       setStatusMessage(
@@ -2888,6 +2905,43 @@ function App() {
               <p className="small-note">
                 <strong>LLMOps active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}
               </p>
+
+              {llmOpsParserEvaluationResult && (
+                <div className="llmops-parser-evaluation-panel">
+                  <h4>Parser Evaluation Quality</h4>
+
+                  {llmOpsParserEvaluationResult.evaluations.length === 0 ? (
+                    <p className="small-note">No parser evaluation results available.</p>
+                  ) : (
+                    <div className="llmops-parser-evaluation-list">
+                      {llmOpsParserEvaluationResult.evaluations.map((evaluation) => (
+                        <div key={evaluation.parser_type} className="llmops-parser-evaluation-card">
+                          <div>
+                            <span>Parser</span>
+                            <strong>{evaluation.parser_type}</strong>
+                            <small>{evaluation.parser_version}</small>
+                          </div>
+
+                          <div>
+                            <span>Accuracy</span>
+                            <strong>{Math.round(evaluation.accuracy * 100)}%</strong>
+                          </div>
+
+                          <div>
+                            <span>Total cases</span>
+                            <strong>{evaluation.total_cases}</strong>
+                          </div>
+
+                          <div>
+                            <span>Passed / Failed</span>
+                            <strong>{evaluation.passed_cases} / {evaluation.failed_cases}</strong>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <p className="small-note">
                 This dashboard combines provider status, PostgreSQL parser summary, and recent PostgreSQL parser logs.
