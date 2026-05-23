@@ -2806,6 +2806,10 @@ function App() {
               </div>
 
               <p className="small-note">
+                <strong>LLMOps active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}
+              </p>
+
+              <p className="small-note">
                 This dashboard combines provider status, PostgreSQL parser summary, and recent PostgreSQL parser logs.
               </p>
             </div>
@@ -2900,6 +2904,10 @@ function App() {
                   <strong>{databaseParserAttemptSummaryResult.average_latency_ms.toFixed(2)} ms</strong>
                 </div>
               </div>
+
+              <p className="small-note">
+                <strong>Summary active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}
+              </p>
 
               <div className="database-parser-breakdown-section">
                 <h4>By parser mode</h4>
