@@ -1,5 +1,7 @@
 import json
 import os
+from urllib import error as url_error
+from urllib import request as url_request
 
 from fastapi import HTTPException
 from openai import OpenAI
@@ -144,6 +146,84 @@ class OpenAILLMProvider(BaseLLMProvider):
             )
 
 
+def _infer_class_name_from_command(user_prompt: str):
+    normalized_prompt = user_prompt.lower()
+
+    known_classes = {
+        "person": ["person", "people", "persons"],
+        "car": ["car", "cars"],
+        "dog": ["dog", "dogs"],
+        "cat": ["cat", "cats"],
+        "bicycle": ["bicycle", "bicycles", "bike", "bikes"],
+        "bus": ["bus", "buses"],
+        "truck": ["truck", "trucks"],
+        "chair": ["chair", "chairs"],
+        "bottle": ["bottle", "bottles"],
+    }
+
+    for class_name, aliases in known_classes.items():
+        if any(alias in normalized_prompt for alias in aliases):
+            return class_name
+
+    return None
+
+
+def _repair_ollama_parsed_command(parsed_command: dict, user_prompt: str) -> dict:
+    action = parsed_command.get("action")
+
+    repaired_command = {
+        "action": action,
+        "class_name": parsed_command.get("class_name"),
+        "timestamp_seconds": parsed_command.get("timestamp_seconds"),
+        "start_seconds": parsed_command.get("start_seconds"),
+        "end_seconds": parsed_command.get("end_seconds"),
+        "interval_seconds": parsed_command.get("interval_seconds"),
+    }
+
+    if action in {
+        "crop_by_class",
+        "blur_by_class",
+        "blur_all_by_class",
+        "track_video",
+    } and not repaired_command["class_name"]:
+        repaired_command["class_name"] = _infer_class_name_from_command(user_prompt)
+
+    if action in {
+        "detect",
+        "crop_by_class",
+        "blur_by_class",
+        "blur_all_by_class",
+    }:
+        repaired_command["timestamp_seconds"] = None
+        repaired_command["start_seconds"] = None
+        repaired_command["end_seconds"] = None
+        repaired_command["interval_seconds"] = None
+
+    if action == "extract_frame":
+        repaired_command["class_name"] = None
+        repaired_command["start_seconds"] = None
+        repaired_command["end_seconds"] = None
+        repaired_command["interval_seconds"] = None
+
+    if action in {
+        "extract_frames",
+        "detect_frames",
+    }:
+        repaired_command["class_name"] = None
+        repaired_command["timestamp_seconds"] = None
+
+    if action == "track_video":
+        repaired_command["timestamp_seconds"] = None
+
+    if action == "trim_video":
+        repaired_command["class_name"] = None
+        repaired_command["timestamp_seconds"] = None
+        repaired_command["interval_seconds"] = None
+
+    return repaired_command
+
+
+
 class OllamaLLMProvider(BaseLLMProvider):
     provider_name = "ollama"
 
@@ -157,15 +237,71 @@ class OllamaLLMProvider(BaseLLMProvider):
     def get_model_name(self):
         return self.model or None
 
+    def is_available_for_real_llm(self) -> bool:
+        return self.is_configured()
+
     def parse_command(self, system_prompt: str, user_prompt: str) -> dict:
         if not self.is_configured():
             raise LLMProviderNotConfiguredError(
                 "Ollama provider is selected but OLLAMA_BASE_URL or OLLAMA_MODEL is missing."
             )
 
-        raise LLMProviderNotImplementedError(
-            "Ollama provider configuration exists, but the local LLM API call is not implemented yet."
+        endpoint = f"{self.base_url.rstrip('/')}/api/generate"
+
+        payload = {
+            "model": self.model,
+            "system": system_prompt,
+            "prompt": user_prompt,
+            "format": COMMAND_PARSER_OUTPUT_SCHEMA,
+            "stream": False,
+        }
+
+        request = url_request.Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
         )
+
+        try:
+            with url_request.urlopen(request, timeout=60) as response:
+                response_body = response.read().decode("utf-8")
+        except url_error.HTTPError as exception:
+            error_body = exception.read().decode("utf-8", errors="replace")
+            raise LLMProviderOutputError(
+                f"Ollama request failed with status {exception.code}: {error_body}"
+            )
+        except url_error.URLError as exception:
+            raise LLMProviderOutputError(
+                f"Could not connect to Ollama provider: {exception.reason}"
+            )
+        except TimeoutError:
+            raise LLMProviderOutputError(
+                "Ollama request timed out."
+            )
+
+        try:
+            response_json = json.loads(response_body)
+        except json.JSONDecodeError as exception:
+            raise LLMProviderOutputError(
+                f"Ollama response was not valid JSON: {str(exception)}"
+            )
+
+        raw_output = response_json.get("response")
+
+        if not raw_output:
+            raise LLMProviderOutputError(
+                "Ollama response did not include a response field."
+            )
+
+        try:
+            parsed_output = json.loads(raw_output)
+        except json.JSONDecodeError as exception:
+            raise LLMProviderOutputError(
+                f"Ollama response field was not valid JSON: {str(exception)}"
+            )
+
+        return _repair_ollama_parsed_command(parsed_output, user_prompt)
 
 
 def get_configured_provider_name() -> str:
