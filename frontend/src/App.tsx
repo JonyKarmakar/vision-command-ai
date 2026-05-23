@@ -1662,6 +1662,12 @@ function App() {
     }
   }
 
+  const handleResetParserFilters = () => {
+    setDatabaseParserLogParserModeFilter('all')
+    setDatabaseParserLogSuccessFilter('all')
+    setStatusMessage('Parser filters reset.')
+  }
+
   const handleLoadDatabaseParserAttemptLogs = async () => {
     try {
       setIsLoadingDatabaseParserAttemptLogs(true)
@@ -2618,6 +2624,14 @@ function App() {
                   <option value="failed">Failed</option>
                 </select>
               </label>
+
+              <button
+                className="secondary-button"
+                onClick={handleResetParserFilters}
+                disabled={isBusy}
+              >
+                Reset Parser Filters
+              </button>
             </div>
 
             <button
