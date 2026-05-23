@@ -2938,6 +2938,25 @@ function App() {
                         <span>{item.attempts} attempt(s)</span>
                         <span>{item.successful_attempts} success / {item.failed_attempts} failed</span>
                         <span>{item.average_latency_ms.toFixed(2)} ms avg</span>
+                        <div className="database-parser-breakdown-bar mode-bar">
+                          <div
+                            style={{
+                              width: `${Math.max(
+                                4,
+                                Math.round(
+                                  (item.attempts /
+                                    Math.max(
+                                      ...databaseParserAttemptSummaryResult.by_parser_mode.map(
+                                        (modeItem) => modeItem.attempts
+                                      ),
+                                      1
+                                    )) *
+                                    100
+                                )
+                              )}%`,
+                            }}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2956,6 +2975,25 @@ function App() {
                         <span>{item.attempts} attempt(s)</span>
                         <span>{item.successful_attempts} success / {item.failed_attempts} failed</span>
                         <span>{item.average_latency_ms.toFixed(2)} ms avg</span>
+                        <div className="database-parser-breakdown-bar type-bar">
+                          <div
+                            style={{
+                              width: `${Math.max(
+                                4,
+                                Math.round(
+                                  (item.attempts /
+                                    Math.max(
+                                      ...databaseParserAttemptSummaryResult.by_parser_type.map(
+                                        (typeItem) => typeItem.attempts
+                                      ),
+                                      1
+                                    )) *
+                                    100
+                                )
+                              )}%`,
+                            }}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
