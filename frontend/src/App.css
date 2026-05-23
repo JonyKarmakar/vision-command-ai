@@ -1765,3 +1765,34 @@ input[type="file"]::file-selector-button:hover {
 .database-parser-breakdown-bar.type-bar div {
   background: #34d399;
 }
+
+.database-parser-error-list {
+  display: grid;
+  gap: 10px;
+}
+
+.database-parser-error-card {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+  background: #27272a;
+  border: 1px solid #7f1d1d;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.database-parser-error-card strong {
+  color: #fecaca;
+  word-break: break-word;
+}
+
+.database-parser-error-card span {
+  color: #cbd5e1;
+}
+
+@media (max-width: 900px) {
+  .database-parser-error-card {
+    grid-template-columns: 1fr;
+  }
+}

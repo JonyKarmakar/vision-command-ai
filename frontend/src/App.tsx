@@ -301,6 +301,12 @@ type ParserAttemptBreakdown = {
   average_latency_ms: number
 }
 
+type ParserAttemptErrorBreakdown = {
+  error: string
+  attempts: number
+  average_latency_ms: number
+}
+
 type DatabaseParserAttemptSummaryResponse = {
   status: string
   total_attempts: number
@@ -310,6 +316,7 @@ type DatabaseParserAttemptSummaryResponse = {
   average_latency_ms: number
   by_parser_mode: ParserAttemptBreakdown[]
   by_parser_type: ParserAttemptBreakdown[]
+  by_error: ParserAttemptErrorBreakdown[]
 }
 
 type LLMOpsDashboardResponse = {
@@ -2994,6 +3001,23 @@ function App() {
                             }}
                           />
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="database-parser-breakdown-section">
+                <h4>By parser error</h4>
+                {databaseParserAttemptSummaryResult.by_error.length === 0 ? (
+                  <p className="small-note">No parser errors found for the current filters.</p>
+                ) : (
+                  <div className="database-parser-error-list">
+                    {databaseParserAttemptSummaryResult.by_error.map((item) => (
+                      <div key={item.error} className="database-parser-error-card">
+                        <strong>{item.error}</strong>
+                        <span>{item.attempts} attempt(s)</span>
+                        <span>{item.average_latency_ms.toFixed(2)} ms avg</span>
                       </div>
                     ))}
                   </div>
