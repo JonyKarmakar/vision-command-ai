@@ -1324,3 +1324,115 @@ Then open:
     http://localhost:5173
 
 Use the frontend LLMOps controls to inspect parser logs, summary, and provider status.
+
+---
+
+## Local Ollama LLM Provider
+
+VisionCommand AI supports a free local LLM mode using Ollama.
+
+This allows `parser_mode=real_llm` to run without a paid OpenAI API key.
+
+### Install Ollama on macOS
+
+Using Homebrew:
+
+    brew install ollama
+
+Check installation:
+
+    ollama --version
+
+### Start Ollama
+
+In a separate terminal:
+
+    ollama serve
+
+Keep this terminal open while testing local LLM parsing.
+
+### Pull a small model
+
+For lightweight local testing:
+
+    ollama pull llama3.2:1b
+
+Check available models:
+
+    curl -s http://localhost:11434/api/tags | python -m json.tool
+
+### Run backend with Ollama
+
+In the backend terminal:
+
+    cd backend
+    source vision-env/bin/activate
+
+    export LLM_PROVIDER=ollama
+    export OLLAMA_BASE_URL="http://localhost:11434"
+    export OLLAMA_MODEL="llama3.2:1b"
+
+    uvicorn app.main:app --reload
+
+### Check provider status
+
+    curl -s "http://127.0.0.1:8000/llm/provider/status" | python -m json.tool
+
+Expected important fields:
+
+    "provider_name": "ollama"
+    "provider_model": "llama3.2:1b"
+    "is_configured": true
+    "real_llm_available": true
+
+### Test real LLM command parsing
+
+Image command:
+
+    curl -s -X POST "http://127.0.0.1:8000/commands/parse" \
+      -H "Content-Type: application/json" \
+      -d '{"command":"crop person","parser_mode":"real_llm"}' | python -m json.tool
+
+Expected parsed command:
+
+    "action": "crop_by_class"
+    "class_name": "person"
+
+Another image command:
+
+    curl -s -X POST "http://127.0.0.1:8000/commands/parse" \
+      -H "Content-Type: application/json" \
+      -d '{"command":"blur car","parser_mode":"real_llm"}' | python -m json.tool
+
+Expected parsed command:
+
+    "action": "blur_by_class"
+    "class_name": "car"
+
+Video command:
+
+    curl -s -X POST "http://127.0.0.1:8000/commands/parse" \
+      -H "Content-Type: application/json" \
+      -d '{"command":"extract frame at 1 second","parser_mode":"real_llm"}' | python -m json.tool
+
+Expected parsed command:
+
+    "action": "extract_frame"
+    "timestamp_seconds": 1
+
+### Notes
+
+Small local models may sometimes return incomplete or noisy JSON. The backend includes an Ollama output repair layer that:
+
+- fills missing required parser fields
+- repairs simple missing class names such as person or car
+- removes irrelevant time fields from image-only commands
+- keeps the final parsed command compatible with the project schema
+
+For stronger local parsing, try a larger model:
+
+    ollama pull llama3.2
+
+Then run the backend with:
+
+    export OLLAMA_MODEL="llama3.2"
