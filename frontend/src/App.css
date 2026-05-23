@@ -1796,3 +1796,55 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.llmops-parser-evaluation-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  background: #18181b;
+}
+
+.llmops-parser-evaluation-panel h4 {
+  margin: 0 0 12px;
+}
+
+.llmops-parser-evaluation-list {
+  display: grid;
+  gap: 10px;
+}
+
+.llmops-parser-evaluation-card {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #27272a;
+}
+
+.llmops-parser-evaluation-card div {
+  display: grid;
+  gap: 4px;
+}
+
+.llmops-parser-evaluation-card span {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.llmops-parser-evaluation-card strong {
+  color: #f8fafc;
+}
+
+.llmops-parser-evaluation-card small {
+  color: #cbd5e1;
+}
+
+@media (max-width: 900px) {
+  .llmops-parser-evaluation-card {
+    grid-template-columns: 1fr;
+  }
+}
