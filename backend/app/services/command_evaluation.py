@@ -35,6 +35,37 @@ COMMAND_EVALUATION_CASES = [
         },
     },
     {
+        "command": "crop bike",
+        "expected": {
+            "action": "crop_by_class",
+            "class_name": "bicycle",
+        },
+    },
+    {
+        "command": "blur phone",
+        "expected": {
+            "action": "blur_by_class",
+            "class_name": "cell phone",
+        },
+    },
+    {
+        "command": "crop sofa",
+        "expected": {
+            "action": "crop_by_class",
+            "class_name": "couch",
+        },
+    },
+    {
+        "command": "track motorbike from 0 to 3 seconds",
+        "expected": {
+            "action": "track_video",
+            "class_name": "motorcycle",
+            "start_seconds": 0.0,
+            "end_seconds": 3.0,
+            "interval_seconds": 1.0,
+        },
+    },
+    {
         "command": "extract frame at 1 second",
         "expected": {
             "action": "extract_frame",
