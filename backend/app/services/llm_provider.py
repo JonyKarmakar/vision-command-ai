@@ -1,10 +1,17 @@
 import json
 import os
+import re
 from urllib import error as url_error
 from urllib import request as url_request
 
 from fastapi import HTTPException
 from openai import OpenAI
+
+from app.services.model_classes import (
+    get_class_aliases,
+    get_supported_model_classes,
+    normalize_model_class_name,
+)
 
 
 SUPPORTED_LLM_PROVIDERS = {"disabled", "openai", "ollama"}
@@ -146,24 +153,72 @@ class OpenAILLMProvider(BaseLLMProvider):
             )
 
 
+def _prompt_contains_phrase(normalized_prompt: str, phrase: str) -> bool:
+    normalized_phrase = " ".join(phrase.lower().strip().split())
+
+    if not normalized_phrase:
+        return False
+
+    return re.search(
+        rf"(?<!\\w){re.escape(normalized_phrase)}(?!\\w)",
+        normalized_prompt,
+    ) is not None
+
+
+def _pluralize_phrase(phrase: str) -> str:
+    if phrase.endswith("y") and len(phrase) > 1:
+        return f"{phrase[:-1]}ies"
+
+    if phrase.endswith(("s", "x", "z", "ch", "sh")):
+        return f"{phrase}es"
+
+    return f"{phrase}s"
+
+
+def _normalize_llm_class_name(class_name):
+    if not class_name:
+        return None
+
+    normalized_class_name = normalize_model_class_name(str(class_name))
+    supported_classes = set(get_supported_model_classes())
+
+    if normalized_class_name in supported_classes:
+        return normalized_class_name
+
+    return None
+
+
+def _build_class_phrase_map():
+    phrase_to_class = {}
+
+    for class_name in get_supported_model_classes():
+        phrase_to_class[class_name] = class_name
+        phrase_to_class[_pluralize_phrase(class_name)] = class_name
+
+    for alias, class_name in get_class_aliases().items():
+        normalized_class_name = _normalize_llm_class_name(class_name)
+
+        if normalized_class_name:
+            phrase_to_class[alias] = normalized_class_name
+
+    return phrase_to_class
+
+
 def _infer_class_name_from_command(user_prompt: str):
-    normalized_prompt = user_prompt.lower()
+    normalized_prompt = " ".join(user_prompt.lower().strip().split())
 
-    known_classes = {
-        "person": ["person", "people", "persons"],
-        "car": ["car", "cars"],
-        "dog": ["dog", "dogs"],
-        "cat": ["cat", "cats"],
-        "bicycle": ["bicycle", "bicycles", "bike", "bikes"],
-        "bus": ["bus", "buses"],
-        "truck": ["truck", "trucks"],
-        "chair": ["chair", "chairs"],
-        "bottle": ["bottle", "bottles"],
-    }
+    if not normalized_prompt:
+        return None
 
-    for class_name, aliases in known_classes.items():
-        if any(alias in normalized_prompt for alias in aliases):
-            return class_name
+    phrase_to_class = _build_class_phrase_map()
+
+    for phrase, class_name in sorted(
+        phrase_to_class.items(),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
+        if _prompt_contains_phrase(normalized_prompt, phrase):
+            return _normalize_llm_class_name(class_name)
 
     return None
 
@@ -179,6 +234,11 @@ def _repair_ollama_parsed_command(parsed_command: dict, user_prompt: str) -> dic
         "end_seconds": parsed_command.get("end_seconds"),
         "interval_seconds": parsed_command.get("interval_seconds"),
     }
+
+    if repaired_command["class_name"]:
+        repaired_command["class_name"] = _normalize_llm_class_name(
+            repaired_command["class_name"]
+        )
 
     if action in {
         "crop_by_class",
