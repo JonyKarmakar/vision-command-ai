@@ -472,6 +472,14 @@ type ModelInfo = {
   supported_actions: string[]
 }
 
+type ModelClassesResponse = {
+  model_name: string
+  class_count: number
+  classes: string[]
+  aliases: Record<string, string>
+}
+
+
 type SpeechRecognitionEventLike = {
   results: {
     [index: number]: {
@@ -554,6 +562,8 @@ function App() {
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
+  const [modelClasses, setModelClasses] = useState<ModelClassesResponse | null>(null)
+  const [modelClassSearch, setModelClassSearch] = useState('')
   const [detectionLogs, setDetectionLogs] = useState<DetectionLog[]>([])
   const [detectionSummary, setDetectionSummary] = useState<DetectionSummary | null>(null)
   const [inferenceLogs, setInferenceLogs] = useState<InferenceLog[]>([])
@@ -589,6 +599,7 @@ function App() {
   const [isLoadingMediaFiles, setIsLoadingMediaFiles] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [isLoadingModelInfo, setIsLoadingModelInfo] = useState(false)
+  const [isLoadingModelClasses, setIsLoadingModelClasses] = useState(false)
   const [isLoadingDetections, setIsLoadingDetections] = useState(false)
   const [isLoadingDetectionSummary, setIsLoadingDetectionSummary] = useState(false)
   const [isLoadingInferenceLogs, setIsLoadingInferenceLogs] = useState(false)
@@ -1271,6 +1282,30 @@ function App() {
       setIsLoadingModelInfo(false)
     }
   }
+
+
+  const handleLoadModelClasses = async () => {
+    try {
+      setIsLoadingModelClasses(true)
+      setStatusMessage('Loading supported model classes...')
+
+      const response = await fetch('/api/model/classes')
+
+      if (!response.ok) {
+        throw new Error('Could not load supported model classes')
+      }
+
+      const data: ModelClassesResponse = await response.json()
+      setModelClasses(data)
+      setStatusMessage(`Loaded ${data.class_count} supported object class(es) for ${data.model_name}.`)
+    } catch (error) {
+      console.error(error)
+      setStatusMessage('Could not load supported model classes.')
+    } finally {
+      setIsLoadingModelClasses(false)
+    }
+  }
+
 
   const handleLoadDatabaseStats = async () => {
     try {
@@ -2005,6 +2040,38 @@ function App() {
     }
   }
 
+  const normalizedModelClassSearch = modelClassSearch.trim().toLowerCase()
+
+  const visibleModelClasses = modelClasses
+    ? modelClasses.classes.filter((className) => {
+        if (!normalizedModelClassSearch) {
+          return true
+        }
+
+        const aliasesForClass = Object.entries(modelClasses.aliases)
+          .filter(([, targetClassName]) => targetClassName === className)
+          .map(([alias]) => alias)
+
+        return (
+          className.toLowerCase().includes(normalizedModelClassSearch) ||
+          aliasesForClass.some((alias) => alias.toLowerCase().includes(normalizedModelClassSearch))
+        )
+      })
+    : []
+
+  const visibleClassAliases = modelClasses
+    ? Object.entries(modelClasses.aliases).filter(([alias, className]) => {
+        if (!normalizedModelClassSearch) {
+          return true
+        }
+
+        return (
+          alias.toLowerCase().includes(normalizedModelClassSearch) ||
+          className.toLowerCase().includes(normalizedModelClassSearch)
+        )
+      })
+    : []
+
   const uploadedImageUrl = uploadResult ? `/api${uploadResult.file_url}` : null
 
   const uploadedVideoUrl = videoUploadResult ? `/api${videoUploadResult.file_url}` : null
@@ -2067,6 +2134,7 @@ function App() {
     isLoadingMediaFiles ||
     isLoadingStats ||
     isLoadingModelInfo ||
+    isLoadingModelClasses ||
     isLoadingDetections ||
     isLoadingDetectionSummary ||
     isLoadingInferenceLogs ||
@@ -2206,6 +2274,14 @@ function App() {
             </button>
 
             <button
+              type="button"
+              onClick={handleLoadModelClasses}
+              disabled={isLoadingModelClasses}
+            >
+              {isLoadingModelClasses ? 'Loading classes...' : 'Load Supported Classes'}
+            </button>
+
+            <button
               className="secondary-button"
               onClick={handleLoadDetectionLogs}
               disabled={isBusy}
@@ -2279,6 +2355,70 @@ function App() {
               </div>
             </div>
           </div>
+        )}
+
+        {modelClasses && (
+          <section className="result-card model-classes-card">
+            <div className="model-classes-header">
+              <div>
+                <h3>Supported Model Classes</h3>
+                <p>
+                  The current model can detect {modelClasses.class_count} object class(es).
+                  Use these names in crop, blur, detect, and tracking commands.
+                </p>
+              </div>
+              <span className="model-class-count">{modelClasses.class_count} classes</span>
+            </div>
+
+            <label className="model-class-search">
+              Search classes or aliases
+              <input
+                type="search"
+                value={modelClassSearch}
+                onChange={(event) => setModelClassSearch(event.target.value)}
+                placeholder="Try bike, phone, person, car..."
+              />
+            </label>
+
+            <div className="model-class-list">
+              {visibleModelClasses.length > 0 ? (
+                visibleModelClasses.map((className) => (
+                  <span key={className} className="model-class-pill">
+                    {className}
+                  </span>
+                ))
+              ) : (
+                <p className="empty-state">No supported class matched your search.</p>
+              )}
+            </div>
+
+            <div className="model-alias-section">
+              <h4>Common aliases</h4>
+              <p>
+                These words are normalized to supported YOLO class names before detection.
+              </p>
+
+              <div className="model-alias-list">
+                {visibleClassAliases.length > 0 ? (
+                  visibleClassAliases.slice(0, 50).map(([alias, className]) => (
+                    <span key={`${alias}-${className}`} className="model-alias-pill">
+                      <code>{alias}</code>
+                      <span>→</span>
+                      <strong>{className}</strong>
+                    </span>
+                  ))
+                ) : (
+                  <p className="empty-state">No alias matched your search.</p>
+                )}
+              </div>
+
+              {visibleClassAliases.length > 50 && (
+                <p className="helper-text">
+                  Showing first 50 alias matches. Refine the search to narrow the list.
+                </p>
+              )}
+            </div>
+          </section>
         )}
 
         {databaseStats && (
