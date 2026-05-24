@@ -2,22 +2,33 @@ import re
 
 from fastapi import HTTPException
 
+from app.services.model_classes import (
+    get_supported_model_classes,
+    is_supported_model_class,
+    normalize_model_class_name,
+)
+
 
 def normalize_requested_class_name(class_name: str):
-    normalized = class_name.lower().strip()
+    return normalize_model_class_name(class_name)
 
-    aliases = {
-        "people": "person",
-        "persons": "person",
-    }
 
-    if normalized in aliases:
-        return aliases[normalized]
+def normalize_supported_requested_class_name(class_name: str):
+    normalized_class_name = normalize_requested_class_name(class_name)
 
-    if normalized.endswith("s") and len(normalized) > 1:
-        return normalized[:-1]
+    if is_supported_model_class(normalized_class_name):
+        return normalized_class_name
 
-    return normalized
+    supported_examples = ", ".join(get_supported_model_classes()[:15])
+
+    raise HTTPException(
+        status_code=400,
+        detail=(
+            f"Unsupported object class '{class_name}'. "
+            f"The current model cannot detect this class. "
+            f"Try supported classes like: {supported_examples}"
+        ),
+    )
 
 
 def _extract_numbers(command: str):
@@ -138,7 +149,7 @@ def parse_command(command: str):
             if word not in ignored_words
         ]
 
-        class_name = normalize_requested_class_name(" ".join(class_words)) if class_words else None
+        class_name = normalize_supported_requested_class_name(" ".join(class_words)) if class_words else None
 
         return {
             "action": "track_video",
@@ -197,7 +208,7 @@ def parse_command(command: str):
 
         return {
             "action": "crop_by_class",
-            "class_name": normalize_requested_class_name(" ".join(class_words)),
+            "class_name": normalize_supported_requested_class_name(" ".join(class_words)),
         }
 
     if "blur" in normalized_command:
@@ -228,7 +239,7 @@ def parse_command(command: str):
 
         return {
             "action": "blur_all_by_class" if blur_all else "blur_by_class",
-            "class_name": normalize_requested_class_name(" ".join(class_words)),
+            "class_name": normalize_supported_requested_class_name(" ".join(class_words)),
         }
 
     supported_examples = [
