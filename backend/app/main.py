@@ -2450,13 +2450,32 @@ def get_llmops_dashboard(
     limit: int = Query(10, ge=1, le=50),
     parser_mode: str = Query(None),
     success: bool = Query(None),
+    include_real_llm: bool = Query(False),
 ):
+    provider_status = get_llm_provider_status()
+
     parser_evaluation_results = [
         evaluate_command_parser("rule_based"),
         evaluate_command_parser("llm_mock"),
     ]
 
+    skipped_evaluations = []
+
+    if include_real_llm:
+        if provider_status["real_llm_available"]:
+            parser_evaluation_results.append(
+                evaluate_command_parser("real_llm")
+            )
+        else:
+            skipped_evaluations.append(
+                {
+                    "parser_mode": "real_llm",
+                    "reason": "Real LLM provider is not configured or available.",
+                }
+            )
+
     parser_evaluation_summary = {
+        "include_real_llm": include_real_llm,
         "evaluations": [
             {
                 "parser_type": result["parser_type"],
@@ -2467,11 +2486,12 @@ def get_llmops_dashboard(
                 "accuracy": result["accuracy"],
             }
             for result in parser_evaluation_results
-        ]
+        ],
+        "skipped_evaluations": skipped_evaluations,
     }
 
     return {
-        "provider_status": get_llm_provider_status(),
+        "provider_status": provider_status,
         "parser_attempt_summary": get_database_parser_attempt_summary(
             parser_mode=parser_mode,
             success=success,
