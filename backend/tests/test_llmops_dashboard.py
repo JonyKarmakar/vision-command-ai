@@ -122,3 +122,95 @@ def test_llmops_dashboard_parser_evaluation_is_compact(monkeypatch):
 
     for evaluation in evaluations:
         assert "results" not in evaluation
+
+
+def test_llmops_dashboard_excludes_real_llm_evaluation_by_default(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+
+    response = client.get("/llmops/dashboard")
+
+    assert response.status_code == 200
+
+    parser_evaluation = response.json()["parser_evaluation"]
+    parser_types = {
+        evaluation["parser_type"]
+        for evaluation in parser_evaluation["evaluations"]
+    }
+
+    assert parser_evaluation["include_real_llm"] is False
+    assert parser_types == {"rule_based", "llm_mock"}
+    assert parser_evaluation["skipped_evaluations"] == []
+
+
+def test_llmops_dashboard_skips_real_llm_when_requested_but_unavailable(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("LLM_PROVIDER", "disabled")
+
+    response = client.get("/llmops/dashboard?include_real_llm=true")
+
+    assert response.status_code == 200
+
+    parser_evaluation = response.json()["parser_evaluation"]
+    parser_types = {
+        evaluation["parser_type"]
+        for evaluation in parser_evaluation["evaluations"]
+    }
+
+    assert parser_evaluation["include_real_llm"] is True
+    assert parser_types == {"rule_based", "llm_mock"}
+    assert parser_evaluation["skipped_evaluations"] == [
+        {
+            "parser_mode": "real_llm",
+            "reason": "Real LLM provider is not configured or available.",
+        }
+    ]
+
+
+def test_llmops_dashboard_includes_real_llm_when_requested_and_available(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    def fake_provider_status():
+        return {
+            "provider_name": "ollama",
+            "provider_model": "llama3.2:1b",
+            "is_supported": True,
+            "is_configured": True,
+            "real_llm_available": True,
+            "supported_llm_providers": ["disabled", "ollama", "openai"],
+            "supported_parser_modes": ["rule_based", "llm_mock", "real_llm"],
+        }
+
+    def fake_evaluate_command_parser(parser_mode: str):
+        versions = {
+            "rule_based": "v1",
+            "llm_mock": "mock-v1",
+            "real_llm": "prompt-v1",
+        }
+
+        return {
+            "parser_type": parser_mode,
+            "parser_version": versions[parser_mode],
+            "total_cases": 1,
+            "passed_cases": 1,
+            "failed_cases": 0,
+            "accuracy": 1.0,
+            "results": [],
+        }
+
+    monkeypatch.setattr(main, "get_llm_provider_status", fake_provider_status)
+    monkeypatch.setattr(main, "evaluate_command_parser", fake_evaluate_command_parser)
+
+    response = client.get("/llmops/dashboard?include_real_llm=true")
+
+    assert response.status_code == 200
+
+    parser_evaluation = response.json()["parser_evaluation"]
+    parser_types = [
+        evaluation["parser_type"]
+        for evaluation in parser_evaluation["evaluations"]
+    ]
+
+    assert parser_evaluation["include_real_llm"] is True
+    assert parser_types == ["rule_based", "llm_mock", "real_llm"]
+    assert parser_evaluation["skipped_evaluations"] == []
