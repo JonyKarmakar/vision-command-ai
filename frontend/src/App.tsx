@@ -509,6 +509,65 @@ declare global {
   }
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const formatBackendErrorDetail = (detail: unknown, fallbackMessage: string): string => {
+  if (typeof detail === 'string' && detail.trim()) {
+    return detail
+  }
+
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item
+        }
+
+        if (isRecord(item) && typeof item.msg === 'string') {
+          return item.msg
+        }
+
+        return null
+      })
+      .filter(Boolean)
+
+    if (messages.length > 0) {
+      return messages.join(' ')
+    }
+  }
+
+  if (isRecord(detail) && typeof detail.message === 'string') {
+    return detail.message
+  }
+
+  return fallbackMessage
+}
+
+const getBackendErrorMessage = async (
+  response: Response,
+  fallbackMessage: string,
+): Promise<string> => {
+  try {
+    const errorData: unknown = await response.json()
+
+    if (isRecord(errorData)) {
+      return formatBackendErrorDetail(
+        errorData.detail ?? errorData.message,
+        fallbackMessage,
+      )
+    }
+
+    return fallbackMessage
+  } catch {
+    return fallbackMessage
+  }
+}
+
+const getErrorMessage = (error: unknown, fallbackMessage: string): string =>
+  error instanceof Error && error.message ? error.message : fallbackMessage
+
+
 function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
@@ -1575,16 +1634,16 @@ function App() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Command parsing failed')
+        throw new Error(await getBackendErrorMessage(response, 'Command parsing failed'))
       }
 
       const data: CommandParseResponse = await response.json()
       setCommandParseResult(data)
       setStatusMessage(`Command parsed as: ${data.parsed_command.action}.`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
-      setStatusMessage('Command parsing failed.')
+      const message = getErrorMessage(err, 'Command parsing failed.')
+      setError(message)
+      setStatusMessage(message)
     } finally {
       setIsParsingCommand(false)
     }
@@ -1962,8 +2021,7 @@ function App() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Command failed')
+        throw new Error(await getBackendErrorMessage(response, 'Command failed'))
       }
 
       const data: CommandResponse = await response.json()
@@ -2033,8 +2091,9 @@ function App() {
 
       setStatusMessage(`Command complete: "${commandText}".`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
-      setStatusMessage('Command failed.')
+      const message = getErrorMessage(err, 'Command failed.')
+      setError(message)
+      setStatusMessage(message)
     } finally {
       setIsRunningCommand(false)
     }
