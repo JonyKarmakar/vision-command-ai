@@ -15,10 +15,14 @@ def test_execute_command_validates_and_normalizes_parsed_class(monkeypatch, tmp_
     monkeypatch.setattr(main, "UPLOAD_DIR", tmp_path)
     monkeypatch.setattr(
         main,
-        "parse_command",
-        lambda command: {
-            "action": "crop_by_class",
-            "class_name": "bike",
+        "parse_command_with_mode",
+        lambda command, parser_mode: {
+            "parser_type": parser_mode,
+            "parser_version": "test",
+            "parsed_command": {
+                "action": "crop_by_class",
+                "class_name": "bike",
+            },
         },
     )
 
@@ -83,10 +87,14 @@ def test_execute_command_rejects_invalid_parsed_class_before_execution(monkeypat
     monkeypatch.setattr(main, "UPLOAD_DIR", tmp_path)
     monkeypatch.setattr(
         main,
-        "parse_command",
-        lambda command: {
-            "action": "crop_by_class",
-            "class_name": "wallet",
+        "parse_command_with_mode",
+        lambda command, parser_mode: {
+            "parser_type": parser_mode,
+            "parser_version": "test",
+            "parsed_command": {
+                "action": "crop_by_class",
+                "class_name": "wallet",
+            },
         },
     )
 
