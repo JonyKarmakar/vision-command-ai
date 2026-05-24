@@ -20,7 +20,7 @@ def test_command_parser_prompt_preview_endpoint():
     data = response.json()
     assert data["command"] == "track person from 0 to 3 seconds"
     assert data["parser_mode"] == "llm_mock"
-    assert data["prompt_version"] == "prompt-v1"
+    assert data["prompt_version"] == "prompt-v2"
     assert "computer vision application" in data["system_prompt"]
     assert "track person from 0 to 3 seconds" in data["user_prompt"]
     assert "expected_json_schema" in data
