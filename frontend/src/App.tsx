@@ -328,8 +328,15 @@ type ParserEvaluationSummaryEntry = {
   accuracy: number
 }
 
+type SkippedParserEvaluation = {
+  parser_mode: string
+  reason: string
+}
+
 type ParserEvaluationSummaryResponse = {
+  include_real_llm: boolean
   evaluations: ParserEvaluationSummaryEntry[]
+  skipped_evaluations: SkippedParserEvaluation[]
 }
 
 type LLMOpsDashboardResponse = {
@@ -542,6 +549,7 @@ function App() {
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
   const [llmOpsDashboardLoaded, setLlmOpsDashboardLoaded] = useState(false)
   const [llmOpsParserEvaluationResult, setLlmOpsParserEvaluationResult] = useState<ParserEvaluationSummaryResponse | null>(null)
+  const [includeRealLlmEvaluationInDashboard, setIncludeRealLlmEvaluationInDashboard] = useState(false)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
@@ -1834,6 +1842,10 @@ function App() {
       const queryParams = new URLSearchParams()
       queryParams.set('limit', databaseParserLogLimit)
 
+      if (includeRealLlmEvaluationInDashboard) {
+        queryParams.set('include_real_llm', 'true')
+      }
+
       if (databaseParserLogParserModeFilter !== 'all') {
         queryParams.set('parser_mode', databaseParserLogParserModeFilter)
       }
@@ -2719,6 +2731,15 @@ function App() {
                 </select>
               </label>
 
+            <label className="llmops-real-llm-toggle">
+              <input
+                type="checkbox"
+                checked={includeRealLlmEvaluationInDashboard}
+                onChange={(event) => setIncludeRealLlmEvaluationInDashboard(event.target.checked)}
+              />
+              Include real LLM evaluation
+            </label>
+
               <button
                 className="secondary-button"
                 onClick={handleResetParserFilters}
@@ -2997,6 +3018,18 @@ uvicorn app.main:app --reload`}</pre>
                             <span>Passed / Failed</span>
                             <strong>{evaluation.passed_cases} / {evaluation.failed_cases}</strong>
                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {llmOpsParserEvaluationResult.skipped_evaluations.length > 0 && (
+                    <div className="llmops-skipped-evaluations">
+                      <h5>Skipped parser evaluations</h5>
+                      {llmOpsParserEvaluationResult.skipped_evaluations.map((skipped) => (
+                        <div key={skipped.parser_mode} className="llmops-skipped-evaluation-card">
+                          <strong>{skipped.parser_mode}</strong>
+                          <span>{skipped.reason}</span>
                         </div>
                       ))}
                     </div>
