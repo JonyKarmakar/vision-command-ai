@@ -1436,3 +1436,80 @@ For stronger local parsing, try a larger model:
 Then run the backend with:
 
     export OLLAMA_MODEL="llama3.2"
+
+---
+
+## Real LLM Parser Evaluation
+
+VisionCommand AI supports parser evaluation for three parser modes:
+
+- `rule_based`
+- `llm_mock`
+- `real_llm`
+
+The `rule_based` and `llm_mock` modes are safe to evaluate by default because they do not require an external model.
+
+The `real_llm` mode requires a configured provider such as local Ollama or OpenAI.
+
+### Evaluate rule-based parser
+
+    curl -s "http://127.0.0.1:8000/commands/evaluate?parser_mode=rule_based" | python -m json.tool
+
+### Evaluate mock LLM parser
+
+    curl -s "http://127.0.0.1:8000/commands/evaluate?parser_mode=llm_mock" | python -m json.tool
+
+### Evaluate real LLM parser
+
+First configure a real provider, for example local Ollama:
+
+    export LLM_PROVIDER=ollama
+    export OLLAMA_BASE_URL="http://localhost:11434"
+    export OLLAMA_MODEL="llama3.2:1b"
+
+Then run:
+
+    curl -s "http://127.0.0.1:8000/commands/evaluate?parser_mode=real_llm" | python -m json.tool
+
+If no real provider is configured, the endpoint returns a `503` response explaining that real LLM evaluation requires a configured provider.
+
+### Parser comparison
+
+The parser comparison endpoint remains stable by default:
+
+    curl -s "http://127.0.0.1:8000/commands/evaluate/compare" | python -m json.tool
+
+It compares only:
+
+- `rule_based`
+- `llm_mock`
+
+This avoids requiring Ollama or OpenAI during normal development and CI runs.
+
+### Optional real LLM evaluation in LLMOps dashboard
+
+The default LLMOps dashboard includes stable parser evaluation only:
+
+    curl -s "http://127.0.0.1:8000/llmops/dashboard" | python -m json.tool
+
+To request real LLM evaluation inside the dashboard:
+
+    curl -s "http://127.0.0.1:8000/llmops/dashboard?include_real_llm=true" | python -m json.tool
+
+If a real provider is available, the dashboard includes `real_llm` evaluation.
+
+If a real provider is not available, the dashboard includes a skipped evaluation entry, for example:
+
+    real_llm
+    Real LLM provider is not configured or available.
+
+### Frontend usage
+
+In the frontend LLMOps dashboard section:
+
+1. Enable `Include real LLM evaluation`.
+2. Click `Load LLMOps Dashboard`.
+3. If Ollama/OpenAI is configured, real LLM evaluation appears in the parser evaluation section.
+4. If no real provider is configured, the dashboard shows `Skipped parser evaluations`.
+
+This keeps the dashboard safe by default while still allowing local real LLM evaluation when needed.
