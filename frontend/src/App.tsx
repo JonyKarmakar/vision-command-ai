@@ -2006,7 +2006,7 @@ function App() {
     try {
       setIsRunningCommand(true)
       setError(null)
-      setStatusMessage(`Running command: "${commandText}"...`)
+      setStatusMessage(`Running command with ${selectedParserMode}: "${commandText}"...`)
 
       const response = await fetch('/api/commands/execute', {
         method: 'POST',
@@ -2017,6 +2017,7 @@ function App() {
           filename: activeFilename,
           command: commandText,
           confidence_threshold: confidenceThreshold / 100,
+          parser_mode: selectedParserMode,
         }),
       })
 

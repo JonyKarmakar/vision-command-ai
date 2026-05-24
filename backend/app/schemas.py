@@ -29,6 +29,7 @@ class CommandRequest(BaseModel):
     filename: str
     command: str
     confidence_threshold: float = 0.25
+    parser_mode: str = "rule_based"
 
 
 class VideoTrimRequest(BaseModel):

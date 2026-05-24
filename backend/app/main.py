@@ -774,8 +774,11 @@ def execute_command(request: CommandRequest):
             detail="confidence_threshold must be between 0 and 1",
         )
 
-    parsed_command = parse_command(request.command)
-    parsed_command = validate_parsed_command(parsed_command)
+    parse_result = parse_command_with_mode(
+        command=request.command,
+        parser_mode=request.parser_mode,
+    )
+    parsed_command = validate_parsed_command(parse_result["parsed_command"])
 
     if parsed_command["action"] == "detect":
         result = detect_objects_with_annotation(
