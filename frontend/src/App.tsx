@@ -2589,11 +2589,16 @@ function App() {
             >
               <option value="rule_based">rule_based</option>
               <option value="llm_mock">llm_mock</option>
-              <option value="real_llm">real_llm (not implemented)</option>
+              <option value="real_llm">real_llm</option>
             </select>
 
             <p className="small-note">
-              `llm_mock` uses the current rule-based parser internally, but marks the result as a mock LLM parser.
+              `llm_mock` uses the current rule-based parser internally, while `real_llm` uses the configured local Ollama/OpenAI provider.
+              {selectedParserMode === 'real_llm' && (
+                <span className="parser-mode-warning">
+                  Real LLM evaluation requires a configured provider. Use local Ollama setup or OpenAI before evaluating this mode.
+                </span>
+              )}
             </p>
           </div>
 
