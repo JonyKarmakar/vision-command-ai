@@ -1,5 +1,11 @@
 from fastapi import HTTPException
 
+from app.services.model_classes import (
+    get_supported_model_classes,
+    is_supported_model_class,
+    normalize_model_class_name,
+)
+
 
 SUPPORTED_ACTIONS = {
     "detect",
@@ -32,6 +38,36 @@ def _require_number(parsed_command: dict, key: str):
         )
 
 
+def _normalize_and_validate_class_name(parsed_command: dict):
+    class_name = parsed_command.get("class_name")
+
+    if class_name is None:
+        return parsed_command
+
+    if not isinstance(class_name, str) or not class_name.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Parsed command field must be a non-empty string: class_name",
+        )
+
+    normalized_class_name = normalize_model_class_name(class_name)
+
+    if is_supported_model_class(normalized_class_name):
+        parsed_command["class_name"] = normalized_class_name
+        return parsed_command
+
+    supported_examples = ", ".join(get_supported_model_classes()[:15])
+
+    raise HTTPException(
+        status_code=400,
+        detail=(
+            f"Unsupported object class '{class_name}'. "
+            f"The current model cannot detect this class. "
+            f"Try supported classes like: {supported_examples}"
+        ),
+    )
+
+
 def validate_parsed_command(parsed_command: dict):
     if not isinstance(parsed_command, dict):
         raise HTTPException(
@@ -49,6 +85,9 @@ def validate_parsed_command(parsed_command: dict):
 
     if action in {"crop_by_class", "blur_by_class", "blur_all_by_class"}:
         _require_key(parsed_command, "class_name")
+
+    if parsed_command.get("class_name") is not None:
+        parsed_command = _normalize_and_validate_class_name(parsed_command)
 
     if action == "extract_frame":
         _require_number(parsed_command, "timestamp_seconds")

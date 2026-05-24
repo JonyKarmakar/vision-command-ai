@@ -75,3 +75,36 @@ def test_validate_parsed_command_endpoint_rejects_unsupported_action():
 
     assert response.status_code == 400
     assert "Unsupported parsed action" in response.json()["detail"]
+
+
+def test_validate_parsed_command_endpoint_normalizes_class_alias():
+    response = client.post(
+        "/commands/validate-parsed",
+        json={
+            "parsed_command": {
+                "action": "crop_by_class",
+                "class_name": "bike",
+            }
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["validated_command"]["class_name"] == "bicycle"
+
+
+def test_validate_parsed_command_endpoint_rejects_unsupported_class():
+    response = client.post(
+        "/commands/validate-parsed",
+        json={
+            "parsed_command": {
+                "action": "crop_by_class",
+                "class_name": "wallet",
+            }
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Unsupported object class 'wallet'" in response.json()["detail"]
