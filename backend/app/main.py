@@ -775,6 +775,7 @@ def execute_command(request: CommandRequest):
         )
 
     parsed_command = parse_command(request.command)
+    parsed_command = validate_parsed_command(parsed_command)
 
     if parsed_command["action"] == "detect":
         result = detect_objects_with_annotation(
