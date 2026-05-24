@@ -89,3 +89,54 @@ def test_validate_rejects_unsupported_action():
 
     assert error.value.status_code == 400
     assert "Unsupported parsed action" in error.value.detail
+
+
+def test_validate_crop_by_class_normalizes_supported_alias():
+    parsed = {
+        "action": "crop_by_class",
+        "class_name": "bike",
+    }
+
+    validated = validate_parsed_command(parsed)
+
+    assert validated["class_name"] == "bicycle"
+
+
+def test_validate_blur_by_class_rejects_unsupported_class():
+    with pytest.raises(HTTPException) as error:
+        validate_parsed_command({
+            "action": "blur_by_class",
+            "class_name": "wallet",
+        })
+
+    assert error.value.status_code == 400
+    assert "Unsupported object class 'wallet'" in error.value.detail
+    assert "current model cannot detect this class" in error.value.detail
+
+
+def test_validate_track_video_normalizes_optional_class_name():
+    parsed = {
+        "action": "track_video",
+        "class_name": "motorbike",
+        "start_seconds": 0,
+        "end_seconds": 3,
+        "interval_seconds": 1,
+    }
+
+    validated = validate_parsed_command(parsed)
+
+    assert validated["class_name"] == "motorcycle"
+
+
+def test_validate_track_video_rejects_unsupported_optional_class_name():
+    with pytest.raises(HTTPException) as error:
+        validate_parsed_command({
+            "action": "track_video",
+            "class_name": "wallet",
+            "start_seconds": 0,
+            "end_seconds": 3,
+            "interval_seconds": 1,
+        })
+
+    assert error.value.status_code == 400
+    assert "Unsupported object class 'wallet'" in error.value.detail
