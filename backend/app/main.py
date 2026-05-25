@@ -636,10 +636,16 @@ def initialize_command_logs_table():
                     confidence_threshold DOUBLE PRECISION NOT NULL,
                     parsed_action TEXT NOT NULL,
                     parsed_class TEXT,
-                    result_type TEXT NOT NULL
+                    result_type TEXT NOT NULL,
+                    parser_mode TEXT,
+                    parser_type TEXT,
+                    parser_version TEXT
                 );
                 """
             )
+            cursor.execute("ALTER TABLE command_logs ADD COLUMN IF NOT EXISTS parser_mode TEXT;")
+            cursor.execute("ALTER TABLE command_logs ADD COLUMN IF NOT EXISTS parser_type TEXT;")
+            cursor.execute("ALTER TABLE command_logs ADD COLUMN IF NOT EXISTS parser_version TEXT;")
         connection.commit()
 
     return True
@@ -666,9 +672,12 @@ def save_command_log_to_database(log_entry: dict):
                     confidence_threshold,
                     parsed_action,
                     parsed_class,
-                    result_type
+                    result_type,
+                    parser_mode,
+                    parser_type,
+                    parser_version
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s);
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
                 """,
                 (
                     log_entry["timestamp"],
@@ -678,6 +687,9 @@ def save_command_log_to_database(log_entry: dict):
                     log_entry["parsed_action"],
                     log_entry["parsed_class"],
                     log_entry["result_type"],
+                    log_entry.get("parser_mode"),
+                    log_entry.get("parser_type"),
+                    log_entry.get("parser_version"),
                 ),
             )
         connection.commit()
@@ -710,7 +722,10 @@ def get_database_command_logs(limit: int = 20):
                     confidence_threshold,
                     parsed_action,
                     parsed_class,
-                    result_type
+                    result_type,
+                    parser_mode,
+                    parser_type,
+                    parser_version
                 FROM command_logs
                 ORDER BY id DESC
                 LIMIT %s;
@@ -728,6 +743,9 @@ def get_database_command_logs(limit: int = 20):
             "parsed_action": row[4],
             "parsed_class": row[5],
             "result_type": row[6],
+            "parser_mode": row[7],
+            "parser_type": row[8],
+            "parser_version": row[9],
         }
         for row in rows
     ]
@@ -743,6 +761,7 @@ def log_command_execution(
     request: CommandRequest,
     parsed_command: dict,
     result_type: str,
+    parse_result=None,
 ):
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -754,6 +773,9 @@ def log_command_execution(
         "parsed_action": parsed_command.get("action"),
         "parsed_class": parsed_command.get("class_name"),
         "result_type": result_type,
+        "parser_mode": request.parser_mode,
+        "parser_type": parse_result.get("parser_type") if isinstance(parse_result, dict) else None,
+        "parser_version": parse_result.get("parser_version") if isinstance(parse_result, dict) else None,
     }
 
     with COMMAND_LOG_FILE.open("a", encoding="utf-8") as log_file:
@@ -806,7 +828,7 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "annotated_detection"
-        log_command_execution(request, parsed_command, result_type)
+        log_command_execution(request, parsed_command, result_type, parse_result)
 
         return build_command_execution_response(
             request=request,
@@ -828,7 +850,7 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "crop_by_class"
-        log_command_execution(request, parsed_command, result_type)
+        log_command_execution(request, parsed_command, result_type, parse_result)
 
         return build_command_execution_response(
             request=request,
@@ -850,7 +872,7 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "blur_by_class"
-        log_command_execution(request, parsed_command, result_type)
+        log_command_execution(request, parsed_command, result_type, parse_result)
 
         return build_command_execution_response(
             request=request,
@@ -872,7 +894,7 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "blur_all_by_class"
-        log_command_execution(request, parsed_command, result_type)
+        log_command_execution(request, parsed_command, result_type, parse_result)
 
         return build_command_execution_response(
             request=request,
@@ -891,7 +913,7 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "extract_frame"
-        log_command_execution(request, parsed_command, result_type)
+        log_command_execution(request, parsed_command, result_type, parse_result)
 
         return build_command_execution_response(
             request=request,
@@ -925,7 +947,7 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "detect_frames"
-        log_command_execution(request, parsed_command, result_type)
+        log_command_execution(request, parsed_command, result_type, parse_result)
 
         return build_command_execution_response(
             request=request,
@@ -952,7 +974,7 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "track_video"
-        log_command_execution(request, parsed_command, result_type)
+        log_command_execution(request, parsed_command, result_type, parse_result)
 
         return build_command_execution_response(
             request=request,
@@ -972,7 +994,7 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "trim_video"
-        log_command_execution(request, parsed_command, result_type)
+        log_command_execution(request, parsed_command, result_type, parse_result)
 
         return build_command_execution_response(
             request=request,
@@ -993,7 +1015,7 @@ def execute_command(request: CommandRequest):
         )
 
         result_type = "extract_frames"
-        log_command_execution(request, parsed_command, result_type)
+        log_command_execution(request, parsed_command, result_type, parse_result)
 
         return build_command_execution_response(
             request=request,

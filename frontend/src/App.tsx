@@ -388,6 +388,9 @@ type CommandLog = {
   parsed_action: string
   parsed_class: string | null
   result_type: string
+  parser_mode?: string | null
+  parser_type?: string | null
+  parser_version?: string | null
 }
 
 type MediaFileLog = {
@@ -3647,6 +3650,8 @@ uvicorn app.main:app --reload`}</pre>
                   <div>
                     <span>{log.parsed_action}</span>
                     {log.parsed_class && <span> · {log.parsed_class}</span>}
+                    {log.parser_mode && <span> · parser: {log.parser_mode}</span>}
+                    {log.parser_version && <span> · {log.parser_version}</span>}
                     <span> · {(log.confidence_threshold * 100).toFixed(0)}%</span>
                   </div>
                 </div>
