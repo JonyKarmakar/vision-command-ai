@@ -2209,8 +2209,11 @@ function App() {
 
   const isRealLlmSelected = selectedParserMode === 'real_llm'
 
+  const isRealLlmProviderStatusLoading =
+    isRealLlmSelected && isLoadingLlmProviderStatus
+
   const isRealLlmProviderStatusUnknown =
-    isRealLlmSelected && !llmProviderStatusResult
+    isRealLlmSelected && !llmProviderStatusResult && !isLoadingLlmProviderStatus
 
   const isRealLlmUnavailable =
     isRealLlmSelected &&
@@ -2218,7 +2221,7 @@ function App() {
     !llmProviderStatusResult.real_llm_available
 
   const isRealLlmActionBlocked =
-    isRealLlmProviderStatusUnknown || isRealLlmUnavailable
+    isRealLlmProviderStatusLoading || isRealLlmProviderStatusUnknown || isRealLlmUnavailable
 
   const uploadedImageUrl = uploadResult ? `/api${uploadResult.file_url}` : null
 
@@ -2882,9 +2885,19 @@ function App() {
             <select
               id="parser-mode"
               value={selectedParserMode}
-              onChange={(event) =>
-                setSelectedParserMode(event.target.value as 'rule_based' | 'llm_mock' | 'real_llm')
-              }
+              onChange={(event) => {
+                const nextParserMode = event.target.value as 'rule_based' | 'llm_mock' | 'real_llm'
+
+                setSelectedParserMode(nextParserMode)
+
+                if (
+                  nextParserMode === 'real_llm' &&
+                  !llmProviderStatusResult &&
+                  !isLoadingLlmProviderStatus
+                ) {
+                  void handleLoadLlmProviderStatus()
+                }
+              }}
               disabled={isBusy}
             >
               <option value="rule_based">rule_based</option>
@@ -2894,6 +2907,15 @@ function App() {
 
             <p className="small-note">
               `llm_mock` uses the current rule-based parser internally, while `real_llm` uses the configured local Ollama/OpenAI provider.
+              {isRealLlmProviderStatusLoading && (
+                <div className="real-llm-warning">
+                  <strong>Checking real LLM provider status</strong>
+                  <p>
+                    The app is checking whether a configured Ollama/OpenAI provider is available.
+                  </p>
+                </div>
+              )}
+
               {isRealLlmProviderStatusUnknown && (
                 <div className="real-llm-warning">
                   <strong>Real LLM provider status not loaded</strong>
