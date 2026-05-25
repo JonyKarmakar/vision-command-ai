@@ -2196,3 +2196,24 @@ input[type="file"]::file-selector-button:hover {
 .real-llm-warning code {
   color: #fbbf24;
 }
+
+.parser-provider-status-badge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.parser-provider-status-badge span {
+  border: 1px solid #334155;
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+.parser-provider-status-badge strong {
+  color: #f8fafc;
+}
