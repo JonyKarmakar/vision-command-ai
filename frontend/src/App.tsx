@@ -369,6 +369,9 @@ type LLMProviderStatusResponse = {
 
 type CommandResponse = {
   command: string
+  parser_mode: string
+  parser_type: string | null
+  parser_version: string | null
   parsed_command: {
     action: string
     class_name: string | null
@@ -3137,6 +3140,13 @@ uvicorn app.main:app --reload`}</pre>
 
           {commandResult && (
             <div className="command-result">
+              <p><strong>Parser mode:</strong> {commandResult.parser_mode}</p>
+              {commandResult.parser_type && (
+                <p><strong>Parser type:</strong> {commandResult.parser_type}</p>
+              )}
+              {commandResult.parser_version && (
+                <p><strong>Parser version:</strong> {commandResult.parser_version}</p>
+              )}
               <p><strong>Parsed action:</strong> {commandResult.parsed_command.action}</p>
               {commandResult.parsed_command.class_name && (
                 <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
