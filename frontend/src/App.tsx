@@ -2905,6 +2905,30 @@ function App() {
               <option value="real_llm">real_llm</option>
             </select>
 
+            <div className="parser-provider-status-badge">
+              <span>
+                Provider:{' '}
+                <strong>
+                  {isLoadingLlmProviderStatus
+                    ? 'checking...'
+                    : llmProviderStatusResult?.provider_name ?? 'not loaded'}
+                </strong>
+              </span>
+
+              <span>
+                Real LLM:{' '}
+                <strong>
+                  {isLoadingLlmProviderStatus
+                    ? 'checking...'
+                    : llmProviderStatusResult
+                      ? llmProviderStatusResult.real_llm_available
+                        ? 'available'
+                        : 'unavailable'
+                      : 'unknown'}
+                </strong>
+              </span>
+            </div>
+
             <p className="small-note">
               `llm_mock` uses the current rule-based parser internally, while `real_llm` uses the configured local Ollama/OpenAI provider.
               {isRealLlmProviderStatusLoading && (
