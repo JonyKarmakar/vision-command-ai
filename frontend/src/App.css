@@ -2048,3 +2048,31 @@ input[type="file"]::file-selector-button:hover {
   color: #64748b;
   font-size: 0.9rem;
 }
+
+.command-history-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.command-history-filter select {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  background: #ffffff;
+}
+
+.command-history-filter select {
+  min-width: 13rem;
+  background: #0f172a;
+  color: #f8fafc;
+  border: 1px solid #334155;
+}
+
+.command-history-filter select option {
+  background: #0f172a;
+  color: #f8fafc;
+}
