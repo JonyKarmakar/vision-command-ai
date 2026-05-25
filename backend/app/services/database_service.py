@@ -214,7 +214,7 @@ def save_command_log_to_database(log_entry: dict):
     return True
 
 
-def get_database_command_logs(limit: int = 20):
+def get_database_command_logs(limit: int = 20, parser_mode=None):
     import psycopg
 
     database_url = get_database_url()
@@ -230,8 +230,18 @@ def get_database_command_logs(limit: int = 20):
 
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
+            query_params = []
+
+            parser_filter_clause = ""
+
+            if parser_mode:
+                parser_filter_clause = "WHERE parser_mode = %s"
+                query_params.append(parser_mode)
+
+            query_params.append(limit)
+
             cursor.execute(
-                """
+                f"""
                 SELECT
                     timestamp,
                     filename,
@@ -244,10 +254,11 @@ def get_database_command_logs(limit: int = 20):
                     parser_type,
                     parser_version
                 FROM command_logs
+                {parser_filter_clause}
                 ORDER BY id DESC
                 LIMIT %s;
                 """,
-                (limit,),
+                tuple(query_params),
             )
             rows = cursor.fetchall()
 

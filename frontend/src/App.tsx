@@ -624,6 +624,8 @@ function App() {
   const [llmOpsParserEvaluationResult, setLlmOpsParserEvaluationResult] = useState<ParserEvaluationSummaryResponse | null>(null)
   const [includeRealLlmEvaluationInDashboard, setIncludeRealLlmEvaluationInDashboard] = useState(false)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
+  const [hasLoadedCommandLogs, setHasLoadedCommandLogs] = useState(false)
+  const [commandHistoryParserModeFilter, setCommandHistoryParserModeFilter] = useState('all')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
@@ -1558,7 +1560,14 @@ function App() {
       setError(null)
       setStatusMessage('Loading command history from PostgreSQL...')
 
-      const response = await fetch('/api/db/command-logs?limit=10')
+      const queryParams = new URLSearchParams()
+      queryParams.set('limit', '10')
+
+      if (commandHistoryParserModeFilter !== 'all') {
+        queryParams.set('parser_mode', commandHistoryParserModeFilter)
+      }
+
+      const response = await fetch(`/api/db/command-logs?${queryParams.toString()}`)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -1567,10 +1576,18 @@ function App() {
 
       const data: { count: number; logs: CommandLog[] } = await response.json()
       setCommandLogs(data.logs)
-      setStatusMessage(`Loaded ${data.count} recent command log(s) from PostgreSQL.`)
+      setHasLoadedCommandLogs(true)
+      setStatusMessage(
+        `Loaded ${data.count} recent command log(s) from PostgreSQL${
+          commandHistoryParserModeFilter !== 'all'
+            ? ` for ${commandHistoryParserModeFilter}`
+            : ''
+        }.`
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Could not load command history.')
+      setHasLoadedCommandLogs(false)
     } finally {
       setIsLoadingLogs(false)
     }
@@ -2863,6 +2880,20 @@ function App() {
           </div>
 
           <div className="button-row command-history-actions">
+            <label className="command-history-filter">
+              Command history parser
+              <select
+                value={commandHistoryParserModeFilter}
+                onChange={(event) => setCommandHistoryParserModeFilter(event.target.value)}
+                disabled={isBusy}
+              >
+                <option value="all">all</option>
+                <option value="rule_based">rule_based</option>
+                <option value="llm_mock">llm_mock</option>
+                <option value="real_llm">real_llm</option>
+              </select>
+            </label>
+
             <button
               className="secondary-button"
               onClick={handleLoadCommandLogs}
@@ -3637,9 +3668,15 @@ uvicorn app.main:app --reload`}</pre>
             </div>
           )}
 
-          {commandLogs.length > 0 && (
+          {hasLoadedCommandLogs && (
             <div className="command-history">
               <h3>Recent Command History</h3>
+
+              {commandLogs.length === 0 && (
+                <p className="empty-state">
+                  No command logs found for the selected parser filter. Run a command with this parser mode, then load command history again.
+                </p>
+              )}
 
               {commandLogs.map((log, index) => (
                 <div className="command-log-item" key={`${log.timestamp}-${index}`}>

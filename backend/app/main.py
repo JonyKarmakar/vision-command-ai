@@ -697,7 +697,7 @@ def save_command_log_to_database(log_entry: dict):
     return True
 
 
-def get_database_command_logs(limit: int = 20):
+def get_database_command_logs(limit: int = 20, parser_mode=None):
     import psycopg
 
     database_url = get_database_url()
@@ -713,8 +713,18 @@ def get_database_command_logs(limit: int = 20):
 
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
+            query_params = []
+
+            parser_filter_clause = ""
+
+            if parser_mode:
+                parser_filter_clause = "WHERE parser_mode = %s"
+                query_params.append(parser_mode)
+
+            query_params.append(limit)
+
             cursor.execute(
-                """
+                f"""
                 SELECT
                     timestamp,
                     filename,
@@ -727,10 +737,11 @@ def get_database_command_logs(limit: int = 20):
                     parser_type,
                     parser_version
                 FROM command_logs
+                {parser_filter_clause}
                 ORDER BY id DESC
                 LIMIT %s;
                 """,
-                (limit,),
+                tuple(query_params),
             )
             rows = cursor.fetchall()
 
@@ -1289,8 +1300,22 @@ def database_health_check():
 
 
 @app.get("/db/command-logs")
-def get_postgres_command_logs(limit: int = Query(20, ge=1, le=100)):
-    return get_database_command_logs(limit)
+def get_postgres_command_logs(
+    limit: int = Query(20, ge=1, le=100),
+    parser_mode: Optional[str] = Query(None),
+):
+    supported_parser_modes = {"rule_based", "llm_mock", "real_llm"}
+
+    if parser_mode == "all":
+        parser_mode = None
+
+    if parser_mode and parser_mode not in supported_parser_modes:
+        raise HTTPException(
+            status_code=400,
+            detail="Supported parser modes are: rule_based, llm_mock, real_llm",
+        )
+
+    return get_database_command_logs(limit, parser_mode=parser_mode)
 
 
 
