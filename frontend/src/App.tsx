@@ -343,6 +343,7 @@ type LLMOpsDashboardResponse = {
   provider_status: LLMProviderStatusResponse
   parser_attempt_summary: DatabaseParserAttemptSummaryResponse
   recent_parser_attempt_logs: DatabaseParserAttemptLogsResponse
+  command_log_summary: CommandLogSummaryResponse
   parser_evaluation: ParserEvaluationSummaryResponse
 }
 
@@ -2029,11 +2030,12 @@ function App() {
       setLlmProviderStatusResult(data.provider_status)
       setDatabaseParserAttemptSummaryResult(data.parser_attempt_summary)
       setDatabaseParserAttemptLogsResult(data.recent_parser_attempt_logs)
+      setCommandLogSummary(data.command_log_summary)
       setLlmOpsParserEvaluationResult(data.parser_evaluation)
       setLlmOpsDashboardLoaded(true)
 
       setStatusMessage(
-        `Loaded LLMOps dashboard: ${data.parser_attempt_summary.total_attempts} parser attempt(s), provider ${data.provider_status.provider_name}.`
+        `Loaded LLMOps dashboard: ${data.parser_attempt_summary.total_attempts} parser attempt(s), ${data.command_log_summary.total_commands} command(s), provider ${data.provider_status.provider_name}.`
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -3242,6 +3244,59 @@ uvicorn app.main:app --reload`}</pre>
           {llmOpsDashboardLoaded && (
             <div className="llmops-dashboard-panel">
               <h3>LLMOps Dashboard</h3>
+
+              {commandLogSummary && (
+                <div className="llmops-command-summary">
+                  <h4>Command Execution Summary</h4>
+
+                  <div className="summary-grid">
+                    <div className="summary-card">
+                      <span>Total commands</span>
+                      <strong>{commandLogSummary.total_commands}</strong>
+                    </div>
+
+                    <div className="summary-card">
+                      <span>Parser modes used</span>
+                      <strong>{commandLogSummary.by_parser_mode.length}</strong>
+                    </div>
+
+                    <div className="summary-card">
+                      <span>Result types</span>
+                      <strong>{commandLogSummary.by_result_type.length}</strong>
+                    </div>
+                  </div>
+
+                  <div className="summary-columns">
+                    <div>
+                      <h5>By parser mode</h5>
+                      {commandLogSummary.by_parser_mode.map((item) => (
+                        <p key={item.name}>
+                          <strong>{item.name}</strong>: {item.count}
+                        </p>
+                      ))}
+                    </div>
+
+                    <div>
+                      <h5>By result type</h5>
+                      {commandLogSummary.by_result_type.map((item) => (
+                        <p key={item.name}>
+                          <strong>{item.name}</strong>: {item.count}
+                        </p>
+                      ))}
+                    </div>
+
+                    <div>
+                      <h5>By parsed action</h5>
+                      {commandLogSummary.by_parsed_action.map((item) => (
+                        <p key={item.name}>
+                          <strong>{item.name}</strong>: {item.count}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
 
               <div className="llmops-dashboard-grid">
                 <div>
