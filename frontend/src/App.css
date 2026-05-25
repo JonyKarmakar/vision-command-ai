@@ -2171,3 +2171,28 @@ input[type="file"]::file-selector-button:hover {
 .legacy-metadata-note code {
   color: #fbbf24;
 }
+
+.real-llm-warning {
+  margin-top: 0.85rem;
+  border: 1px solid #f59e0b;
+  border-radius: 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(245, 158, 11, 0.08);
+  color: #f8fafc;
+  text-align: left;
+}
+
+.real-llm-warning strong {
+  display: block;
+  color: #fbbf24;
+  margin-bottom: 0.35rem;
+}
+
+.real-llm-warning p {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.real-llm-warning code {
+  color: #fbbf24;
+}
