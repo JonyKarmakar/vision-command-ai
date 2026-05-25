@@ -2217,6 +2217,9 @@ function App() {
     llmProviderStatusResult !== null &&
     !llmProviderStatusResult.real_llm_available
 
+  const isRealLlmActionBlocked =
+    isRealLlmProviderStatusUnknown || isRealLlmUnavailable
+
   const uploadedImageUrl = uploadResult ? `/api${uploadResult.file_url}` : null
 
   const uploadedVideoUrl = videoUploadResult ? `/api${videoUploadResult.file_url}` : null
@@ -2934,7 +2937,7 @@ function App() {
             <button
               className="secondary-button"
               onClick={handleParseCommand}
-              disabled={isBusy || !commandText.trim()}
+              disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}
             >
               {isParsingCommand ? 'Parsing...' : 'Parse Command'}
             </button>
@@ -2947,7 +2950,7 @@ function App() {
               {isLoadingPromptPreview ? 'Loading prompt...' : 'Preview LLM Prompt'}
             </button>
 
-            <button onClick={handleCommand} disabled={isBusy || !commandText.trim()}>
+            <button onClick={handleCommand} disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}>
               {isRunningCommand ? 'Running...' : 'Run Command'}
             </button>
 
@@ -2959,6 +2962,15 @@ function App() {
               {isListening ? 'Listening...' : 'Voice Command'}
             </button>
           </div>
+
+          {isRealLlmActionBlocked && (
+            <div className="real-llm-warning">
+              <strong>Real LLM actions are disabled</strong>
+              <p>
+                Load provider status first. If no provider is available, use <code>rule_based</code> or <code>llm_mock</code>, or configure Ollama/OpenAI.
+              </p>
+            </div>
+          )}
 
           <div className="button-row command-history-actions">
             <label className="command-history-filter">
@@ -2994,7 +3006,7 @@ function App() {
             <button
               className="secondary-button"
               onClick={handleLoadCommandEvaluation}
-              disabled={isBusy}
+              disabled={isBusy || isRealLlmActionBlocked}
             >
               {isLoadingCommandEvaluation ? 'Loading evaluation...' : 'Load Parser Evaluation'}
             </button>
