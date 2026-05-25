@@ -1513,3 +1513,141 @@ In the frontend LLMOps dashboard section:
 4. If no real provider is configured, the dashboard shows `Skipped parser evaluations`.
 
 This keeps the dashboard safe by default while still allowing local real LLM evaluation when needed.
+
+---
+
+## LLMOps Command Execution and Monitoring
+
+VisionCommand AI supports parser-aware command execution and LLMOps monitoring.
+
+The command system supports three parser modes:
+
+- `rule_based`
+- `llm_mock`
+- `real_llm`
+
+The selected parser mode can be used not only for parsing and evaluation, but also for actual command execution.
+
+### Execute a command with a parser mode
+
+Example using the rule-based parser:
+
+    curl -s -X POST "http://127.0.0.1:8000/commands/execute" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "filename": "YOUR_UPLOADED_IMAGE.jpg",
+        "command": "detect objects",
+        "confidence_threshold": 0.25,
+        "parser_mode": "rule_based"
+      }' | python -m json.tool
+
+Example using the mock LLM parser:
+
+    curl -s -X POST "http://127.0.0.1:8000/commands/execute" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "filename": "YOUR_UPLOADED_IMAGE.jpg",
+        "command": "detect objects",
+        "confidence_threshold": 0.25,
+        "parser_mode": "llm_mock"
+      }' | python -m json.tool
+
+Command execution responses include parser metadata:
+
+    {
+      "parser_mode": "llm_mock",
+      "parser_type": "llm_mock",
+      "parser_version": "mock-v1",
+      "parsed_command": {
+        "action": "detect",
+        "class_name": null
+      }
+    }
+
+This makes it possible to trace which parser was used for each command.
+
+### Command logs
+
+Command execution logs include:
+
+- command text
+- selected parser mode
+- parser type
+- parser version
+- parsed action
+- parsed class
+- result type
+- confidence threshold
+
+Load recent command logs:
+
+    curl -s "http://127.0.0.1:8000/db/command-logs?limit=10" | python -m json.tool
+
+Filter command logs by parser mode:
+
+    curl -s "http://127.0.0.1:8000/db/command-logs?limit=10&parser_mode=llm_mock" | python -m json.tool
+
+Supported parser filters:
+
+- `rule_based`
+- `llm_mock`
+- `real_llm`
+
+The frontend also includes a command history parser filter.
+
+### Command history summary
+
+Command history can be summarized by parser mode, result type, and parsed action.
+
+    curl -s "http://127.0.0.1:8000/db/command-log-summary" | python -m json.tool
+
+The response includes:
+
+    {
+      "total_commands": 0,
+      "by_parser_mode": [],
+      "by_result_type": [],
+      "by_parsed_action": []
+    }
+
+This helps track how the system is actually being used.
+
+### LLMOps dashboard
+
+The LLMOps dashboard combines parser monitoring and command execution monitoring.
+
+    curl -s "http://127.0.0.1:8000/llmops/dashboard" | python -m json.tool
+
+The dashboard includes:
+
+- LLM provider status
+- parser attempt summary
+- recent parser attempt logs
+- parser evaluation quality
+- command execution summary
+- command counts by parser mode
+- command counts by result type
+- command counts by parsed action
+
+You can also request real LLM parser evaluation inside the dashboard:
+
+    curl -s "http://127.0.0.1:8000/llmops/dashboard?include_real_llm=true" | python -m json.tool
+
+If no real provider is configured, the dashboard reports the real LLM evaluation as skipped.
+
+### Legacy metadata
+
+Older command logs may show:
+
+- `unknown`
+- `llm`
+
+These are historical values from before parser metadata was standardized.
+
+New command execution logs use:
+
+- `rule_based`
+- `llm_mock`
+- `real_llm`
+
+The frontend LLMOps dashboard shows a legacy metadata note when old values are present.
