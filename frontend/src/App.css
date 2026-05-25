@@ -2130,3 +2130,20 @@ input[type="file"]::file-selector-button:hover {
   margin: 0.35rem 0;
   color: #cbd5e1;
 }
+
+.llmops-command-summary {
+  border: 1px solid #334155;
+  border-radius: 1rem;
+  padding: 1rem;
+  background: #111827;
+  margin-bottom: 1rem;
+}
+
+.llmops-command-summary h4 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.llmops-command-summary h5 {
+  margin: 0 0 0.5rem;
+}
