@@ -766,6 +766,24 @@ def log_command_execution(
         pass
 
 
+def build_command_execution_response(
+    request: CommandRequest,
+    parse_result: dict,
+    parsed_command: dict,
+    result_type: str,
+    result,
+):
+    return {
+        "command": request.command,
+        "parser_mode": request.parser_mode,
+        "parser_type": parse_result.get("parser_type"),
+        "parser_version": parse_result.get("parser_version"),
+        "parsed_command": parsed_command,
+        "result_type": result_type,
+        "result": result,
+    }
+
+
 @app.post("/commands/execute")
 def execute_command(request: CommandRequest):
     if request.confidence_threshold < 0 or request.confidence_threshold > 1:
@@ -790,12 +808,13 @@ def execute_command(request: CommandRequest):
         result_type = "annotated_detection"
         log_command_execution(request, parsed_command, result_type)
 
-        return {
-            "command": request.command,
-            "parsed_command": parsed_command,
-            "result_type": result_type,
-            "result": result,
-        }
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result=result,
+        )
 
     if parsed_command["action"] == "crop_by_class":
         class_name = parsed_command["class_name"]
@@ -811,12 +830,13 @@ def execute_command(request: CommandRequest):
         result_type = "crop_by_class"
         log_command_execution(request, parsed_command, result_type)
 
-        return {
-            "command": request.command,
-            "parsed_command": parsed_command,
-            "result_type": result_type,
-            "result": result,
-        }
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result=result,
+        )
 
     if parsed_command["action"] == "blur_by_class":
         class_name = parsed_command["class_name"]
@@ -832,12 +852,13 @@ def execute_command(request: CommandRequest):
         result_type = "blur_by_class"
         log_command_execution(request, parsed_command, result_type)
 
-        return {
-            "command": request.command,
-            "parsed_command": parsed_command,
-            "result_type": result_type,
-            "result": result,
-        }
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result=result,
+        )
 
     if parsed_command["action"] == "blur_all_by_class":
         class_name = parsed_command["class_name"]
@@ -853,12 +874,13 @@ def execute_command(request: CommandRequest):
         result_type = "blur_all_by_class"
         log_command_execution(request, parsed_command, result_type)
 
-        return {
-            "command": request.command,
-            "parsed_command": parsed_command,
-            "result_type": result_type,
-            "result": result,
-        }
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result=result,
+        )
 
     if parsed_command["action"] == "extract_frame":
         result = extract_video_frame(
@@ -871,12 +893,13 @@ def execute_command(request: CommandRequest):
         result_type = "extract_frame"
         log_command_execution(request, parsed_command, result_type)
 
-        return {
-            "command": request.command,
-            "parsed_command": parsed_command,
-            "result_type": result_type,
-            "result": result,
-        }
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result=result,
+        )
 
     if parsed_command["action"] == "detect_frames":
         extracted_frames_result = extract_video_frames(
@@ -904,15 +927,16 @@ def execute_command(request: CommandRequest):
         result_type = "detect_frames"
         log_command_execution(request, parsed_command, result_type)
 
-        return {
-            "command": request.command,
-            "parsed_command": parsed_command,
-            "result_type": result_type,
-            "result": {
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result={
                 "extracted_frames": extracted_frames_result,
                 "detection": detection_result,
             },
-        }
+        )
 
     if parsed_command["action"] == "track_video":
         result = track_sampled_video_objects(
@@ -930,12 +954,13 @@ def execute_command(request: CommandRequest):
         result_type = "track_video"
         log_command_execution(request, parsed_command, result_type)
 
-        return {
-            "command": request.command,
-            "parsed_command": parsed_command,
-            "result_type": result_type,
-            "result": result,
-        }
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result=result,
+        )
 
     if parsed_command["action"] == "trim_video":
         result = trim_uploaded_video(
@@ -949,12 +974,13 @@ def execute_command(request: CommandRequest):
         result_type = "trim_video"
         log_command_execution(request, parsed_command, result_type)
 
-        return {
-            "command": request.command,
-            "parsed_command": parsed_command,
-            "result_type": result_type,
-            "result": result,
-        }
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result=result,
+        )
 
     if parsed_command["action"] == "extract_frames":
         result = extract_video_frames(
@@ -969,12 +995,13 @@ def execute_command(request: CommandRequest):
         result_type = "extract_frames"
         log_command_execution(request, parsed_command, result_type)
 
-        return {
-            "command": request.command,
-            "parsed_command": parsed_command,
-            "result_type": result_type,
-            "result": result,
-        }
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result=result,
+        )
 
     raise HTTPException(
         status_code=400,
