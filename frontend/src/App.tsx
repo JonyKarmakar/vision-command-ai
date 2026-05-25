@@ -2199,6 +2199,14 @@ function App() {
       })
     : []
 
+  const hasLegacyCommandParserMetadata = commandLogSummary
+    ? commandLogSummary.by_parser_mode.some((item) => item.name === 'unknown')
+    : false
+
+  const hasLegacyParserAttemptMode = databaseParserAttemptSummaryResult
+    ? databaseParserAttemptSummaryResult.by_parser_mode.some((item) => item.parser_mode === 'llm')
+    : false
+
   const uploadedImageUrl = uploadResult ? `/api${uploadResult.file_url}` : null
 
   const uploadedVideoUrl = videoUploadResult ? `/api${videoUploadResult.file_url}` : null
@@ -3244,6 +3252,17 @@ uvicorn app.main:app --reload`}</pre>
           {llmOpsDashboardLoaded && (
             <div className="llmops-dashboard-panel">
               <h3>LLMOps Dashboard</h3>
+
+              {(hasLegacyCommandParserMetadata || hasLegacyParserAttemptMode) && (
+                <div className="legacy-metadata-note">
+                  <strong>Legacy metadata note</strong>
+                  <p>
+                    Some older logs may appear as <code>unknown</code> or <code>llm</code>.
+                    These entries were created before parser metadata was fully standardized.
+                    New command executions use <code>rule_based</code>, <code>llm_mock</code>, or <code>real_llm</code>.
+                  </p>
+                </div>
+              )}
 
               {commandLogSummary && (
                 <div className="llmops-command-summary">
