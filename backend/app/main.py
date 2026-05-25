@@ -18,6 +18,7 @@ from app.services.command_validation import validate_parsed_command
 from app.services.command_parser import normalize_requested_class_name, parse_command
 from app.services.database_service import (
     get_database_command_logs,
+    get_database_command_log_summary,
     get_database_detection_results,
     get_database_detection_summary,
     get_database_inference_logs,
@@ -1316,6 +1317,11 @@ def get_postgres_command_logs(
         )
 
     return get_database_command_logs(limit, parser_mode=parser_mode)
+
+
+@app.get("/db/command-log-summary")
+def get_postgres_command_log_summary():
+    return get_database_command_log_summary()
 
 
 

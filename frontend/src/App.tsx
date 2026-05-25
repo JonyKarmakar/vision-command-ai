@@ -393,6 +393,20 @@ type CommandLog = {
   parser_version?: string | null
 }
 
+
+type CommandLogSummaryItem = {
+  name: string
+  count: number
+}
+
+type CommandLogSummaryResponse = {
+  status: string
+  total_commands: number
+  by_parser_mode: CommandLogSummaryItem[]
+  by_result_type: CommandLogSummaryItem[]
+  by_parsed_action: CommandLogSummaryItem[]
+}
+
 type MediaFileLog = {
   original_filename: string
   stored_filename: string
@@ -624,6 +638,8 @@ function App() {
   const [llmOpsParserEvaluationResult, setLlmOpsParserEvaluationResult] = useState<ParserEvaluationSummaryResponse | null>(null)
   const [includeRealLlmEvaluationInDashboard, setIncludeRealLlmEvaluationInDashboard] = useState(false)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
+  const [commandLogSummary, setCommandLogSummary] = useState<CommandLogSummaryResponse | null>(null)
+  const [isLoadingCommandLogSummary, setIsLoadingCommandLogSummary] = useState(false)
   const [hasLoadedCommandLogs, setHasLoadedCommandLogs] = useState(false)
   const [commandHistoryParserModeFilter, setCommandHistoryParserModeFilter] = useState('all')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
@@ -1592,6 +1608,32 @@ function App() {
       setIsLoadingLogs(false)
     }
   }
+
+
+  const handleLoadCommandLogSummary = async () => {
+    try {
+      setIsLoadingCommandLogSummary(true)
+      setError(null)
+      setStatusMessage('Loading command history summary...')
+
+      const response = await fetch('/api/db/command-log-summary')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load command history summary')
+      }
+
+      const data: CommandLogSummaryResponse = await response.json()
+      setCommandLogSummary(data)
+      setStatusMessage(`Loaded command history summary with ${data.total_commands} command(s).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load command history summary.')
+    } finally {
+      setIsLoadingCommandLogSummary(false)
+    }
+  }
+
 
   const handleLoadPromptPreview = async () => {
     if (!commandText.trim()) {
@@ -2904,6 +2946,14 @@ function App() {
 
             <button
               className="secondary-button"
+              onClick={handleLoadCommandLogSummary}
+              disabled={isBusy || isLoadingCommandLogSummary}
+            >
+              {isLoadingCommandLogSummary ? 'Loading summary...' : 'Load Command Summary'}
+            </button>
+
+            <button
+              className="secondary-button"
               onClick={handleLoadCommandEvaluation}
               disabled={isBusy}
             >
@@ -3664,6 +3714,58 @@ uvicorn app.main:app --reload`}</pre>
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {commandLogSummary && (
+            <div className="command-history-summary">
+              <h3>Command History Summary</h3>
+
+              <div className="summary-grid">
+                <div className="summary-card">
+                  <span>Total commands</span>
+                  <strong>{commandLogSummary.total_commands}</strong>
+                </div>
+
+                <div className="summary-card">
+                  <span>Parser modes</span>
+                  <strong>{commandLogSummary.by_parser_mode.length}</strong>
+                </div>
+
+                <div className="summary-card">
+                  <span>Result types</span>
+                  <strong>{commandLogSummary.by_result_type.length}</strong>
+                </div>
+              </div>
+
+              <div className="summary-columns">
+                <div>
+                  <h4>By parser mode</h4>
+                  {commandLogSummary.by_parser_mode.map((item) => (
+                    <p key={item.name}>
+                      <strong>{item.name}</strong>: {item.count}
+                    </p>
+                  ))}
+                </div>
+
+                <div>
+                  <h4>By result type</h4>
+                  {commandLogSummary.by_result_type.map((item) => (
+                    <p key={item.name}>
+                      <strong>{item.name}</strong>: {item.count}
+                    </p>
+                  ))}
+                </div>
+
+                <div>
+                  <h4>By parsed action</h4>
+                  {commandLogSummary.by_parsed_action.map((item) => (
+                    <p key={item.name}>
+                      <strong>{item.name}</strong>: {item.count}
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           )}

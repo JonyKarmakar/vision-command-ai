@@ -285,6 +285,91 @@ def get_database_command_logs(limit: int = 20, parser_mode=None):
     }
 
 
+
+def get_database_command_log_summary():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "total_commands": 0,
+            "by_parser_mode": [],
+            "by_result_type": [],
+            "by_parsed_action": [],
+        }
+
+    initialize_command_logs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM command_logs;")
+            total_commands = cursor.fetchone()[0]
+
+            cursor.execute(
+                """
+                SELECT
+                    COALESCE(parser_mode, 'unknown') AS parser_mode,
+                    COUNT(*) AS command_count
+                FROM command_logs
+                GROUP BY COALESCE(parser_mode, 'unknown')
+                ORDER BY command_count DESC, parser_mode ASC;
+                """
+            )
+            parser_mode_rows = cursor.fetchall()
+
+            cursor.execute(
+                """
+                SELECT
+                    result_type,
+                    COUNT(*) AS command_count
+                FROM command_logs
+                GROUP BY result_type
+                ORDER BY command_count DESC, result_type ASC;
+                """
+            )
+            result_type_rows = cursor.fetchall()
+
+            cursor.execute(
+                """
+                SELECT
+                    parsed_action,
+                    COUNT(*) AS command_count
+                FROM command_logs
+                GROUP BY parsed_action
+                ORDER BY command_count DESC, parsed_action ASC;
+                """
+            )
+            parsed_action_rows = cursor.fetchall()
+
+    return {
+        "status": "healthy",
+        "total_commands": total_commands,
+        "by_parser_mode": [
+            {
+                "name": row[0],
+                "count": row[1],
+            }
+            for row in parser_mode_rows
+        ],
+        "by_result_type": [
+            {
+                "name": row[0],
+                "count": row[1],
+            }
+            for row in result_type_rows
+        ],
+        "by_parsed_action": [
+            {
+                "name": row[0],
+                "count": row[1],
+            }
+            for row in parsed_action_rows
+        ],
+    }
+
+
 def initialize_detection_results_table():
     import psycopg
 
