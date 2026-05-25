@@ -2207,6 +2207,16 @@ function App() {
     ? databaseParserAttemptSummaryResult.by_parser_mode.some((item) => item.parser_mode === 'llm')
     : false
 
+  const isRealLlmSelected = selectedParserMode === 'real_llm'
+
+  const isRealLlmProviderStatusUnknown =
+    isRealLlmSelected && !llmProviderStatusResult
+
+  const isRealLlmUnavailable =
+    isRealLlmSelected &&
+    llmProviderStatusResult !== null &&
+    !llmProviderStatusResult.real_llm_available
+
   const uploadedImageUrl = uploadResult ? `/api${uploadResult.file_url}` : null
 
   const uploadedVideoUrl = videoUploadResult ? `/api${videoUploadResult.file_url}` : null
@@ -2881,6 +2891,25 @@ function App() {
 
             <p className="small-note">
               `llm_mock` uses the current rule-based parser internally, while `real_llm` uses the configured local Ollama/OpenAI provider.
+              {isRealLlmProviderStatusUnknown && (
+                <div className="real-llm-warning">
+                  <strong>Real LLM provider status not loaded</strong>
+                  <p>
+                    <code>real_llm</code> is selected. Load LLM provider status or the LLMOps dashboard to check whether Ollama/OpenAI is available.
+                  </p>
+                </div>
+              )}
+
+              {isRealLlmUnavailable && (
+                <div className="real-llm-warning">
+                  <strong>Real LLM unavailable</strong>
+                  <p>
+                    <code>real_llm</code> is selected, but no configured Ollama/OpenAI provider is currently available.
+                    Use <code>rule_based</code> or <code>llm_mock</code>, or configure a real LLM provider.
+                  </p>
+                </div>
+              )}
+
               {selectedParserMode === 'real_llm' && (
                 <span className="parser-mode-warning">
                   Real LLM evaluation requires a configured provider. Use local Ollama setup or OpenAI before evaluating this mode.
