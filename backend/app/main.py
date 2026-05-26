@@ -1320,8 +1320,21 @@ def get_postgres_command_logs(
 
 
 @app.get("/db/command-log-summary")
-def get_postgres_command_log_summary():
-    return get_database_command_log_summary()
+def get_postgres_command_log_summary(
+    parser_mode: Optional[str] = Query(None),
+):
+    supported_parser_modes = {"rule_based", "llm_mock", "real_llm"}
+
+    if parser_mode == "all":
+        parser_mode = None
+
+    if parser_mode and parser_mode not in supported_parser_modes:
+        raise HTTPException(
+            status_code=400,
+            detail="Supported parser modes are: rule_based, llm_mock, real_llm",
+        )
+
+    return get_database_command_log_summary(parser_mode=parser_mode)
 
 
 @app.get("/db/command-logs/export")
