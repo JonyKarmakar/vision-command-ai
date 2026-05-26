@@ -9,9 +9,10 @@ client = TestClient(main.app)
 def test_command_logs_endpoint_passes_parser_mode_filter(monkeypatch):
     captured = {}
 
-    def fake_get_database_command_logs(limit: int = 20, parser_mode=None):
+    def fake_get_database_command_logs(limit: int = 20, parser_mode=None, result_type=None):
         captured["limit"] = limit
         captured["parser_mode"] = parser_mode
+        assert result_type is None
 
         return {
             "status": "healthy",
@@ -31,7 +32,7 @@ def test_command_logs_endpoint_passes_parser_mode_filter(monkeypatch):
 def test_command_logs_endpoint_treats_all_parser_mode_as_no_filter(monkeypatch):
     captured = {}
 
-    def fake_get_database_command_logs(limit: int = 20, parser_mode=None):
+    def fake_get_database_command_logs(limit: int = 20, parser_mode=None, result_type=None):
         captured["parser_mode"] = parser_mode
 
         return {

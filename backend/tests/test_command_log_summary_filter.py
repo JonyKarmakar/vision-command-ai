@@ -7,7 +7,7 @@ client = TestClient(main.app)
 
 
 def test_command_log_summary_passes_parser_filter(monkeypatch):
-    def fake_get_database_command_log_summary(parser_mode=None):
+    def fake_get_database_command_log_summary(parser_mode=None, result_type=None):
         assert parser_mode == "llm_mock"
         return {
             "status": "healthy",
@@ -30,7 +30,7 @@ def test_command_log_summary_passes_parser_filter(monkeypatch):
 
 
 def test_command_log_summary_all_parser_filter_becomes_none(monkeypatch):
-    def fake_get_database_command_log_summary(parser_mode=None):
+    def fake_get_database_command_log_summary(parser_mode=None, result_type=None):
         assert parser_mode is None
         return {
             "status": "healthy",
