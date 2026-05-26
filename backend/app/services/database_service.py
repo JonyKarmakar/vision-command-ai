@@ -214,7 +214,7 @@ def save_command_log_to_database(log_entry: dict):
     return True
 
 
-def get_database_command_logs(limit: int = 20, parser_mode=None):
+def get_database_command_logs(limit: int = 20, parser_mode=None, result_type=None):
     import psycopg
 
     database_url = get_database_url()
@@ -231,12 +231,17 @@ def get_database_command_logs(limit: int = 20, parser_mode=None):
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
             query_params = []
-
-            parser_filter_clause = ""
+            where_clauses = []
 
             if parser_mode:
-                parser_filter_clause = "WHERE parser_mode = %s"
+                where_clauses.append("parser_mode = %s")
                 query_params.append(parser_mode)
+
+            if result_type:
+                where_clauses.append("result_type = %s")
+                query_params.append(result_type)
+
+            filter_clause = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
             query_params.append(limit)
 
@@ -254,7 +259,7 @@ def get_database_command_logs(limit: int = 20, parser_mode=None):
                     parser_type,
                     parser_version
                 FROM command_logs
-                {parser_filter_clause}
+                {filter_clause}
                 ORDER BY id DESC
                 LIMIT %s;
                 """,
@@ -286,7 +291,7 @@ def get_database_command_logs(limit: int = 20, parser_mode=None):
 
 
 
-def get_database_command_log_summary(parser_mode=None):
+def get_database_command_log_summary(parser_mode=None, result_type=None):
     import psycopg
 
     database_url = get_database_url()
@@ -308,6 +313,10 @@ def get_database_command_log_summary(parser_mode=None):
     if parser_mode:
         where_clauses.append("parser_mode = %s")
         params.append(parser_mode)
+
+    if result_type:
+        where_clauses.append("result_type = %s")
+        params.append(result_type)
 
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 

@@ -698,7 +698,7 @@ def save_command_log_to_database(log_entry: dict):
     return True
 
 
-def get_database_command_logs(limit: int = 20, parser_mode=None):
+def get_database_command_logs(limit: int = 20, parser_mode=None, result_type=None):
     import psycopg
 
     database_url = get_database_url()
@@ -715,12 +715,17 @@ def get_database_command_logs(limit: int = 20, parser_mode=None):
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
             query_params = []
-
-            parser_filter_clause = ""
+            where_clauses = []
 
             if parser_mode:
-                parser_filter_clause = "WHERE parser_mode = %s"
+                where_clauses.append("parser_mode = %s")
                 query_params.append(parser_mode)
+
+            if result_type:
+                where_clauses.append("result_type = %s")
+                query_params.append(result_type)
+
+            filter_clause = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
             query_params.append(limit)
 
@@ -738,7 +743,7 @@ def get_database_command_logs(limit: int = 20, parser_mode=None):
                     parser_type,
                     parser_version
                 FROM command_logs
-                {parser_filter_clause}
+                {filter_clause}
                 ORDER BY id DESC
                 LIMIT %s;
                 """,
@@ -1300,15 +1305,27 @@ def database_health_check():
 
 
 
-@app.get("/db/command-logs")
-def get_postgres_command_logs(
-    limit: int = Query(20, ge=1, le=100),
-    parser_mode: Optional[str] = Query(None),
-):
+SUPPORTED_COMMAND_RESULT_TYPES = {
+    "annotated_detection",
+    "crop_by_class",
+    "blur_by_class",
+    "blur_all_by_class",
+    "extract_frame",
+    "extract_frames",
+    "detect_frames",
+    "track_video",
+    "trim_video",
+}
+
+
+def normalize_command_log_filters(parser_mode=None, result_type=None):
     supported_parser_modes = {"rule_based", "llm_mock", "real_llm"}
 
     if parser_mode == "all":
         parser_mode = None
+
+    if result_type == "all":
+        result_type = None
 
     if parser_mode and parser_mode not in supported_parser_modes:
         raise HTTPException(
@@ -1316,49 +1333,70 @@ def get_postgres_command_logs(
             detail="Supported parser modes are: rule_based, llm_mock, real_llm",
         )
 
-    return get_database_command_logs(limit, parser_mode=parser_mode)
+    if result_type and result_type not in SUPPORTED_COMMAND_RESULT_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Supported result types are: annotated_detection, crop_by_class, blur_by_class, blur_all_by_class, extract_frame, extract_frames, detect_frames, track_video, trim_video",
+        )
+
+    return parser_mode, result_type
+
+
+@app.get("/db/command-logs")
+def get_postgres_command_logs(
+    limit: int = Query(20, ge=1, le=100),
+    parser_mode: Optional[str] = Query(None),
+    result_type: Optional[str] = Query(None),
+):
+    parser_mode, result_type = normalize_command_log_filters(
+        parser_mode=parser_mode,
+        result_type=result_type,
+    )
+
+    return get_database_command_logs(
+        limit,
+        parser_mode=parser_mode,
+        result_type=result_type,
+    )
 
 
 @app.get("/db/command-log-summary")
 def get_postgres_command_log_summary(
     parser_mode: Optional[str] = Query(None),
+    result_type: Optional[str] = Query(None),
 ):
-    supported_parser_modes = {"rule_based", "llm_mock", "real_llm"}
+    parser_mode, result_type = normalize_command_log_filters(
+        parser_mode=parser_mode,
+        result_type=result_type,
+    )
 
-    if parser_mode == "all":
-        parser_mode = None
-
-    if parser_mode and parser_mode not in supported_parser_modes:
-        raise HTTPException(
-            status_code=400,
-            detail="Supported parser modes are: rule_based, llm_mock, real_llm",
-        )
-
-    return get_database_command_log_summary(parser_mode=parser_mode)
+    return get_database_command_log_summary(
+        parser_mode=parser_mode,
+        result_type=result_type,
+    )
 
 
 @app.get("/db/command-logs/export")
 def export_postgres_command_logs(
     limit: int = Query(100, ge=1, le=500),
     parser_mode: Optional[str] = Query(None),
+    result_type: Optional[str] = Query(None),
 ):
     import csv
     import io
 
     from fastapi.responses import Response
 
-    supported_parser_modes = {"rule_based", "llm_mock", "real_llm"}
+    parser_mode, result_type = normalize_command_log_filters(
+        parser_mode=parser_mode,
+        result_type=result_type,
+    )
 
-    if parser_mode == "all":
-        parser_mode = None
-
-    if parser_mode and parser_mode not in supported_parser_modes:
-        raise HTTPException(
-            status_code=400,
-            detail="Supported parser modes are: rule_based, llm_mock, real_llm",
-        )
-
-    result = get_database_command_logs(limit=limit, parser_mode=parser_mode)
+    result = get_database_command_logs(
+        limit=limit,
+        parser_mode=parser_mode,
+        result_type=result_type,
+    )
 
     output = io.StringIO()
 

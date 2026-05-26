@@ -644,6 +644,7 @@ function App() {
   const [isLoadingCommandLogSummary, setIsLoadingCommandLogSummary] = useState(false)
   const [hasLoadedCommandLogs, setHasLoadedCommandLogs] = useState(false)
   const [commandHistoryParserModeFilter, setCommandHistoryParserModeFilter] = useState('all')
+  const [commandHistoryResultTypeFilter, setCommandHistoryResultTypeFilter] = useState('all')
   const [commandHistoryLimit, setCommandHistoryLimit] = useState('10')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
@@ -1586,6 +1587,10 @@ function App() {
         queryParams.set('parser_mode', commandHistoryParserModeFilter)
       }
 
+      if (commandHistoryResultTypeFilter !== 'all') {
+        queryParams.set('result_type', commandHistoryResultTypeFilter)
+      }
+
       const response = await fetch(`/api/db/command-logs?${queryParams.toString()}`)
 
       if (!response.ok) {
@@ -1625,6 +1630,10 @@ function App() {
         queryParams.set('parser_mode', commandHistoryParserModeFilter)
       }
 
+      if (commandHistoryResultTypeFilter !== 'all') {
+        queryParams.set('result_type', commandHistoryResultTypeFilter)
+      }
+
       const response = await fetch(`/api/db/command-logs/export?${queryParams.toString()}`)
 
       if (!response.ok) {
@@ -1644,7 +1653,9 @@ function App() {
 
       window.URL.revokeObjectURL(downloadUrl)
 
-      setStatusMessage(`Exported ${commandHistoryLimit} command history row(s) as CSV.`)
+      setStatusMessage(
+        `Exported ${commandHistoryLimit} command history row(s) as CSV with parser=${commandHistoryParserModeFilter}, result=${commandHistoryResultTypeFilter}.`,
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Could not export command history.')
@@ -1661,6 +1672,10 @@ function App() {
 
       if (commandHistoryParserModeFilter !== 'all') {
         queryParams.set('parser_mode', commandHistoryParserModeFilter)
+      }
+
+      if (commandHistoryResultTypeFilter !== 'all') {
+        queryParams.set('result_type', commandHistoryResultTypeFilter)
       }
 
       const queryString = queryParams.toString()
@@ -3114,6 +3129,26 @@ function App() {
                 <option value="rule_based">rule_based</option>
                 <option value="llm_mock">llm_mock</option>
                 <option value="real_llm">real_llm</option>
+              </select>
+            </label>
+
+            <label className="command-history-filter">
+              Command history result type
+              <select
+                value={commandHistoryResultTypeFilter}
+                onChange={(event) => setCommandHistoryResultTypeFilter(event.target.value)}
+                disabled={isBusy}
+              >
+                <option value="all">all</option>
+                <option value="annotated_detection">annotated_detection</option>
+                <option value="crop_by_class">crop_by_class</option>
+                <option value="blur_by_class">blur_by_class</option>
+                <option value="blur_all_by_class">blur_all_by_class</option>
+                <option value="extract_frame">extract_frame</option>
+                <option value="extract_frames">extract_frames</option>
+                <option value="detect_frames">detect_frames</option>
+                <option value="track_video">track_video</option>
+                <option value="trim_video">trim_video</option>
               </select>
             </label>
 

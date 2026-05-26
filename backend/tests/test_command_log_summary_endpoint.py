@@ -10,7 +10,7 @@ def test_command_log_summary_endpoint(monkeypatch):
     monkeypatch.setattr(
         main,
         "get_database_command_log_summary",
-        lambda parser_mode=None: {
+        lambda parser_mode=None, result_type=None: {
             "status": "healthy",
             "total_commands": 3,
             "by_parser_mode": [

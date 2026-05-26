@@ -7,9 +7,10 @@ client = TestClient(main.app)
 
 
 def test_command_logs_export_csv(monkeypatch):
-    def fake_get_database_command_logs(limit=100, parser_mode=None):
+    def fake_get_database_command_logs(limit=100, parser_mode=None, result_type=None):
         assert limit == 100
         assert parser_mode == "llm_mock"
+        assert result_type is None
 
         return {
             "status": "healthy",

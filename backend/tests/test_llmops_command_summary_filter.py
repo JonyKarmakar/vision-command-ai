@@ -9,7 +9,7 @@ client = TestClient(main.app)
 def test_llmops_dashboard_passes_parser_mode_to_command_summary(monkeypatch):
     captured = {}
 
-    def fake_get_database_command_log_summary(parser_mode=None):
+    def fake_get_database_command_log_summary(parser_mode=None, result_type=None):
         captured["parser_mode"] = parser_mode
         return {
             "status": "healthy",
