@@ -2685,7 +2685,7 @@ def get_llmops_dashboard(
             parser_mode=parser_mode,
             success=success,
         ),
-        "command_log_summary": get_database_command_log_summary(),
+        "command_log_summary": get_database_command_log_summary(parser_mode=parser_mode),
         "parser_evaluation": parser_evaluation_summary,
     }
 

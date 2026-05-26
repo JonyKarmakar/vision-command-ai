@@ -10,7 +10,7 @@ def test_llmops_dashboard_includes_command_log_summary(monkeypatch):
     monkeypatch.setattr(
         main,
         "get_database_command_log_summary",
-        lambda: {
+        lambda parser_mode=None: {
             "status": "healthy",
             "total_commands": 2,
             "by_parser_mode": [

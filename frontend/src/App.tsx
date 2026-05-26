@@ -3546,7 +3546,7 @@ uvicorn app.main:app --reload`}</pre>
               </div>
 
               <p className="small-note">
-                <strong>LLMOps active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}, include real LLM evaluation = {includeRealLlmEvaluationInDashboard ? 'yes' : 'no'}
+                <strong>LLMOps active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}, command summary parser filter = {databaseParserLogParserModeFilter}, include real LLM evaluation = {includeRealLlmEvaluationInDashboard ? 'yes' : 'no'}
               </p>
 
               {llmOpsParserEvaluationResult && (
