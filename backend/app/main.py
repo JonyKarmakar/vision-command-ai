@@ -2397,17 +2397,34 @@ def evaluate_text_command_parser(
 
 
 @app.get("/commands/evaluate/compare")
-def compare_text_command_parsers():
+def compare_text_command_parsers(
+    include_real_llm: bool = Query(False),
+):
     parser_modes = ["rule_based", "llm_mock"]
-
     evaluations = [
         evaluate_command_parser(parser_mode)
         for parser_mode in parser_modes
     ]
+    skipped_evaluations = []
+
+    if include_real_llm:
+        parser_modes.append("real_llm")
+        provider_status = get_llm_provider_status()
+
+        if provider_status.get("real_llm_available"):
+            evaluations.append(evaluate_command_parser("real_llm"))
+        else:
+            skipped_evaluations.append(
+                {
+                    "parser_mode": "real_llm",
+                    "reason": "Real LLM provider is not available. Configure Ollama/OpenAI before evaluating real_llm.",
+                }
+            )
 
     return {
         "parser_modes": parser_modes,
         "evaluations": evaluations,
+        "skipped_evaluations": skipped_evaluations,
     }
 
 

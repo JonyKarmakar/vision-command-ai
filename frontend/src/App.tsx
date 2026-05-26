@@ -252,6 +252,7 @@ type CommandEvaluationResponse = {
 type ParserComparisonResponse = {
   parser_modes: string[]
   evaluations: CommandEvaluationResponse[]
+  skipped_evaluations?: SkippedParserEvaluation[]
 }
 
 type CommandPromptPreviewResponse = {
@@ -1749,7 +1750,16 @@ function App() {
       setError(null)
       setStatusMessage('Loading parser comparison...')
 
-      const response = await fetch('/api/commands/evaluate/compare')
+      const queryParams = new URLSearchParams()
+
+      if (includeRealLlmEvaluationInDashboard) {
+        queryParams.set('include_real_llm', 'true')
+      }
+
+      const queryString = queryParams.toString()
+      const response = await fetch(
+        `/api/commands/evaluate/compare${queryString ? `?${queryString}` : ''}`,
+      )
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -1758,7 +1768,9 @@ function App() {
 
       const data: ParserComparisonResponse = await response.json()
       setParserComparisonResult(data)
-      setStatusMessage(`Loaded parser comparison for ${data.parser_modes.length} parser modes.`)
+      setStatusMessage(
+        `Loaded parser comparison for ${data.parser_modes.length} parser mode(s).`,
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Could not load parser comparison.')
@@ -3823,6 +3835,19 @@ uvicorn app.main:app --reload`}</pre>
                     <p><strong>Accuracy:</strong> {(evaluation.accuracy * 100).toFixed(1)}%</p>
                   </div>
                 ))}
+              {parserComparisonResult.skipped_evaluations &&
+                parserComparisonResult.skipped_evaluations.length > 0 && (
+                  <div className="parser-comparison-skipped">
+                    <h4>Skipped parser modes</h4>
+                    {parserComparisonResult.skipped_evaluations.map((skipped) => (
+                      <div key={skipped.parser_mode} className="parser-comparison-skipped-card">
+                        <strong>{skipped.parser_mode}</strong>
+                        <span>{skipped.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
               </div>
             </div>
           )}
