@@ -286,7 +286,7 @@ def get_database_command_logs(limit: int = 20, parser_mode=None):
 
 
 
-def get_database_command_log_summary():
+def get_database_command_log_summary(parser_mode=None):
     import psycopg
 
     database_url = get_database_url()
@@ -302,44 +302,59 @@ def get_database_command_log_summary():
 
     initialize_command_logs_table()
 
+    where_clauses = []
+    params = []
+
+    if parser_mode:
+        where_clauses.append("parser_mode = %s")
+        params.append(parser_mode)
+
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM command_logs;")
+            cursor.execute(f"SELECT COUNT(*) FROM command_logs {where_sql};", params)
             total_commands = cursor.fetchone()[0]
 
             cursor.execute(
-                """
+                f"""
                 SELECT
                     COALESCE(parser_mode, 'unknown') AS parser_mode,
                     COUNT(*) AS command_count
                 FROM command_logs
+                {where_sql}
                 GROUP BY COALESCE(parser_mode, 'unknown')
                 ORDER BY command_count DESC, parser_mode ASC;
-                """
+                """,
+                params,
             )
             parser_mode_rows = cursor.fetchall()
 
             cursor.execute(
-                """
+                f"""
                 SELECT
                     result_type,
                     COUNT(*) AS command_count
                 FROM command_logs
+                {where_sql}
                 GROUP BY result_type
                 ORDER BY command_count DESC, result_type ASC;
-                """
+                """,
+                params,
             )
             result_type_rows = cursor.fetchall()
 
             cursor.execute(
-                """
+                f"""
                 SELECT
                     parsed_action,
                     COUNT(*) AS command_count
                 FROM command_logs
+                {where_sql}
                 GROUP BY parsed_action
                 ORDER BY command_count DESC, parsed_action ASC;
-                """
+                """,
+                params,
             )
             parsed_action_rows = cursor.fetchall()
 

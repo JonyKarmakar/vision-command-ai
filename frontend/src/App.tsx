@@ -1657,7 +1657,16 @@ function App() {
       setError(null)
       setStatusMessage('Loading command history summary...')
 
-      const response = await fetch('/api/db/command-log-summary')
+      const queryParams = new URLSearchParams()
+
+      if (commandHistoryParserModeFilter !== 'all') {
+        queryParams.set('parser_mode', commandHistoryParserModeFilter)
+      }
+
+      const queryString = queryParams.toString()
+      const response = await fetch(
+        `/api/db/command-log-summary${queryString ? `?${queryString}` : ''}`,
+      )
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -1666,7 +1675,13 @@ function App() {
 
       const data: CommandLogSummaryResponse = await response.json()
       setCommandLogSummary(data)
-      setStatusMessage(`Loaded command history summary with ${data.total_commands} command(s).`)
+      setStatusMessage(
+        `Loaded command history summary with ${data.total_commands} command(s)${
+          commandHistoryParserModeFilter !== 'all'
+            ? ` for ${commandHistoryParserModeFilter}`
+            : ''
+        }.`,
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Could not load command history summary.')
