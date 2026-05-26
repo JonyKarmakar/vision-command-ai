@@ -2247,3 +2247,14 @@ input[type="file"]::file-selector-button:hover {
 .parser-comparison-skipped-card span {
   color: #cbd5e1;
 }
+
+.real-llm-warning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+
+.real-llm-warning-actions .secondary-button {
+  padding: 0.55rem 0.85rem;
+}

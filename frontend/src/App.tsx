@@ -3027,6 +3027,24 @@ function App() {
               <p>
                 Load provider status first. If no provider is available, use <code>rule_based</code> or <code>llm_mock</code>, or configure Ollama/OpenAI.
               </p>
+
+              <div className="real-llm-warning-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setSelectedParserMode('rule_based')}
+                >
+                  Use rule_based
+                </button>
+
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setSelectedParserMode('llm_mock')}
+                >
+                  Use llm_mock
+                </button>
+              </div>
             </div>
           )}
 
