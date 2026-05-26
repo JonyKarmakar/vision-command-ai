@@ -1612,6 +1612,44 @@ function App() {
   }
 
 
+  const handleExportCommandLogs = async () => {
+    try {
+      setError(null)
+      setStatusMessage('Exporting command history as CSV...')
+
+      const queryParams = new URLSearchParams()
+      queryParams.set('limit', '100')
+
+      if (commandHistoryParserModeFilter !== 'all') {
+        queryParams.set('parser_mode', commandHistoryParserModeFilter)
+      }
+
+      const response = await fetch(`/api/db/command-logs/export?${queryParams.toString()}`)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not export command history')
+      }
+
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+
+      link.href = downloadUrl
+      link.download = 'command_logs.csv'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      window.URL.revokeObjectURL(downloadUrl)
+
+      setStatusMessage('Exported command history as CSV.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not export command history.')
+    }
+  }
+
   const handleLoadCommandLogSummary = async () => {
     try {
       setIsLoadingCommandLogSummary(true)
@@ -3069,6 +3107,14 @@ function App() {
               disabled={isBusy}
             >
               {isLoadingLogs ? 'Loading history...' : 'Load Command History'}
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleExportCommandLogs}
+              disabled={isBusy}
+            >
+              Export Command History CSV
             </button>
 
             <button

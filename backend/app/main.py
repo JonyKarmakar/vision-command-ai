@@ -1324,6 +1324,76 @@ def get_postgres_command_log_summary():
     return get_database_command_log_summary()
 
 
+@app.get("/db/command-logs/export")
+def export_postgres_command_logs(
+    limit: int = Query(100, ge=1, le=500),
+    parser_mode: Optional[str] = Query(None),
+):
+    import csv
+    import io
+
+    from fastapi.responses import Response
+
+    supported_parser_modes = {"rule_based", "llm_mock", "real_llm"}
+
+    if parser_mode == "all":
+        parser_mode = None
+
+    if parser_mode and parser_mode not in supported_parser_modes:
+        raise HTTPException(
+            status_code=400,
+            detail="Supported parser modes are: rule_based, llm_mock, real_llm",
+        )
+
+    result = get_database_command_logs(limit=limit, parser_mode=parser_mode)
+
+    output = io.StringIO()
+
+    fieldnames = [
+        "timestamp",
+        "filename",
+        "command",
+        "confidence_threshold",
+        "parsed_action",
+        "parsed_class",
+        "result_type",
+        "parser_mode",
+        "parser_type",
+        "parser_version",
+    ]
+
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+
+    for log in result.get("logs", []):
+        writer.writerow(
+            {
+                "timestamp": log.get("timestamp"),
+                "filename": log.get("filename"),
+                "command": log.get("command"),
+                "confidence_threshold": log.get("confidence_threshold"),
+                "parsed_action": log.get("parsed_action"),
+                "parsed_class": log.get("parsed_class"),
+                "result_type": log.get("result_type"),
+                "parser_mode": log.get("parser_mode"),
+                "parser_type": log.get("parser_type"),
+                "parser_version": log.get("parser_version"),
+            }
+        )
+
+    filename = "command_logs.csv"
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Command-Logs-Status": result.get("status", "unknown"),
+            "X-Command-Logs-Count": str(result.get("count", 0)),
+        },
+    )
+
+
 
 @app.get("/db/media-files")
 def get_postgres_media_files(limit: int = Query(20, ge=1, le=100)):
