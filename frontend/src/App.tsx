@@ -3533,6 +3533,9 @@ uvicorn app.main:app --reload`}</pre>
               {commandLogSummary && (
                 <div className="llmops-command-summary">
                   <h4>Command Execution Summary</h4>
+                  <p className="small-note command-summary-filter-note">
+                    <strong>LLMOps command summary filters:</strong> parser = {databaseParserLogParserModeFilter}
+                  </p>
 
                   <div className="summary-grid">
                     <div className="summary-card">
@@ -4107,6 +4110,9 @@ uvicorn app.main:app --reload`}</pre>
           {commandLogSummary && (
             <div className="command-history-summary">
               <h3>Command History Summary</h3>
+              <p className="small-note command-summary-filter-note">
+                <strong>Command summary filters:</strong> parser = {commandHistoryParserModeFilter}, result type = {commandHistoryResultTypeFilter}
+              </p>
 
               <div className="summary-grid">
                 <div className="summary-card">
