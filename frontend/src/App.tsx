@@ -646,6 +646,7 @@ function App() {
   const [commandHistoryParserModeFilter, setCommandHistoryParserModeFilter] = useState('all')
   const [commandHistoryResultTypeFilter, setCommandHistoryResultTypeFilter] = useState('all')
   const [commandHistoryLimit, setCommandHistoryLimit] = useState('10')
+  const [commandHistoryResetNotice, setCommandHistoryResetNotice] = useState('')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
@@ -1572,6 +1573,17 @@ function App() {
     }
 
     recognition.start()
+  }
+
+  const handleResetCommandHistoryFilters = () => {
+    setCommandHistoryParserModeFilter('all')
+    setCommandHistoryResultTypeFilter('all')
+    setCommandHistoryLimit('10')
+    setCommandLogs([])
+    setCommandLogSummary(null)
+    setHasLoadedCommandLogs(false)
+    setCommandHistoryResetNotice('Command history filters reset.')
+    setStatusMessage('Command history filters reset.')
   }
 
   const handleLoadCommandLogs = async () => {
@@ -3173,6 +3185,24 @@ function App() {
                 <option value="100">100</option>
               </select>
             </label>
+
+            <p className="small-note command-history-active-filters">
+              <strong>Command history filters:</strong> parser = {commandHistoryParserModeFilter}, result type = {commandHistoryResultTypeFilter}, limit = {commandHistoryLimit}
+            </p>
+
+            <button
+              className="secondary-button"
+              onClick={handleResetCommandHistoryFilters}
+              disabled={isBusy}
+            >
+              Reset Command History Filters
+            </button>
+
+            {commandHistoryResetNotice && (
+              <p className="command-history-reset-notice">
+                {commandHistoryResetNotice}
+              </p>
+            )}
 
             <button
               className="secondary-button"
