@@ -644,6 +644,7 @@ function App() {
   const [isLoadingCommandLogSummary, setIsLoadingCommandLogSummary] = useState(false)
   const [hasLoadedCommandLogs, setHasLoadedCommandLogs] = useState(false)
   const [commandHistoryParserModeFilter, setCommandHistoryParserModeFilter] = useState('all')
+  const [commandHistoryLimit, setCommandHistoryLimit] = useState('10')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
@@ -1579,7 +1580,7 @@ function App() {
       setStatusMessage('Loading command history from PostgreSQL...')
 
       const queryParams = new URLSearchParams()
-      queryParams.set('limit', '10')
+      queryParams.set('limit', commandHistoryLimit)
 
       if (commandHistoryParserModeFilter !== 'all') {
         queryParams.set('parser_mode', commandHistoryParserModeFilter)
@@ -1618,7 +1619,7 @@ function App() {
       setStatusMessage('Exporting command history as CSV...')
 
       const queryParams = new URLSearchParams()
-      queryParams.set('limit', '100')
+      queryParams.set('limit', commandHistoryLimit)
 
       if (commandHistoryParserModeFilter !== 'all') {
         queryParams.set('parser_mode', commandHistoryParserModeFilter)
@@ -1643,7 +1644,7 @@ function App() {
 
       window.URL.revokeObjectURL(downloadUrl)
 
-      setStatusMessage('Exported command history as CSV.')
+      setStatusMessage(`Exported ${commandHistoryLimit} command history row(s) as CSV.`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Could not export command history.')
@@ -3098,6 +3099,20 @@ function App() {
                 <option value="rule_based">rule_based</option>
                 <option value="llm_mock">llm_mock</option>
                 <option value="real_llm">real_llm</option>
+              </select>
+            </label>
+
+            <label className="command-history-filter">
+              Command history limit
+              <select
+                value={commandHistoryLimit}
+                onChange={(event) => setCommandHistoryLimit(event.target.value)}
+                disabled={isBusy}
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
               </select>
             </label>
 
