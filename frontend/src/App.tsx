@@ -2304,6 +2304,14 @@ function App() {
   const isRealLlmActionBlocked =
     isRealLlmProviderStatusLoading || isRealLlmProviderStatusUnknown || isRealLlmUnavailable
 
+  const getCommandSummaryBarWidth = (
+    count: number,
+    items: CommandLogSummaryItem[],
+  ) => {
+    const maxCount = Math.max(1, ...items.map((item) => item.count))
+    return `${Math.max(6, Math.round((count / maxCount) * 100))}%`
+  }
+
   const uploadedImageUrl = uploadResult ? `/api${uploadResult.file_url}` : null
 
   const uploadedVideoUrl = videoUploadResult ? `/api${videoUploadResult.file_url}` : null
@@ -3516,29 +3524,62 @@ uvicorn app.main:app --reload`}</pre>
                   <div className="summary-columns">
                     <div>
                       <h5>By parser mode</h5>
-                      {commandLogSummary.by_parser_mode.map((item) => (
-                        <p key={item.name}>
-                          <strong>{item.name}</strong>: {item.count}
-                        </p>
-                      ))}
+                      <div className="summary-bar-list">
+                        {commandLogSummary.by_parser_mode.map((item) => (
+                          <div key={item.name} className="summary-bar-row">
+                            <div className="summary-bar-meta">
+                              <strong>{item.name}</strong>
+                              <span>{item.count}</span>
+                            </div>
+                            <div className="summary-bar-track">
+                              <div
+                                className="summary-bar-fill"
+                                style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_parser_mode) }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <div>
                       <h5>By result type</h5>
-                      {commandLogSummary.by_result_type.map((item) => (
-                        <p key={item.name}>
-                          <strong>{item.name}</strong>: {item.count}
-                        </p>
-                      ))}
+                      <div className="summary-bar-list">
+                        {commandLogSummary.by_result_type.map((item) => (
+                          <div key={item.name} className="summary-bar-row">
+                            <div className="summary-bar-meta">
+                              <strong>{item.name}</strong>
+                              <span>{item.count}</span>
+                            </div>
+                            <div className="summary-bar-track">
+                              <div
+                                className="summary-bar-fill"
+                                style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_result_type) }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <div>
                       <h5>By parsed action</h5>
-                      {commandLogSummary.by_parsed_action.map((item) => (
-                        <p key={item.name}>
-                          <strong>{item.name}</strong>: {item.count}
-                        </p>
-                      ))}
+                      <div className="summary-bar-list">
+                        {commandLogSummary.by_parsed_action.map((item) => (
+                          <div key={item.name} className="summary-bar-row">
+                            <div className="summary-bar-meta">
+                              <strong>{item.name}</strong>
+                              <span>{item.count}</span>
+                            </div>
+                            <div className="summary-bar-track">
+                              <div
+                                className="summary-bar-fill"
+                                style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_parsed_action) }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4057,29 +4098,62 @@ uvicorn app.main:app --reload`}</pre>
               <div className="summary-columns">
                 <div>
                   <h4>By parser mode</h4>
-                  {commandLogSummary.by_parser_mode.map((item) => (
-                    <p key={item.name}>
-                      <strong>{item.name}</strong>: {item.count}
-                    </p>
-                  ))}
+                  <div className="summary-bar-list">
+                    {commandLogSummary.by_parser_mode.map((item) => (
+                      <div key={item.name} className="summary-bar-row">
+                        <div className="summary-bar-meta">
+                          <strong>{item.name}</strong>
+                          <span>{item.count}</span>
+                        </div>
+                        <div className="summary-bar-track">
+                          <div
+                            className="summary-bar-fill"
+                            style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_parser_mode) }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
                   <h4>By result type</h4>
-                  {commandLogSummary.by_result_type.map((item) => (
-                    <p key={item.name}>
-                      <strong>{item.name}</strong>: {item.count}
-                    </p>
-                  ))}
+                  <div className="summary-bar-list">
+                    {commandLogSummary.by_result_type.map((item) => (
+                      <div key={item.name} className="summary-bar-row">
+                        <div className="summary-bar-meta">
+                          <strong>{item.name}</strong>
+                          <span>{item.count}</span>
+                        </div>
+                        <div className="summary-bar-track">
+                          <div
+                            className="summary-bar-fill"
+                            style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_result_type) }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
                   <h4>By parsed action</h4>
-                  {commandLogSummary.by_parsed_action.map((item) => (
-                    <p key={item.name}>
-                      <strong>{item.name}</strong>: {item.count}
-                    </p>
-                  ))}
+                  <div className="summary-bar-list">
+                    {commandLogSummary.by_parsed_action.map((item) => (
+                      <div key={item.name} className="summary-bar-row">
+                        <div className="summary-bar-meta">
+                          <strong>{item.name}</strong>
+                          <span>{item.count}</span>
+                        </div>
+                        <div className="summary-bar-track">
+                          <div
+                            className="summary-bar-fill"
+                            style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_parsed_action) }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
