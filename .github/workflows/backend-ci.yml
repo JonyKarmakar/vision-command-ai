@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - main
+      - "feature/**"
+      - "chore/**"
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   backend-tests:
