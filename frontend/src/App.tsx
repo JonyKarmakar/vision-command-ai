@@ -4200,9 +4200,15 @@ uvicorn app.main:app --reload`}</pre>
               <h3>Recent Command History</h3>
 
               {commandLogs.length === 0 && (
-                <p className="empty-state">
-                  No command logs found for the selected parser filter. Run a command with this parser mode, then load command history again.
-                </p>
+                <div className="empty-state command-history-empty-state">
+                  <strong>No command logs found for the selected filters.</strong>
+                  <p>
+                    Current filters: parser = {commandHistoryParserModeFilter}, result type = {commandHistoryResultTypeFilter}, limit = {commandHistoryLimit}.
+                  </p>
+                  <p>
+                    Try resetting the command history filters, choosing a broader result type, or running a command with the selected parser.
+                  </p>
+                </div>
               )}
 
               {commandLogs.map((log, index) => (
