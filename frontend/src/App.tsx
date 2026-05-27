@@ -1590,6 +1590,7 @@ function App() {
     try {
       setIsLoadingLogs(true)
       setError(null)
+      setCommandHistoryResetNotice('')
       setStatusMessage('Loading command history from PostgreSQL...')
 
       const queryParams = new URLSearchParams()
@@ -1633,6 +1634,7 @@ function App() {
   const handleExportCommandLogs = async () => {
     try {
       setError(null)
+      setCommandHistoryResetNotice('')
       setStatusMessage('Exporting command history as CSV...')
 
       const queryParams = new URLSearchParams()
@@ -1678,6 +1680,7 @@ function App() {
     try {
       setIsLoadingCommandLogSummary(true)
       setError(null)
+      setCommandHistoryResetNotice('')
       setStatusMessage('Loading command history summary...')
 
       const queryParams = new URLSearchParams()
@@ -3142,7 +3145,10 @@ function App() {
               Command history parser
               <select
                 value={commandHistoryParserModeFilter}
-                onChange={(event) => setCommandHistoryParserModeFilter(event.target.value)}
+                onChange={(event) => {
+                  setCommandHistoryParserModeFilter(event.target.value)
+                  setCommandHistoryResetNotice('')
+                }}
                 disabled={isBusy}
               >
                 <option value="all">all</option>
@@ -3156,7 +3162,10 @@ function App() {
               Command history result type
               <select
                 value={commandHistoryResultTypeFilter}
-                onChange={(event) => setCommandHistoryResultTypeFilter(event.target.value)}
+                onChange={(event) => {
+                  setCommandHistoryResultTypeFilter(event.target.value)
+                  setCommandHistoryResetNotice('')
+                }}
                 disabled={isBusy}
               >
                 <option value="all">all</option>
@@ -3176,7 +3185,10 @@ function App() {
               Command history limit
               <select
                 value={commandHistoryLimit}
-                onChange={(event) => setCommandHistoryLimit(event.target.value)}
+                onChange={(event) => {
+                  setCommandHistoryLimit(event.target.value)
+                  setCommandHistoryResetNotice('')
+                }}
                 disabled={isBusy}
               >
                 <option value="10">10</option>
