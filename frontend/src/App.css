@@ -2335,3 +2335,17 @@ input[type="file"]::file-selector-button:hover {
   color: #bfdbfe;
   font-weight: 700;
 }
+
+.command-history-empty-state {
+  display: grid;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.command-history-empty-state strong {
+  color: #f8fafc;
+}
+
+.command-history-empty-state p {
+  margin: 0;
+}
