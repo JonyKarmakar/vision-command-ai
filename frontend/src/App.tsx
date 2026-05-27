@@ -4211,9 +4211,14 @@ uvicorn app.main:app --reload`}</pre>
                     <strong>{log.command}</strong>
                     <p>{new Date(log.timestamp).toLocaleString()}</p>
                   </div>
-                  <div>
+                  <div className="command-log-meta">
                     <span>{log.parsed_action}</span>
                     {log.parsed_class && <span> · {log.parsed_class}</span>}
+                    {log.result_type && (
+                      <span className="command-log-result-type">
+                        result: {log.result_type}
+                      </span>
+                    )}
                     {log.parser_mode && <span> · parser: {log.parser_mode}</span>}
                     {log.parser_version && <span> · {log.parser_version}</span>}
                     <span> · {(log.confidence_threshold * 100).toFixed(0)}%</span>
