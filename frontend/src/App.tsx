@@ -3645,6 +3645,18 @@ uvicorn app.main:app --reload`}</pre>
                     </div>
                   </div>
 
+                  {commandLogSummary.total_commands === 0 && (
+                    <div className="empty-state command-summary-empty-state">
+                      <strong>No LLMOps command summary found for the selected filters.</strong>
+                      <p>
+                        Current filters: parser = {databaseParserLogParserModeFilter}.
+                      </p>
+                      <p>
+                        Try running commands with this parser mode, or choose a broader parser filter.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="summary-columns">
                     <div>
                       <h5>By parser mode</h5>
@@ -4250,6 +4262,18 @@ uvicorn app.main:app --reload`}</pre>
                   <strong>{commandLogSummary.by_result_type.length}</strong>
                 </div>
               </div>
+
+              {commandLogSummary.total_commands === 0 && (
+                <div className="empty-state command-summary-empty-state">
+                  <strong>No command history summary found for the selected filters.</strong>
+                  <p>
+                    Current filters: parser = {commandHistoryParserModeFilter}, result type = {commandHistoryResultTypeFilter}.
+                  </p>
+                  <p>
+                    Try loading command history, running more commands, or choosing broader filters.
+                  </p>
+                </div>
+              )}
 
               <div className="summary-columns">
                 <div>
