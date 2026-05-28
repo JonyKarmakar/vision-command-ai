@@ -2367,3 +2367,17 @@ input[type="file"]::file-selector-button:hover {
   margin: 0.25rem 0 0;
   overflow-wrap: anywhere;
 }
+
+.database-parser-empty-state {
+  display: grid;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.database-parser-empty-state strong {
+  color: #f8fafc;
+}
+
+.database-parser-empty-state p {
+  margin: 0;
+}
