@@ -630,6 +630,8 @@ function App() {
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
   const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
   const [parserAttemptLogsResult, setParserAttemptLogsResult] = useState<ParserAttemptLogsResponse | null>(null)
+  const [localParserAttemptModeFilter, setLocalParserAttemptModeFilter] = useState('all')
+  const [localParserAttemptResultFilter, setLocalParserAttemptResultFilter] = useState('all')
   const [databaseParserAttemptLogsResult, setDatabaseParserAttemptLogsResult] = useState<DatabaseParserAttemptLogsResponse | null>(null)
   const [databaseParserLogParserModeFilter, setDatabaseParserLogParserModeFilter] = useState('all')
   const [databaseParserLogSuccessFilter, setDatabaseParserLogSuccessFilter] = useState('all')
@@ -2344,9 +2346,24 @@ function App() {
       })
     : []
 
+  const filteredLocalParserAttemptLogs = parserAttemptLogsResult
+    ? parserAttemptLogsResult.logs.filter((log) => {
+        const matchesParserMode =
+          localParserAttemptModeFilter === 'all' ||
+          log.parser_mode === localParserAttemptModeFilter
+
+        const matchesResult =
+          localParserAttemptResultFilter === 'all' ||
+          (localParserAttemptResultFilter === 'success' && log.success) ||
+          (localParserAttemptResultFilter === 'failed' && !log.success)
+
+        return matchesParserMode && matchesResult
+      })
+    : []
+
   const localParserAttemptSummary = parserAttemptLogsResult
     ? (() => {
-        const parserModeBreakdown = parserAttemptLogsResult.logs.reduce<
+        const parserModeBreakdown = filteredLocalParserAttemptLogs.reduce<
           Record<string, { total: number; successful: number; failed: number; latencySum: number }>
         >((breakdown, log) => {
           const parserMode = log.parser_mode || 'unknown'
@@ -2373,13 +2390,13 @@ function App() {
         }, {})
 
         return {
-          total: parserAttemptLogsResult.logs.length,
-          successful: parserAttemptLogsResult.logs.filter((log) => log.success).length,
-          failed: parserAttemptLogsResult.logs.filter((log) => !log.success).length,
+          total: filteredLocalParserAttemptLogs.length,
+          successful: filteredLocalParserAttemptLogs.filter((log) => log.success).length,
+          failed: filteredLocalParserAttemptLogs.filter((log) => !log.success).length,
           averageLatencyMs:
-            parserAttemptLogsResult.logs.length > 0
-              ? parserAttemptLogsResult.logs.reduce((sum, log) => sum + log.latency_ms, 0) /
-                parserAttemptLogsResult.logs.length
+            filteredLocalParserAttemptLogs.length > 0
+              ? filteredLocalParserAttemptLogs.reduce((sum, log) => sum + log.latency_ms, 0) /
+                filteredLocalParserAttemptLogs.length
               : 0,
           byParserMode: Object.entries(parserModeBreakdown)
             .map(([parserMode, item]) => ({
@@ -4167,7 +4184,36 @@ uvicorn app.main:app --reload`}</pre>
                 These local parser attempt logs are not affected by Command history filters. Use DB Parser Logs below for filterable PostgreSQL parser logs.
               </p>
 
-              {localParserAttemptSummary && parserAttemptLogsResult.logs.length > 0 && (
+              <div className="local-parser-attempt-filters">
+                <label>
+                  Local parser mode
+                  <select
+                    value={localParserAttemptModeFilter}
+                    onChange={(event) => setLocalParserAttemptModeFilter(event.target.value)}
+                    disabled={isBusy}
+                  >
+                    <option value="all">All</option>
+                    <option value="rule_based">rule_based</option>
+                    <option value="llm_mock">llm_mock</option>
+                    <option value="real_llm">real_llm</option>
+                  </select>
+                </label>
+
+                <label>
+                  Local result
+                  <select
+                    value={localParserAttemptResultFilter}
+                    onChange={(event) => setLocalParserAttemptResultFilter(event.target.value)}
+                    disabled={isBusy}
+                  >
+                    <option value="all">All</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                </label>
+              </div>
+
+              {localParserAttemptSummary && filteredLocalParserAttemptLogs.length > 0 && (
                 <>
                   <div className="local-parser-attempt-summary-grid">
                     <div>
@@ -4204,11 +4250,20 @@ uvicorn app.main:app --reload`}</pre>
                 </>
               )}
 
-              {parserAttemptLogsResult.logs.length === 0 ? (
+              {filteredLocalParserAttemptLogs.length === 0 ? (
                 <div className="empty-state parser-attempt-empty-state">
-                  <strong>No parser attempt logs available yet.</strong>
+                  <strong>
+                    {parserAttemptLogsResult.logs.length === 0
+                      ? 'No parser attempt logs available yet.'
+                      : 'No local parser attempt logs match the selected filters.'}
+                  </strong>
                   <p>
-                    Run Parse Command, Validate Parsed Command, or Parser Evaluation to generate parser attempts.
+                    Current local filters: parser mode = {localParserAttemptModeFilter}, result = {localParserAttemptResultFilter}.
+                  </p>
+                  <p>
+                    {parserAttemptLogsResult.logs.length === 0
+                      ? 'Run Parse Command, Validate Parsed Command, or Parser Evaluation to generate parser attempts.'
+                      : 'Try choosing broader local parser attempt filters.'}
                   </p>
                   <p>
                     PostgreSQL parser logs are available separately through Load DB Parser Logs.
@@ -4216,7 +4271,7 @@ uvicorn app.main:app --reload`}</pre>
                 </div>
               ) : (
                 <div className="parser-attempt-log-list">
-                  {parserAttemptLogsResult.logs.map((log, index) => (
+                  {filteredLocalParserAttemptLogs.map((log, index) => (
                     <div
                       className={`parser-attempt-log-card ${log.success ? 'success' : 'failure'}`}
                       key={`${log.timestamp}-${index}`}
