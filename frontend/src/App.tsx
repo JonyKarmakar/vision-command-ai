@@ -2345,16 +2345,53 @@ function App() {
     : []
 
   const localParserAttemptSummary = parserAttemptLogsResult
-    ? {
-        total: parserAttemptLogsResult.logs.length,
-        successful: parserAttemptLogsResult.logs.filter((log) => log.success).length,
-        failed: parserAttemptLogsResult.logs.filter((log) => !log.success).length,
-        averageLatencyMs:
-          parserAttemptLogsResult.logs.length > 0
-            ? parserAttemptLogsResult.logs.reduce((sum, log) => sum + log.latency_ms, 0) /
-              parserAttemptLogsResult.logs.length
-            : 0,
-      }
+    ? (() => {
+        const parserModeBreakdown = parserAttemptLogsResult.logs.reduce<
+          Record<string, { total: number; successful: number; failed: number; latencySum: number }>
+        >((breakdown, log) => {
+          const parserMode = log.parser_mode || 'unknown'
+
+          if (!breakdown[parserMode]) {
+            breakdown[parserMode] = {
+              total: 0,
+              successful: 0,
+              failed: 0,
+              latencySum: 0,
+            }
+          }
+
+          breakdown[parserMode].total += 1
+          breakdown[parserMode].latencySum += log.latency_ms
+
+          if (log.success) {
+            breakdown[parserMode].successful += 1
+          } else {
+            breakdown[parserMode].failed += 1
+          }
+
+          return breakdown
+        }, {})
+
+        return {
+          total: parserAttemptLogsResult.logs.length,
+          successful: parserAttemptLogsResult.logs.filter((log) => log.success).length,
+          failed: parserAttemptLogsResult.logs.filter((log) => !log.success).length,
+          averageLatencyMs:
+            parserAttemptLogsResult.logs.length > 0
+              ? parserAttemptLogsResult.logs.reduce((sum, log) => sum + log.latency_ms, 0) /
+                parserAttemptLogsResult.logs.length
+              : 0,
+          byParserMode: Object.entries(parserModeBreakdown)
+            .map(([parserMode, item]) => ({
+              parserMode,
+              total: item.total,
+              successful: item.successful,
+              failed: item.failed,
+              averageLatencyMs: item.total > 0 ? item.latencySum / item.total : 0,
+            }))
+            .sort((a, b) => b.total - a.total),
+        }
+      })()
     : null
 
   const hasLegacyCommandParserMetadata = commandLogSummary
@@ -4131,24 +4168,40 @@ uvicorn app.main:app --reload`}</pre>
               </p>
 
               {localParserAttemptSummary && parserAttemptLogsResult.logs.length > 0 && (
-                <div className="local-parser-attempt-summary-grid">
-                  <div>
-                    <span>Total attempts</span>
-                    <strong>{localParserAttemptSummary.total}</strong>
+                <>
+                  <div className="local-parser-attempt-summary-grid">
+                    <div>
+                      <span>Total attempts</span>
+                      <strong>{localParserAttemptSummary.total}</strong>
+                    </div>
+                    <div>
+                      <span>Successful</span>
+                      <strong>{localParserAttemptSummary.successful}</strong>
+                    </div>
+                    <div>
+                      <span>Failed</span>
+                      <strong>{localParserAttemptSummary.failed}</strong>
+                    </div>
+                    <div>
+                      <span>Average latency</span>
+                      <strong>{localParserAttemptSummary.averageLatencyMs.toFixed(2)} ms</strong>
+                    </div>
                   </div>
-                  <div>
-                    <span>Successful</span>
-                    <strong>{localParserAttemptSummary.successful}</strong>
+
+                  <div className="local-parser-attempt-mode-breakdown">
+                    <h4>By parser mode</h4>
+                    <div className="local-parser-attempt-mode-list">
+                      {localParserAttemptSummary.byParserMode.map((item) => (
+                        <div key={item.parserMode} className="local-parser-attempt-mode-card">
+                          <strong>{item.parserMode}</strong>
+                          <span>{item.total} attempt(s)</span>
+                          <span>{item.successful} success / {item.failed} failed</span>
+                          <span>{item.averageLatencyMs.toFixed(2)} ms avg</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <span>Failed</span>
-                    <strong>{localParserAttemptSummary.failed}</strong>
-                  </div>
-                  <div>
-                    <span>Average latency</span>
-                    <strong>{localParserAttemptSummary.averageLatencyMs.toFixed(2)} ms</strong>
-                  </div>
-                </div>
+                </>
               )}
 
               {parserAttemptLogsResult.logs.length === 0 ? (
