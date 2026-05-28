@@ -3931,6 +3931,18 @@ uvicorn app.main:app --reload`}</pre>
                 <strong>Summary active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}
               </p>
 
+              {databaseParserAttemptSummaryResult.total_attempts === 0 && (
+                <div className="empty-state database-parser-summary-empty-state">
+                  <strong>No PostgreSQL parser attempt summary found for the selected filters.</strong>
+                  <p>
+                    Current filters: parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}.
+                  </p>
+                  <p>
+                    Try running parser actions with this parser mode, resetting parser filters, or choosing broader filters.
+                  </p>
+                </div>
+              )}
+
               <div className="database-parser-breakdown-section">
                 <h4>By parser mode</h4>
                 {databaseParserAttemptSummaryResult.by_parser_mode.length === 0 ? (

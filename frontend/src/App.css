@@ -2418,3 +2418,18 @@ input[type="file"]::file-selector-button:hover {
 .command-summary-empty-state p {
   margin: 0;
 }
+
+.database-parser-summary-empty-state {
+  display: grid;
+  gap: 0.4rem;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.database-parser-summary-empty-state strong {
+  color: #f8fafc;
+}
+
+.database-parser-summary-empty-state p {
+  margin: 0;
+}
