@@ -632,6 +632,7 @@ function App() {
   const [parserAttemptLogsResult, setParserAttemptLogsResult] = useState<ParserAttemptLogsResponse | null>(null)
   const [localParserAttemptModeFilter, setLocalParserAttemptModeFilter] = useState('all')
   const [localParserAttemptResultFilter, setLocalParserAttemptResultFilter] = useState('all')
+  const [localParserAttemptResetNotice, setLocalParserAttemptResetNotice] = useState('')
   const [databaseParserAttemptLogsResult, setDatabaseParserAttemptLogsResult] = useState<DatabaseParserAttemptLogsResponse | null>(null)
   const [databaseParserLogParserModeFilter, setDatabaseParserLogParserModeFilter] = useState('all')
   const [databaseParserLogSuccessFilter, setDatabaseParserLogSuccessFilter] = useState('all')
@@ -1926,6 +1927,7 @@ function App() {
     try {
       setIsLoadingParserAttemptLogs(true)
       setError(null)
+      setLocalParserAttemptResetNotice('')
       setStatusMessage('Loading parser attempt logs...')
 
       const response = await fetch('/api/commands/parse/logs?limit=20')
@@ -4189,7 +4191,10 @@ uvicorn app.main:app --reload`}</pre>
                   Local parser mode
                   <select
                     value={localParserAttemptModeFilter}
-                    onChange={(event) => setLocalParserAttemptModeFilter(event.target.value)}
+                    onChange={(event) => {
+                      setLocalParserAttemptModeFilter(event.target.value)
+                      setLocalParserAttemptResetNotice('')
+                    }}
                     disabled={isBusy}
                   >
                     <option value="all">All</option>
@@ -4203,7 +4208,10 @@ uvicorn app.main:app --reload`}</pre>
                   Local result
                   <select
                     value={localParserAttemptResultFilter}
-                    onChange={(event) => setLocalParserAttemptResultFilter(event.target.value)}
+                    onChange={(event) => {
+                      setLocalParserAttemptResultFilter(event.target.value)
+                      setLocalParserAttemptResetNotice('')
+                    }}
                     disabled={isBusy}
                   >
                     <option value="all">All</option>
@@ -4211,7 +4219,25 @@ uvicorn app.main:app --reload`}</pre>
                     <option value="failed">Failed</option>
                   </select>
                 </label>
+
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setLocalParserAttemptModeFilter('all')
+                    setLocalParserAttemptResultFilter('all')
+                    setLocalParserAttemptResetNotice('Local parser attempt filters reset.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Reset Local Parser Filters
+                </button>
               </div>
+
+              {localParserAttemptResetNotice && (
+                <p className="local-parser-attempt-reset-notice">
+                  {localParserAttemptResetNotice}
+                </p>
+              )}
 
               {localParserAttemptSummary && filteredLocalParserAttemptLogs.length > 0 && (
                 <>
