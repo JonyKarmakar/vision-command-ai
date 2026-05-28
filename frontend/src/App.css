@@ -2547,3 +2547,12 @@ input[type="file"]::file-selector-button:hover {
   font-weight: 700;
   margin: 0.25rem 0 0.75rem;
 }
+
+.local-parser-attempt-export-notice {
+  width: 100%;
+  text-align: center;
+  color: #bfdbfe;
+  font-weight: 700;
+  margin: 0.25rem 0 0.75rem;
+  overflow-wrap: anywhere;
+}
