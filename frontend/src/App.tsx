@@ -1659,8 +1659,10 @@ function App() {
       const downloadUrl = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
 
+      const exportFileName = `command_logs_parser-${commandHistoryParserModeFilter}_result-${commandHistoryResultTypeFilter}_limit-${commandHistoryLimit}.csv`
+
       link.href = downloadUrl
-      link.download = 'command_logs.csv'
+      link.download = exportFileName
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -1668,7 +1670,7 @@ function App() {
       window.URL.revokeObjectURL(downloadUrl)
 
       setStatusMessage(
-        `Exported ${commandHistoryLimit} command history row(s) as CSV with parser=${commandHistoryParserModeFilter}, result=${commandHistoryResultTypeFilter}.`,
+        `Exported command history CSV for parser=${commandHistoryParserModeFilter}, result=${commandHistoryResultTypeFilter}, limit=${commandHistoryLimit}.`,
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
