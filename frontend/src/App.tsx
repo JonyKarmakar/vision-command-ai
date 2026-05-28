@@ -3316,7 +3316,7 @@ function App() {
               onClick={handleLoadParserAttemptLogs}
               disabled={isBusy}
             >
-              {isLoadingParserAttemptLogs ? 'Loading logs...' : 'Load Parser Attempt Logs'}
+              {isLoadingParserAttemptLogs ? 'Loading logs...' : 'Load Local Parser Attempt Logs'}
             </button>
 
             <div className="database-parser-log-filters">
@@ -4111,10 +4111,22 @@ uvicorn app.main:app --reload`}</pre>
 
           {parserAttemptLogsResult && (
             <div className="parser-attempt-logs-panel">
-              <h3>Parser Attempt Logs</h3>
+              <h3>Local Parser Attempt Logs</h3>
+
+              <p className="small-note parser-attempt-filter-note">
+                These local parser attempt logs are not affected by Command history filters. Use DB Parser Logs below for filterable PostgreSQL parser logs.
+              </p>
 
               {parserAttemptLogsResult.logs.length === 0 ? (
-                <p className="small-note">No parser attempts logged yet.</p>
+                <div className="empty-state parser-attempt-empty-state">
+                  <strong>No parser attempt logs available yet.</strong>
+                  <p>
+                    Run Parse Command, Validate Parsed Command, or Parser Evaluation to generate parser attempts.
+                  </p>
+                  <p>
+                    PostgreSQL parser logs are available separately through Load DB Parser Logs.
+                  </p>
+                </div>
               ) : (
                 <div className="parser-attempt-log-list">
                   {parserAttemptLogsResult.logs.map((log, index) => (

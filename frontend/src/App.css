@@ -2433,3 +2433,23 @@ input[type="file"]::file-selector-button:hover {
 .database-parser-summary-empty-state p {
   margin: 0;
 }
+
+.parser-attempt-empty-state {
+  display: grid;
+  gap: 0.4rem;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.parser-attempt-empty-state strong {
+  color: #f8fafc;
+}
+
+.parser-attempt-empty-state p {
+  margin: 0;
+}
+
+.parser-attempt-filter-note {
+  text-align: center;
+  margin: 0.25rem 0 1rem;
+}
