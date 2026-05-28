@@ -2389,3 +2389,17 @@ input[type="file"]::file-selector-button:hover {
   font-weight: 700;
   margin: 0.25rem 0 0;
 }
+
+.llmops-empty-state {
+  display: grid;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.llmops-empty-state strong {
+  color: #f8fafc;
+}
+
+.llmops-empty-state p {
+  margin: 0;
+}

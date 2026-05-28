@@ -3745,13 +3745,34 @@ uvicorn app.main:app --reload`}</pre>
               <p className="small-note">
                 <strong>LLMOps active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}, command summary parser filter = {databaseParserLogParserModeFilter}, include real LLM evaluation = {includeRealLlmEvaluationInDashboard ? 'yes' : 'no'}
               </p>
+              {(commandLogSummary?.total_commands ?? 0) === 0 &&
+                (!databaseParserAttemptSummaryResult || databaseParserAttemptSummaryResult.total_attempts === 0) && (
+                  <div className="empty-state llmops-empty-state">
+                    <strong>No LLMOps activity data found for the selected filters.</strong>
+                    <p>
+                      Current filters: parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}, include real LLM evaluation = {includeRealLlmEvaluationInDashboard ? 'yes' : 'no'}.
+                    </p>
+                    <p>
+                      Parser evaluation quality may still appear because it is based on evaluation cases, not recent command or PostgreSQL parser activity.
+                    </p>
+                  </div>
+                )}
+
 
               {llmOpsParserEvaluationResult && (
                 <div className="llmops-parser-evaluation-panel">
                   <h4>Parser Evaluation Quality</h4>
 
                   {llmOpsParserEvaluationResult.evaluations.length === 0 ? (
-                    <p className="small-note">No parser evaluation results available.</p>
+                    <div className="empty-state llmops-empty-state">
+                      <strong>No parser evaluation results available for the selected filters.</strong>
+                      <p>
+                        Current filters: parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, include real LLM evaluation = {includeRealLlmEvaluationInDashboard ? 'yes' : 'no'}.
+                      </p>
+                      <p>
+                        Try running parser evaluation again after generating more parser attempts.
+                      </p>
+                    </div>
                   ) : (
                     <div className="llmops-parser-evaluation-list">
                       {llmOpsParserEvaluationResult.evaluations.map((evaluation) => (
