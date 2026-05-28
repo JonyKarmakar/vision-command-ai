@@ -647,6 +647,7 @@ function App() {
   const [commandHistoryResultTypeFilter, setCommandHistoryResultTypeFilter] = useState('all')
   const [commandHistoryLimit, setCommandHistoryLimit] = useState('10')
   const [commandHistoryResetNotice, setCommandHistoryResetNotice] = useState('')
+  const [commandHistoryExportNotice, setCommandHistoryExportNotice] = useState('')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
@@ -1583,6 +1584,7 @@ function App() {
     setCommandLogSummary(null)
     setHasLoadedCommandLogs(false)
     setCommandHistoryResetNotice('Command history filters reset.')
+    setCommandHistoryExportNotice('')
     setStatusMessage('Command history filters reset.')
   }
 
@@ -1591,6 +1593,7 @@ function App() {
       setIsLoadingLogs(true)
       setError(null)
       setCommandHistoryResetNotice('')
+      setCommandHistoryExportNotice('')
       setStatusMessage('Loading command history from PostgreSQL...')
 
       const queryParams = new URLSearchParams()
@@ -1635,6 +1638,7 @@ function App() {
     try {
       setError(null)
       setCommandHistoryResetNotice('')
+      setCommandHistoryExportNotice('')
       setStatusMessage('Exporting command history as CSV...')
 
       const queryParams = new URLSearchParams()
@@ -1655,6 +1659,7 @@ function App() {
         throw new Error(errorData.detail || 'Could not export command history')
       }
 
+      const exportedRowCount = response.headers.get('X-Command-Logs-Count') ?? commandHistoryLimit
       const blob = await response.blob()
       const downloadUrl = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -1669,9 +1674,10 @@ function App() {
 
       window.URL.revokeObjectURL(downloadUrl)
 
-      setStatusMessage(
-        `Exported command history CSV for parser=${commandHistoryParserModeFilter}, result=${commandHistoryResultTypeFilter}, limit=${commandHistoryLimit}.`,
-      )
+      const exportMessage = `Exported ${exportedRowCount} command history row(s) to ${exportFileName}.`
+
+      setCommandHistoryExportNotice(exportMessage)
+      setStatusMessage(exportMessage)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Could not export command history.')
@@ -1683,6 +1689,7 @@ function App() {
       setIsLoadingCommandLogSummary(true)
       setError(null)
       setCommandHistoryResetNotice('')
+      setCommandHistoryExportNotice('')
       setStatusMessage('Loading command history summary...')
 
       const queryParams = new URLSearchParams()
@@ -3150,6 +3157,7 @@ function App() {
                 onChange={(event) => {
                   setCommandHistoryParserModeFilter(event.target.value)
                   setCommandHistoryResetNotice('')
+                  setCommandHistoryExportNotice('')
                 }}
                 disabled={isBusy}
               >
@@ -3167,6 +3175,7 @@ function App() {
                 onChange={(event) => {
                   setCommandHistoryResultTypeFilter(event.target.value)
                   setCommandHistoryResetNotice('')
+                  setCommandHistoryExportNotice('')
                 }}
                 disabled={isBusy}
               >
@@ -3190,6 +3199,7 @@ function App() {
                 onChange={(event) => {
                   setCommandHistoryLimit(event.target.value)
                   setCommandHistoryResetNotice('')
+                  setCommandHistoryExportNotice('')
                 }}
                 disabled={isBusy}
               >
@@ -3215,6 +3225,12 @@ function App() {
             {commandHistoryResetNotice && (
               <p className="command-history-reset-notice">
                 {commandHistoryResetNotice}
+              </p>
+            )}
+
+            {commandHistoryExportNotice && (
+              <p className="command-history-export-notice">
+                {commandHistoryExportNotice}
               </p>
             )}
 
