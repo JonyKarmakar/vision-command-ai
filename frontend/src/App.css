@@ -2381,3 +2381,11 @@ input[type="file"]::file-selector-button:hover {
 .database-parser-empty-state p {
   margin: 0;
 }
+
+.database-parser-reset-notice {
+  width: 100%;
+  text-align: center;
+  color: #86efac;
+  font-weight: 700;
+  margin: 0.25rem 0 0;
+}

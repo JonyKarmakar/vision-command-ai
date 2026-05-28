@@ -635,6 +635,7 @@ function App() {
   const [databaseParserLogSuccessFilter, setDatabaseParserLogSuccessFilter] = useState('all')
   const [databaseParserLogLimit, setDatabaseParserLogLimit] = useState('10')
   const [databaseParserExportNotice, setDatabaseParserExportNotice] = useState('')
+  const [databaseParserResetNotice, setDatabaseParserResetNotice] = useState('')
   const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
   const [llmOpsDashboardLoaded, setLlmOpsDashboardLoaded] = useState(false)
@@ -1971,6 +1972,13 @@ function App() {
     setDatabaseParserLogParserModeFilter('all')
     setDatabaseParserLogSuccessFilter('all')
     setDatabaseParserLogLimit('10')
+    setDatabaseParserAttemptLogsResult(null)
+    setDatabaseParserAttemptSummaryResult(null)
+    setDatabaseParserExportNotice('')
+    setDatabaseParserResetNotice('')
+    setLlmOpsDashboardLoaded(false)
+    setLlmOpsParserEvaluationResult(null)
+    setDatabaseParserResetNotice('Parser filters reset.')
     setStatusMessage('Parser filters reset.')
   }
 
@@ -1986,6 +1994,7 @@ function App() {
     try {
       setError(null)
       setDatabaseParserExportNotice('')
+      setDatabaseParserResetNotice('')
       setStatusMessage('Exporting PostgreSQL parser attempt logs...')
 
       const queryParams = new URLSearchParams()
@@ -2042,6 +2051,7 @@ function App() {
       setIsLoadingDatabaseParserAttemptLogs(true)
       setError(null)
       setDatabaseParserExportNotice('')
+      setDatabaseParserResetNotice('')
       setStatusMessage('Loading PostgreSQL parser attempt logs...')
 
       const queryParams = new URLSearchParams()
@@ -2085,6 +2095,7 @@ function App() {
       setIsLoadingDatabaseParserAttemptSummary(true)
       setError(null)
       setDatabaseParserExportNotice('')
+      setDatabaseParserResetNotice('')
       setStatusMessage('Loading PostgreSQL parser attempt summary...')
 
       const queryParams = new URLSearchParams()
@@ -3392,6 +3403,12 @@ function App() {
             >
               Export DB Parser Logs
             </button>
+
+            {databaseParserResetNotice && (
+              <p className="database-parser-reset-notice">
+                {databaseParserResetNotice}
+              </p>
+            )}
 
             {databaseParserExportNotice && (
               <p className="database-parser-export-notice">
