@@ -2006,15 +2006,19 @@ function App() {
       const downloadUrl = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
 
+      const exportFileName = `parser_attempt_logs_mode-${databaseParserLogParserModeFilter}_result-${databaseParserLogSuccessFilter}_limit-${databaseParserLogLimit}.csv`
+
       link.href = downloadUrl
-      link.download = 'parser_attempt_logs.csv'
+      link.download = exportFileName
       document.body.appendChild(link)
       link.click()
       link.remove()
 
       window.URL.revokeObjectURL(downloadUrl)
 
-      setStatusMessage('Exported PostgreSQL parser attempt logs as CSV.')
+      setStatusMessage(
+        `Exported PostgreSQL parser attempt logs to ${exportFileName}.`,
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Could not export PostgreSQL parser attempt logs.')
