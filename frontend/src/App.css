@@ -2403,3 +2403,18 @@ input[type="file"]::file-selector-button:hover {
 .llmops-empty-state p {
   margin: 0;
 }
+
+.command-summary-empty-state {
+  display: grid;
+  gap: 0.4rem;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.command-summary-empty-state strong {
+  color: #f8fafc;
+}
+
+.command-summary-empty-state p {
+  margin: 0;
+}
