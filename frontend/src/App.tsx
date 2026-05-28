@@ -1923,6 +1923,70 @@ function App() {
     }
   }
 
+  const handleExportLocalParserAttemptLogs = () => {
+    if (!parserAttemptLogsResult || filteredLocalParserAttemptLogs.length === 0) {
+      setStatusMessage('No local parser attempt logs to export for the selected filters.')
+      return
+    }
+
+    const headers = [
+      'timestamp',
+      'command',
+      'success',
+      'parser_mode',
+      'parser_type',
+      'parser_version',
+      'latency_ms',
+      'error',
+      'parsed_command',
+    ]
+
+    const escapeCsvValue = (value: unknown) => {
+      const stringValue =
+        typeof value === 'string'
+          ? value
+          : value === null || value === undefined
+            ? ''
+            : JSON.stringify(value)
+
+      return `"${stringValue.replace(/"/g, '""')}"`
+    }
+
+    const rows = filteredLocalParserAttemptLogs.map((log) => [
+      log.timestamp,
+      log.command,
+      String(log.success),
+      log.parser_mode,
+      log.parser_type ?? '',
+      log.parser_version ?? '',
+      log.latency_ms,
+      log.error ?? '',
+      log.parsed_command ?? '',
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map(escapeCsvValue).join(',')),
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const exportFileName = `local_parser_attempt_logs_mode-${localParserAttemptModeFilter}_result-${localParserAttemptResultFilter}.csv`
+
+    link.href = downloadUrl
+    link.download = exportFileName
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(downloadUrl)
+
+    setLocalParserAttemptResetNotice('')
+    setStatusMessage(
+      `Exported ${filteredLocalParserAttemptLogs.length} local parser attempt row(s) to ${exportFileName}.`,
+    )
+  }
+
   const handleLoadParserAttemptLogs = async () => {
     try {
       setIsLoadingParserAttemptLogs(true)
@@ -4230,6 +4294,14 @@ uvicorn app.main:app --reload`}</pre>
                   disabled={isBusy}
                 >
                   Reset Local Parser Filters
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={handleExportLocalParserAttemptLogs}
+                  disabled={isBusy || !parserAttemptLogsResult || filteredLocalParserAttemptLogs.length === 0}
+                >
+                  Export Local Parser Logs
                 </button>
               </div>
 
