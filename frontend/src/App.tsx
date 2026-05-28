@@ -1974,6 +1974,12 @@ function App() {
     setStatusMessage('Parser filters reset.')
   }
 
+  const clearDatabaseParserResultsForFilterChange = () => {
+    setDatabaseParserAttemptLogsResult(null)
+    setDatabaseParserAttemptSummaryResult(null)
+    setDatabaseParserExportNotice('')
+  }
+
   const handleExportDatabaseParserAttemptLogs = async () => {
     try {
       setError(null)
@@ -2033,6 +2039,7 @@ function App() {
     try {
       setIsLoadingDatabaseParserAttemptLogs(true)
       setError(null)
+      setDatabaseParserExportNotice('')
       setStatusMessage('Loading PostgreSQL parser attempt logs...')
 
       const queryParams = new URLSearchParams()
@@ -2075,6 +2082,7 @@ function App() {
     try {
       setIsLoadingDatabaseParserAttemptSummary(true)
       setError(null)
+      setDatabaseParserExportNotice('')
       setStatusMessage('Loading PostgreSQL parser attempt summary...')
 
       const queryParams = new URLSearchParams()
@@ -3300,7 +3308,10 @@ function App() {
                 Parser mode
                 <select
                   value={databaseParserLogParserModeFilter}
-                  onChange={(event) => setDatabaseParserLogParserModeFilter(event.target.value)}
+                  onChange={(event) => {
+                    setDatabaseParserLogParserModeFilter(event.target.value)
+                    clearDatabaseParserResultsForFilterChange()
+                  }}
                   disabled={isBusy}
                 >
                   <option value="all">All</option>
@@ -3314,7 +3325,10 @@ function App() {
                 Result
                 <select
                   value={databaseParserLogSuccessFilter}
-                  onChange={(event) => setDatabaseParserLogSuccessFilter(event.target.value)}
+                  onChange={(event) => {
+                    setDatabaseParserLogSuccessFilter(event.target.value)
+                    clearDatabaseParserResultsForFilterChange()
+                  }}
                   disabled={isBusy}
                 >
                   <option value="all">All</option>
@@ -3327,7 +3341,10 @@ function App() {
                 Recent logs
                 <select
                   value={databaseParserLogLimit}
-                  onChange={(event) => setDatabaseParserLogLimit(event.target.value)}
+                  onChange={(event) => {
+                    setDatabaseParserLogLimit(event.target.value)
+                    clearDatabaseParserResultsForFilterChange()
+                  }}
                   disabled={isBusy}
                 >
                   <option value="5">5</option>
