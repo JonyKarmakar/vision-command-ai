@@ -634,6 +634,7 @@ function App() {
   const [databaseParserLogParserModeFilter, setDatabaseParserLogParserModeFilter] = useState('all')
   const [databaseParserLogSuccessFilter, setDatabaseParserLogSuccessFilter] = useState('all')
   const [databaseParserLogLimit, setDatabaseParserLogLimit] = useState('10')
+  const [databaseParserExportNotice, setDatabaseParserExportNotice] = useState('')
   const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
   const [llmOpsDashboardLoaded, setLlmOpsDashboardLoaded] = useState(false)
@@ -1976,6 +1977,7 @@ function App() {
   const handleExportDatabaseParserAttemptLogs = async () => {
     try {
       setError(null)
+      setDatabaseParserExportNotice('')
       setStatusMessage('Exporting PostgreSQL parser attempt logs...')
 
       const queryParams = new URLSearchParams()
@@ -2002,6 +2004,7 @@ function App() {
         throw new Error(errorData.detail || 'Could not export PostgreSQL parser attempt logs')
       }
 
+      const exportedRowCount = response.headers.get('X-Parser-Logs-Count') ?? databaseParserLogLimit
       const blob = await response.blob()
       const downloadUrl = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -2016,9 +2019,10 @@ function App() {
 
       window.URL.revokeObjectURL(downloadUrl)
 
-      setStatusMessage(
-        `Exported PostgreSQL parser attempt logs to ${exportFileName}.`,
-      )
+      const exportMessage = `Exported ${exportedRowCount} parser attempt row(s) to ${exportFileName}.`
+
+      setDatabaseParserExportNotice(exportMessage)
+      setStatusMessage(exportMessage)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStatusMessage('Could not export PostgreSQL parser attempt logs.')
@@ -3366,6 +3370,12 @@ function App() {
             >
               Export DB Parser Logs
             </button>
+
+            {databaseParserExportNotice && (
+              <p className="database-parser-export-notice">
+                {databaseParserExportNotice}
+              </p>
+            )}
 
             <button
               className="secondary-button"
