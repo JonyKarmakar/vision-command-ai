@@ -2344,6 +2344,19 @@ function App() {
       })
     : []
 
+  const localParserAttemptSummary = parserAttemptLogsResult
+    ? {
+        total: parserAttemptLogsResult.logs.length,
+        successful: parserAttemptLogsResult.logs.filter((log) => log.success).length,
+        failed: parserAttemptLogsResult.logs.filter((log) => !log.success).length,
+        averageLatencyMs:
+          parserAttemptLogsResult.logs.length > 0
+            ? parserAttemptLogsResult.logs.reduce((sum, log) => sum + log.latency_ms, 0) /
+              parserAttemptLogsResult.logs.length
+            : 0,
+      }
+    : null
+
   const hasLegacyCommandParserMetadata = commandLogSummary
     ? commandLogSummary.by_parser_mode.some((item) => item.name === 'unknown')
     : false
@@ -4116,6 +4129,27 @@ uvicorn app.main:app --reload`}</pre>
               <p className="small-note parser-attempt-filter-note">
                 These local parser attempt logs are not affected by Command history filters. Use DB Parser Logs below for filterable PostgreSQL parser logs.
               </p>
+
+              {localParserAttemptSummary && parserAttemptLogsResult.logs.length > 0 && (
+                <div className="local-parser-attempt-summary-grid">
+                  <div>
+                    <span>Total attempts</span>
+                    <strong>{localParserAttemptSummary.total}</strong>
+                  </div>
+                  <div>
+                    <span>Successful</span>
+                    <strong>{localParserAttemptSummary.successful}</strong>
+                  </div>
+                  <div>
+                    <span>Failed</span>
+                    <strong>{localParserAttemptSummary.failed}</strong>
+                  </div>
+                  <div>
+                    <span>Average latency</span>
+                    <strong>{localParserAttemptSummary.averageLatencyMs.toFixed(2)} ms</strong>
+                  </div>
+                </div>
+              )}
 
               {parserAttemptLogsResult.logs.length === 0 ? (
                 <div className="empty-state parser-attempt-empty-state">
