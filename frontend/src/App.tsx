@@ -633,6 +633,7 @@ function App() {
   const [localParserAttemptModeFilter, setLocalParserAttemptModeFilter] = useState('all')
   const [localParserAttemptResultFilter, setLocalParserAttemptResultFilter] = useState('all')
   const [localParserAttemptResetNotice, setLocalParserAttemptResetNotice] = useState('')
+  const [localParserAttemptExportNotice, setLocalParserAttemptExportNotice] = useState('')
   const [databaseParserAttemptLogsResult, setDatabaseParserAttemptLogsResult] = useState<DatabaseParserAttemptLogsResponse | null>(null)
   const [databaseParserLogParserModeFilter, setDatabaseParserLogParserModeFilter] = useState('all')
   const [databaseParserLogSuccessFilter, setDatabaseParserLogSuccessFilter] = useState('all')
@@ -1925,7 +1926,9 @@ function App() {
 
   const handleExportLocalParserAttemptLogs = () => {
     if (!parserAttemptLogsResult || filteredLocalParserAttemptLogs.length === 0) {
-      setStatusMessage('No local parser attempt logs to export for the selected filters.')
+      const exportMessage = 'No local parser attempt logs to export for the selected filters.'
+      setLocalParserAttemptExportNotice(exportMessage)
+      setStatusMessage(exportMessage)
       return
     }
 
@@ -1981,10 +1984,11 @@ function App() {
     link.remove()
     window.URL.revokeObjectURL(downloadUrl)
 
+    const exportMessage = `Exported ${filteredLocalParserAttemptLogs.length} local parser attempt row(s) to ${exportFileName}.`
+
     setLocalParserAttemptResetNotice('')
-    setStatusMessage(
-      `Exported ${filteredLocalParserAttemptLogs.length} local parser attempt row(s) to ${exportFileName}.`,
-    )
+    setLocalParserAttemptExportNotice(exportMessage)
+    setStatusMessage(exportMessage)
   }
 
   const handleLoadParserAttemptLogs = async () => {
@@ -1992,6 +1996,7 @@ function App() {
       setIsLoadingParserAttemptLogs(true)
       setError(null)
       setLocalParserAttemptResetNotice('')
+      setLocalParserAttemptExportNotice('')
       setStatusMessage('Loading parser attempt logs...')
 
       const response = await fetch('/api/commands/parse/logs?limit=20')
@@ -4258,6 +4263,7 @@ uvicorn app.main:app --reload`}</pre>
                     onChange={(event) => {
                       setLocalParserAttemptModeFilter(event.target.value)
                       setLocalParserAttemptResetNotice('')
+                      setLocalParserAttemptExportNotice('')
                     }}
                     disabled={isBusy}
                   >
@@ -4275,6 +4281,7 @@ uvicorn app.main:app --reload`}</pre>
                     onChange={(event) => {
                       setLocalParserAttemptResultFilter(event.target.value)
                       setLocalParserAttemptResetNotice('')
+                      setLocalParserAttemptExportNotice('')
                     }}
                     disabled={isBusy}
                   >
@@ -4289,6 +4296,7 @@ uvicorn app.main:app --reload`}</pre>
                   onClick={() => {
                     setLocalParserAttemptModeFilter('all')
                     setLocalParserAttemptResultFilter('all')
+                    setLocalParserAttemptExportNotice('')
                     setLocalParserAttemptResetNotice('Local parser attempt filters reset.')
                   }}
                   disabled={isBusy}
@@ -4308,6 +4316,12 @@ uvicorn app.main:app --reload`}</pre>
               {localParserAttemptResetNotice && (
                 <p className="local-parser-attempt-reset-notice">
                   {localParserAttemptResetNotice}
+                </p>
+              )}
+
+              {localParserAttemptExportNotice && (
+                <p className="local-parser-attempt-export-notice">
+                  {localParserAttemptExportNotice}
                 </p>
               )}
 
