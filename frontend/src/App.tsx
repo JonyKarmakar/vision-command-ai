@@ -1576,6 +1576,14 @@ function App() {
     recognition.start()
   }
 
+  const clearCommandHistoryResultsForFilterChange = () => {
+    setCommandLogs([])
+    setCommandLogSummary(null)
+    setHasLoadedCommandLogs(false)
+    setCommandHistoryResetNotice('')
+    setCommandHistoryExportNotice('')
+  }
+
   const handleResetCommandHistoryFilters = () => {
     setCommandHistoryParserModeFilter('all')
     setCommandHistoryResultTypeFilter('all')
@@ -3156,8 +3164,7 @@ function App() {
                 value={commandHistoryParserModeFilter}
                 onChange={(event) => {
                   setCommandHistoryParserModeFilter(event.target.value)
-                  setCommandHistoryResetNotice('')
-                  setCommandHistoryExportNotice('')
+                  clearCommandHistoryResultsForFilterChange()
                 }}
                 disabled={isBusy}
               >
@@ -3174,8 +3181,7 @@ function App() {
                 value={commandHistoryResultTypeFilter}
                 onChange={(event) => {
                   setCommandHistoryResultTypeFilter(event.target.value)
-                  setCommandHistoryResetNotice('')
-                  setCommandHistoryExportNotice('')
+                  clearCommandHistoryResultsForFilterChange()
                 }}
                 disabled={isBusy}
               >
@@ -3198,8 +3204,7 @@ function App() {
                 value={commandHistoryLimit}
                 onChange={(event) => {
                   setCommandHistoryLimit(event.target.value)
-                  setCommandHistoryResetNotice('')
-                  setCommandHistoryExportNotice('')
+                  clearCommandHistoryResultsForFilterChange()
                 }}
                 disabled={isBusy}
               >
