@@ -1978,6 +1978,8 @@ function App() {
     setDatabaseParserAttemptLogsResult(null)
     setDatabaseParserAttemptSummaryResult(null)
     setDatabaseParserExportNotice('')
+    setLlmOpsDashboardLoaded(false)
+    setLlmOpsParserEvaluationResult(null)
   }
 
   const handleExportDatabaseParserAttemptLogs = async () => {
@@ -3358,7 +3360,10 @@ function App() {
               <input
                 type="checkbox"
                 checked={includeRealLlmEvaluationInDashboard}
-                onChange={(event) => setIncludeRealLlmEvaluationInDashboard(event.target.checked)}
+                onChange={(event) => {
+                  setIncludeRealLlmEvaluationInDashboard(event.target.checked)
+                  clearDatabaseParserResultsForFilterChange()
+                }}
               />
               Include real LLM evaluation
             </label>
