@@ -1948,6 +1948,7 @@ function App() {
     try {
       setIsLoadingLlmProviderStatus(true)
       setError(null)
+      setDatabaseParserResetNotice('')
       setStatusMessage('Loading LLM provider status...')
 
       const response = await fetch('/api/llm/provider/status')
@@ -1986,6 +1987,7 @@ function App() {
     setDatabaseParserAttemptLogsResult(null)
     setDatabaseParserAttemptSummaryResult(null)
     setDatabaseParserExportNotice('')
+    setDatabaseParserResetNotice('')
     setLlmOpsDashboardLoaded(false)
     setLlmOpsParserEvaluationResult(null)
   }
@@ -2137,6 +2139,7 @@ function App() {
     try {
       setIsLoadingLlmOpsDashboard(true)
       setError(null)
+      setDatabaseParserResetNotice('')
       setLlmOpsDashboardLoaded(false)
       setLlmOpsParserEvaluationResult(null)
       setStatusMessage('Loading LLMOps dashboard...')
