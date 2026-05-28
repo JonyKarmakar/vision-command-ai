@@ -3991,7 +3991,15 @@ uvicorn app.main:app --reload`}</pre>
               </p>
 
               {databaseParserAttemptLogsResult.logs.length === 0 ? (
-                <p className="small-note">No PostgreSQL parser attempt logs found yet.</p>
+                <div className="empty-state database-parser-empty-state">
+                  <strong>No PostgreSQL parser attempt logs found for the selected filters.</strong>
+                  <p>
+                    Current filters: parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}.
+                  </p>
+                  <p>
+                    Try resetting parser filters, choosing a broader result filter, or running parser actions with the selected parser mode.
+                  </p>
+                </div>
               ) : (
                 <div className="database-parser-log-list">
                   {databaseParserAttemptLogsResult.logs.map((log, index) => (
