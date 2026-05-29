@@ -632,6 +632,7 @@ function App() {
   const [parserAttemptLogsResult, setParserAttemptLogsResult] = useState<ParserAttemptLogsResponse | null>(null)
   const [localParserAttemptModeFilter, setLocalParserAttemptModeFilter] = useState('all')
   const [localParserAttemptResultFilter, setLocalParserAttemptResultFilter] = useState('all')
+  const [localParserAttemptSearch, setLocalParserAttemptSearch] = useState('')
   const [localParserAttemptResetNotice, setLocalParserAttemptResetNotice] = useState('')
   const [localParserAttemptExportNotice, setLocalParserAttemptExportNotice] = useState('')
   const [databaseParserAttemptLogsResult, setDatabaseParserAttemptLogsResult] = useState<DatabaseParserAttemptLogsResponse | null>(null)
@@ -2419,6 +2420,8 @@ function App() {
 
   const filteredLocalParserAttemptLogs = parserAttemptLogsResult
     ? parserAttemptLogsResult.logs.filter((log) => {
+        const normalizedSearch = localParserAttemptSearch.trim().toLowerCase()
+
         const matchesParserMode =
           localParserAttemptModeFilter === 'all' ||
           log.parser_mode === localParserAttemptModeFilter
@@ -2428,7 +2431,11 @@ function App() {
           (localParserAttemptResultFilter === 'success' && log.success) ||
           (localParserAttemptResultFilter === 'failed' && !log.success)
 
-        return matchesParserMode && matchesResult
+        const matchesSearch =
+          normalizedSearch.length === 0 ||
+          log.command.toLowerCase().includes(normalizedSearch)
+
+        return matchesParserMode && matchesResult && matchesSearch
       })
     : []
 
@@ -4351,11 +4358,27 @@ uvicorn app.main:app --reload`}</pre>
                   </select>
                 </label>
 
+                <label>
+                  Search command
+                  <input
+                    type="search"
+                    value={localParserAttemptSearch}
+                    onChange={(event) => {
+                      setLocalParserAttemptSearch(event.target.value)
+                      setLocalParserAttemptResetNotice('')
+                      setLocalParserAttemptExportNotice('')
+                    }}
+                    placeholder="detect, crop, blur..."
+                    disabled={isBusy}
+                  />
+                </label>
+
                 <button
                   className="secondary-button"
                   onClick={() => {
                     setLocalParserAttemptModeFilter('all')
                     setLocalParserAttemptResultFilter('all')
+                    setLocalParserAttemptSearch('')
                     setLocalParserAttemptExportNotice('')
                     setLocalParserAttemptResetNotice('Local parser attempt filters reset.')
                   }}
@@ -4463,7 +4486,7 @@ uvicorn app.main:app --reload`}</pre>
                       : 'No local parser attempt logs match the selected filters.'}
                   </strong>
                   <p>
-                    Current local filters: parser mode = {localParserAttemptModeFilter}, result = {localParserAttemptResultFilter}.
+                    Current local filters: parser mode = {localParserAttemptModeFilter}, result = {localParserAttemptResultFilter}, search = {localParserAttemptSearch.trim() || 'none'}.
                   </p>
                   <p>
                     {parserAttemptLogsResult.logs.length === 0
