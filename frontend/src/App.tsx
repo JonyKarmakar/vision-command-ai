@@ -2460,6 +2460,32 @@ function App() {
           return breakdown
         }, {})
 
+        const parserTypeBreakdown = filteredLocalParserAttemptLogs.reduce<
+          Record<string, { total: number; successful: number; failed: number; latencySum: number }>
+        >((breakdown, log) => {
+          const parserType = log.parser_type || 'unknown'
+
+          if (!breakdown[parserType]) {
+            breakdown[parserType] = {
+              total: 0,
+              successful: 0,
+              failed: 0,
+              latencySum: 0,
+            }
+          }
+
+          breakdown[parserType].total += 1
+          breakdown[parserType].latencySum += log.latency_ms
+
+          if (log.success) {
+            breakdown[parserType].successful += 1
+          } else {
+            breakdown[parserType].failed += 1
+          }
+
+          return breakdown
+        }, {})
+
         return {
           total: filteredLocalParserAttemptLogs.length,
           successful: filteredLocalParserAttemptLogs.filter((log) => log.success).length,
@@ -2472,6 +2498,15 @@ function App() {
           byParserMode: Object.entries(parserModeBreakdown)
             .map(([parserMode, item]) => ({
               parserMode,
+              total: item.total,
+              successful: item.successful,
+              failed: item.failed,
+              averageLatencyMs: item.total > 0 ? item.latencySum / item.total : 0,
+            }))
+            .sort((a, b) => b.total - a.total),
+          byParserType: Object.entries(parserTypeBreakdown)
+            .map(([parserType, item]) => ({
+              parserType,
               total: item.total,
               successful: item.successful,
               failed: item.failed,
@@ -4358,6 +4393,20 @@ uvicorn app.main:app --reload`}</pre>
                       {localParserAttemptSummary.byParserMode.map((item) => (
                         <div key={item.parserMode} className="local-parser-attempt-mode-card">
                           <strong>{item.parserMode}</strong>
+                          <span>{item.total} attempt(s)</span>
+                          <span>{item.successful} success / {item.failed} failed</span>
+                          <span>{item.averageLatencyMs.toFixed(2)} ms avg</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="local-parser-attempt-type-breakdown">
+                    <h4>By parser type</h4>
+                    <div className="local-parser-attempt-type-list">
+                      {localParserAttemptSummary.byParserType.map((item) => (
+                        <div key={item.parserType} className="local-parser-attempt-type-card">
+                          <strong>{item.parserType}</strong>
                           <span>{item.total} attempt(s)</span>
                           <span>{item.successful} success / {item.failed} failed</span>
                           <span>{item.averageLatencyMs.toFixed(2)} ms avg</span>
