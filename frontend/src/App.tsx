@@ -657,6 +657,7 @@ function App() {
   const [commandHistoryParserModeFilter, setCommandHistoryParserModeFilter] = useState('all')
   const [commandHistoryResultTypeFilter, setCommandHistoryResultTypeFilter] = useState('all')
   const [commandHistoryLimit, setCommandHistoryLimit] = useState('10')
+  const [commandHistorySearch, setCommandHistorySearch] = useState('')
   const [commandHistoryResetNotice, setCommandHistoryResetNotice] = useState('')
   const [commandHistoryExportNotice, setCommandHistoryExportNotice] = useState('')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
@@ -1599,6 +1600,8 @@ function App() {
     setCommandHistoryParserModeFilter('all')
     setCommandHistoryResultTypeFilter('all')
     setCommandHistoryLimit('10')
+    setCommandHistorySearch('')
+    setCommandHistorySearch('')
     setCommandLogs([])
     setCommandLogSummary(null)
     setHasLoadedCommandLogs(false)
@@ -2540,6 +2543,15 @@ function App() {
     }
 
     return new Date(secondLog.timestamp).getTime() - new Date(firstLog.timestamp).getTime()
+  })
+
+  const filteredCommandHistoryLogs = commandLogs.filter((log) => {
+    const normalizedSearch = commandHistorySearch.trim().toLowerCase()
+
+    return (
+      normalizedSearch.length === 0 ||
+      log.command.toLowerCase().includes(normalizedSearch)
+    )
   })
 
   const filteredDatabaseParserAttemptLogs = databaseParserAttemptLogsResult
@@ -3645,6 +3657,7 @@ function App() {
                 value={commandHistoryParserModeFilter}
                 onChange={(event) => {
                   setCommandHistoryParserModeFilter(event.target.value)
+                  setCommandHistorySearch('')
                   clearCommandHistoryResultsForFilterChange()
                 }}
                 disabled={isBusy}
@@ -3662,6 +3675,7 @@ function App() {
                 value={commandHistoryResultTypeFilter}
                 onChange={(event) => {
                   setCommandHistoryResultTypeFilter(event.target.value)
+                  setCommandHistorySearch('')
                   clearCommandHistoryResultsForFilterChange()
                 }}
                 disabled={isBusy}
@@ -3685,6 +3699,7 @@ function App() {
                 value={commandHistoryLimit}
                 onChange={(event) => {
                   setCommandHistoryLimit(event.target.value)
+                  setCommandHistorySearch('')
                   clearCommandHistoryResultsForFilterChange()
                 }}
                 disabled={isBusy}
@@ -5138,11 +5153,28 @@ uvicorn app.main:app --reload`}</pre>
             <div className="command-history">
               <h3>Recent Command History</h3>
 
-              {commandLogs.length === 0 && (
+              <div className="command-history-search">
+                <label>
+                  Search loaded command history
+                  <input
+                    type="search"
+                    value={commandHistorySearch}
+                    onChange={(event) => setCommandHistorySearch(event.target.value)}
+                    placeholder="detect, crop, blur..."
+                    disabled={isBusy}
+                  />
+                </label>
+              </div>
+
+              <p className="command-history-filter-count">
+                Showing {filteredCommandHistoryLogs.length} of {commandLogs.length} loaded command history log(s).
+              </p>
+
+              {filteredCommandHistoryLogs.length === 0 && (
                 <div className="empty-state command-history-empty-state">
                   <strong>No command logs found for the selected filters.</strong>
                   <p>
-                    Current filters: parser = {commandHistoryParserModeFilter}, result type = {commandHistoryResultTypeFilter}, limit = {commandHistoryLimit}.
+                    Current filters: parser = {commandHistoryParserModeFilter}, result type = {commandHistoryResultTypeFilter}, limit = {commandHistoryLimit}, search = {commandHistorySearch.trim() || 'none'}.
                   </p>
                   <p>
                     Try resetting the command history filters, choosing a broader result type, or running a command with the selected parser.
@@ -5150,7 +5182,7 @@ uvicorn app.main:app --reload`}</pre>
                 </div>
               )}
 
-              {commandLogs.map((log, index) => (
+              {filteredCommandHistoryLogs.map((log, index) => (
                 <div className="command-log-item" key={`${log.timestamp}-${index}`}>
                   <div>
                     <strong>{log.command}</strong>
