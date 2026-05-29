@@ -2688,3 +2688,30 @@ input[type="file"]::file-selector-button:hover {
   justify-content: center;
   margin: 0.5rem 0 1rem;
 }
+
+.database-parser-visible-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.database-parser-visible-summary-grid > div {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.45);
+  border-radius: 0.85rem;
+  padding: 0.85rem;
+  text-align: center;
+}
+
+.database-parser-visible-summary-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.database-parser-visible-summary-grid strong {
+  color: #f8fafc;
+  font-size: 1.15rem;
+}

@@ -2572,6 +2572,19 @@ function App() {
     return new Date(secondLog.timestamp).getTime() - new Date(firstLog.timestamp).getTime()
   })
 
+  const visibleDatabaseParserLogSummary = databaseParserAttemptLogsResult
+    ? {
+        total: filteredDatabaseParserAttemptLogs.length,
+        successful: filteredDatabaseParserAttemptLogs.filter((log) => log.success).length,
+        failed: filteredDatabaseParserAttemptLogs.filter((log) => !log.success).length,
+        averageLatencyMs:
+          filteredDatabaseParserAttemptLogs.length > 0
+            ? filteredDatabaseParserAttemptLogs.reduce((sum, log) => sum + log.latency_ms, 0) /
+              filteredDatabaseParserAttemptLogs.length
+            : 0,
+      }
+    : null
+
   const localParserAttemptSummary = parserAttemptLogsResult
     ? (() => {
         const parserModeBreakdown = filteredLocalParserAttemptLogs.reduce<
@@ -4434,6 +4447,27 @@ uvicorn app.main:app --reload`}</pre>
                   Export Visible DB Logs
                 </button>
               </div>
+
+              {visibleDatabaseParserLogSummary && filteredDatabaseParserAttemptLogs.length > 0 && (
+                <div className="database-parser-visible-summary-grid">
+                  <div>
+                    <span>Visible logs</span>
+                    <strong>{visibleDatabaseParserLogSummary.total}</strong>
+                  </div>
+                  <div>
+                    <span>Successful</span>
+                    <strong>{visibleDatabaseParserLogSummary.successful}</strong>
+                  </div>
+                  <div>
+                    <span>Failed</span>
+                    <strong>{visibleDatabaseParserLogSummary.failed}</strong>
+                  </div>
+                  <div>
+                    <span>Average latency</span>
+                    <strong>{visibleDatabaseParserLogSummary.averageLatencyMs.toFixed(2)} ms</strong>
+                  </div>
+                </div>
+              )}
 
               {filteredDatabaseParserAttemptLogs.length === 0 ? (
                 <div className="empty-state database-parser-empty-state">
