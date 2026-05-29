@@ -642,6 +642,7 @@ function App() {
   const [databaseParserLogLimit, setDatabaseParserLogLimit] = useState('10')
   const [databaseParserExportNotice, setDatabaseParserExportNotice] = useState('')
   const [databaseParserLogSearch, setDatabaseParserLogSearch] = useState('')
+  const [databaseParserLogSortOrder, setDatabaseParserLogSortOrder] = useState('newest')
   const [databaseParserResetNotice, setDatabaseParserResetNotice] = useState('')
   const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
@@ -2049,9 +2050,12 @@ function App() {
     setDatabaseParserLogParserModeFilter('all')
     setDatabaseParserLogSuccessFilter('all')
     setDatabaseParserLogLimit('10')
+    setDatabaseParserLogSearch('')
+    setDatabaseParserLogSortOrder('newest')
     setDatabaseParserAttemptLogsResult(null)
     setDatabaseParserAttemptSummaryResult(null)
     setDatabaseParserLogSearch('')
+    setDatabaseParserLogSortOrder('newest')
     setDatabaseParserExportNotice('')
     setDatabaseParserResetNotice('')
     setLlmOpsDashboardLoaded(false)
@@ -2131,6 +2135,7 @@ function App() {
       setIsLoadingDatabaseParserAttemptLogs(true)
       setError(null)
       setDatabaseParserLogSearch('')
+      setDatabaseParserLogSortOrder('newest')
       setDatabaseParserExportNotice('')
       setDatabaseParserResetNotice('')
       setStatusMessage('Loading PostgreSQL parser attempt logs...')
@@ -2474,6 +2479,26 @@ function App() {
         )
       })
     : []
+
+  const sortedDatabaseParserAttemptLogs = [...filteredDatabaseParserAttemptLogs].sort((firstLog, secondLog) => {
+    if (databaseParserLogSortOrder === 'oldest') {
+      return new Date(firstLog.timestamp).getTime() - new Date(secondLog.timestamp).getTime()
+    }
+
+    if (databaseParserLogSortOrder === 'latency_desc') {
+      return secondLog.latency_ms - firstLog.latency_ms
+    }
+
+    if (databaseParserLogSortOrder === 'latency_asc') {
+      return firstLog.latency_ms - secondLog.latency_ms
+    }
+
+    if (databaseParserLogSortOrder === 'command_az') {
+      return firstLog.command.localeCompare(secondLog.command)
+    }
+
+    return new Date(secondLog.timestamp).getTime() - new Date(firstLog.timestamp).getTime()
+  })
 
   const localParserAttemptSummary = parserAttemptLogsResult
     ? (() => {
@@ -4307,10 +4332,25 @@ uvicorn app.main:app --reload`}</pre>
                     disabled={isBusy}
                   />
                 </label>
+
+                <label>
+                  Sort loaded DB logs
+                  <select
+                    value={databaseParserLogSortOrder}
+                    onChange={(event) => setDatabaseParserLogSortOrder(event.target.value)}
+                    disabled={isBusy}
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="latency_desc">Highest latency</option>
+                    <option value="latency_asc">Lowest latency</option>
+                    <option value="command_az">Command A-Z</option>
+                  </select>
+                </label>
               </div>
 
               <p className="database-parser-log-filter-count">
-                Showing {filteredDatabaseParserAttemptLogs.length} of {databaseParserAttemptLogsResult.logs.length} loaded DB parser log(s).
+                Showing {filteredDatabaseParserAttemptLogs.length} of {databaseParserAttemptLogsResult.logs.length} loaded DB parser log(s). Sorted by {databaseParserLogSortOrder.replace('_', ' ')}.
               </p>
 
               {filteredDatabaseParserAttemptLogs.length === 0 ? (
@@ -4331,7 +4371,7 @@ uvicorn app.main:app --reload`}</pre>
                 </div>
               ) : (
                 <div className="database-parser-log-list">
-                  {filteredDatabaseParserAttemptLogs.map((log, index) => (
+                  {sortedDatabaseParserAttemptLogs.map((log, index) => (
                     <div
                       key={`${log.timestamp}-${index}`}
                       className={`database-parser-log-card ${log.success ? 'success' : 'failure'}`}
