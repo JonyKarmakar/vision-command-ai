@@ -2573,16 +2573,53 @@ function App() {
   })
 
   const visibleDatabaseParserLogSummary = databaseParserAttemptLogsResult
-    ? {
-        total: filteredDatabaseParserAttemptLogs.length,
-        successful: filteredDatabaseParserAttemptLogs.filter((log) => log.success).length,
-        failed: filteredDatabaseParserAttemptLogs.filter((log) => !log.success).length,
-        averageLatencyMs:
-          filteredDatabaseParserAttemptLogs.length > 0
-            ? filteredDatabaseParserAttemptLogs.reduce((sum, log) => sum + log.latency_ms, 0) /
-              filteredDatabaseParserAttemptLogs.length
-            : 0,
-      }
+    ? (() => {
+        const parserModeBreakdown = filteredDatabaseParserAttemptLogs.reduce<
+          Record<string, { total: number; successful: number; failed: number; latencySum: number }>
+        >((breakdown, log) => {
+          const parserMode = log.parser_mode || 'unknown'
+
+          if (!breakdown[parserMode]) {
+            breakdown[parserMode] = {
+              total: 0,
+              successful: 0,
+              failed: 0,
+              latencySum: 0,
+            }
+          }
+
+          breakdown[parserMode].total += 1
+          breakdown[parserMode].latencySum += log.latency_ms
+
+          if (log.success) {
+            breakdown[parserMode].successful += 1
+          } else {
+            breakdown[parserMode].failed += 1
+          }
+
+          return breakdown
+        }, {})
+
+        return {
+          total: filteredDatabaseParserAttemptLogs.length,
+          successful: filteredDatabaseParserAttemptLogs.filter((log) => log.success).length,
+          failed: filteredDatabaseParserAttemptLogs.filter((log) => !log.success).length,
+          averageLatencyMs:
+            filteredDatabaseParserAttemptLogs.length > 0
+              ? filteredDatabaseParserAttemptLogs.reduce((sum, log) => sum + log.latency_ms, 0) /
+                filteredDatabaseParserAttemptLogs.length
+              : 0,
+          byDatabaseParserMode: Object.entries(parserModeBreakdown)
+            .map(([parserMode, item]) => ({
+              parserMode,
+              total: item.total,
+              successful: item.successful,
+              failed: item.failed,
+              averageLatencyMs: item.total > 0 ? item.latencySum / item.total : 0,
+            }))
+            .sort((a, b) => b.total - a.total),
+        }
+      })()
     : null
 
   const localParserAttemptSummary = parserAttemptLogsResult
@@ -4449,24 +4486,40 @@ uvicorn app.main:app --reload`}</pre>
               </div>
 
               {visibleDatabaseParserLogSummary && filteredDatabaseParserAttemptLogs.length > 0 && (
-                <div className="database-parser-visible-summary-grid">
-                  <div>
-                    <span>Visible logs</span>
-                    <strong>{visibleDatabaseParserLogSummary.total}</strong>
+                <>
+                  <div className="database-parser-visible-summary-grid">
+                    <div>
+                      <span>Visible logs</span>
+                      <strong>{visibleDatabaseParserLogSummary.total}</strong>
+                    </div>
+                    <div>
+                      <span>Successful</span>
+                      <strong>{visibleDatabaseParserLogSummary.successful}</strong>
+                    </div>
+                    <div>
+                      <span>Failed</span>
+                      <strong>{visibleDatabaseParserLogSummary.failed}</strong>
+                    </div>
+                    <div>
+                      <span>Average latency</span>
+                      <strong>{visibleDatabaseParserLogSummary.averageLatencyMs.toFixed(2)} ms</strong>
+                    </div>
                   </div>
-                  <div>
-                    <span>Successful</span>
-                    <strong>{visibleDatabaseParserLogSummary.successful}</strong>
+
+                  <div className="database-parser-visible-mode-breakdown">
+                    <h4>By parser mode</h4>
+                    <div className="database-parser-visible-mode-list">
+                      {visibleDatabaseParserLogSummary.byDatabaseParserMode.map((item) => (
+                        <div key={item.parserMode} className="database-parser-visible-mode-card">
+                          <strong>{item.parserMode}</strong>
+                          <span>{item.total} log(s)</span>
+                          <span>{item.successful} success / {item.failed} failed</span>
+                          <span>{item.averageLatencyMs.toFixed(2)} ms avg</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <span>Failed</span>
-                    <strong>{visibleDatabaseParserLogSummary.failed}</strong>
-                  </div>
-                  <div>
-                    <span>Average latency</span>
-                    <strong>{visibleDatabaseParserLogSummary.averageLatencyMs.toFixed(2)} ms</strong>
-                  </div>
-                </div>
+                </>
               )}
 
               {filteredDatabaseParserAttemptLogs.length === 0 ? (
