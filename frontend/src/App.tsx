@@ -4311,7 +4311,13 @@ uvicorn app.main:app --reload`}</pre>
                 >
                   Export Local Parser Logs
                 </button>
-              </div>
+</div>
+
+              {parserAttemptLogsResult && (
+                <p className="local-parser-attempt-filter-count">
+                  Showing {filteredLocalParserAttemptLogs.length} of {parserAttemptLogsResult.logs.length} local parser attempt log(s).
+                </p>
+              )}
 
               {localParserAttemptResetNotice && (
                 <p className="local-parser-attempt-reset-notice">
