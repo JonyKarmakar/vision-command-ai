@@ -633,6 +633,7 @@ function App() {
   const [localParserAttemptModeFilter, setLocalParserAttemptModeFilter] = useState('all')
   const [localParserAttemptResultFilter, setLocalParserAttemptResultFilter] = useState('all')
   const [localParserAttemptSearch, setLocalParserAttemptSearch] = useState('')
+  const [localParserAttemptSortOrder, setLocalParserAttemptSortOrder] = useState('newest')
   const [localParserAttemptResetNotice, setLocalParserAttemptResetNotice] = useState('')
   const [localParserAttemptExportNotice, setLocalParserAttemptExportNotice] = useState('')
   const [databaseParserAttemptLogsResult, setDatabaseParserAttemptLogsResult] = useState<DatabaseParserAttemptLogsResponse | null>(null)
@@ -1926,7 +1927,7 @@ function App() {
   }
 
   const handleExportLocalParserAttemptLogs = () => {
-    if (!parserAttemptLogsResult || filteredLocalParserAttemptLogs.length === 0) {
+    if (!parserAttemptLogsResult || sortedLocalParserAttemptLogs.length === 0) {
       const exportMessage = 'No local parser attempt logs to export for the selected filters.'
       setLocalParserAttemptExportNotice(exportMessage)
       setStatusMessage(exportMessage)
@@ -1956,7 +1957,7 @@ function App() {
       return `"${stringValue.replace(/"/g, '""')}"`
     }
 
-    const rows = filteredLocalParserAttemptLogs.map((log) => [
+    const rows = sortedLocalParserAttemptLogs.map((log) => [
       log.timestamp,
       log.command,
       String(log.success),
@@ -1985,7 +1986,7 @@ function App() {
     link.remove()
     window.URL.revokeObjectURL(downloadUrl)
 
-    const exportMessage = `Exported ${filteredLocalParserAttemptLogs.length} local parser attempt row(s) to ${exportFileName}.`
+    const exportMessage = `Exported ${sortedLocalParserAttemptLogs.length} local parser attempt row(s) to ${exportFileName}.`
 
     setLocalParserAttemptResetNotice('')
     setLocalParserAttemptExportNotice(exportMessage)
@@ -2438,6 +2439,26 @@ function App() {
         return matchesParserMode && matchesResult && matchesSearch
       })
     : []
+
+  const sortedLocalParserAttemptLogs = [...filteredLocalParserAttemptLogs].sort((firstLog, secondLog) => {
+    if (localParserAttemptSortOrder === 'oldest') {
+      return new Date(firstLog.timestamp).getTime() - new Date(secondLog.timestamp).getTime()
+    }
+
+    if (localParserAttemptSortOrder === 'latency_desc') {
+      return secondLog.latency_ms - firstLog.latency_ms
+    }
+
+    if (localParserAttemptSortOrder === 'latency_asc') {
+      return firstLog.latency_ms - secondLog.latency_ms
+    }
+
+    if (localParserAttemptSortOrder === 'command_az') {
+      return firstLog.command.localeCompare(secondLog.command)
+    }
+
+    return new Date(secondLog.timestamp).getTime() - new Date(firstLog.timestamp).getTime()
+  })
 
   const localParserAttemptSummary = parserAttemptLogsResult
     ? (() => {
@@ -4373,12 +4394,32 @@ uvicorn app.main:app --reload`}</pre>
                   />
                 </label>
 
+                <label>
+                  Sort by
+                  <select
+                    value={localParserAttemptSortOrder}
+                    onChange={(event) => {
+                      setLocalParserAttemptSortOrder(event.target.value)
+                      setLocalParserAttemptResetNotice('')
+                      setLocalParserAttemptExportNotice('')
+                    }}
+                    disabled={isBusy}
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="latency_desc">Highest latency</option>
+                    <option value="latency_asc">Lowest latency</option>
+                    <option value="command_az">Command A-Z</option>
+                  </select>
+                </label>
+
                 <button
                   className="secondary-button"
                   onClick={() => {
                     setLocalParserAttemptModeFilter('all')
                     setLocalParserAttemptResultFilter('all')
                     setLocalParserAttemptSearch('')
+                    setLocalParserAttemptSortOrder('newest')
                     setLocalParserAttemptExportNotice('')
                     setLocalParserAttemptResetNotice('Local parser attempt filters reset.')
                   }}
@@ -4390,7 +4431,7 @@ uvicorn app.main:app --reload`}</pre>
                 <button
                   className="secondary-button"
                   onClick={handleExportLocalParserAttemptLogs}
-                  disabled={isBusy || !parserAttemptLogsResult || filteredLocalParserAttemptLogs.length === 0}
+                  disabled={isBusy || !parserAttemptLogsResult || sortedLocalParserAttemptLogs.length === 0}
                 >
                   Export Local Parser Logs
                 </button>
@@ -4398,7 +4439,7 @@ uvicorn app.main:app --reload`}</pre>
 
               {parserAttemptLogsResult && (
                 <p className="local-parser-attempt-filter-count">
-                  Showing {filteredLocalParserAttemptLogs.length} of {parserAttemptLogsResult.logs.length} local parser attempt log(s).
+                  Showing {filteredLocalParserAttemptLogs.length} of {parserAttemptLogsResult.logs.length} local parser attempt log(s). Sorted by {localParserAttemptSortOrder.replace('_', ' ')}.
                 </p>
               )}
 
@@ -4499,7 +4540,7 @@ uvicorn app.main:app --reload`}</pre>
                 </div>
               ) : (
                 <div className="parser-attempt-log-list">
-                  {filteredLocalParserAttemptLogs.map((log, index) => (
+                  {sortedLocalParserAttemptLogs.map((log, index) => (
                     <div
                       className={`parser-attempt-log-card ${log.success ? 'success' : 'failure'}`}
                       key={`${log.timestamp}-${index}`}
