@@ -2556,3 +2556,11 @@ input[type="file"]::file-selector-button:hover {
   margin: 0.25rem 0 0.75rem;
   overflow-wrap: anywhere;
 }
+
+.local-parser-attempt-filter-count {
+  width: 100%;
+  text-align: center;
+  color: #cbd5e1;
+  font-weight: 600;
+  margin: 0.25rem 0 0.75rem;
+}
