@@ -641,6 +641,7 @@ function App() {
   const [databaseParserLogSuccessFilter, setDatabaseParserLogSuccessFilter] = useState('all')
   const [databaseParserLogLimit, setDatabaseParserLogLimit] = useState('10')
   const [databaseParserExportNotice, setDatabaseParserExportNotice] = useState('')
+  const [databaseParserLogSearch, setDatabaseParserLogSearch] = useState('')
   const [databaseParserResetNotice, setDatabaseParserResetNotice] = useState('')
   const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
@@ -2050,6 +2051,7 @@ function App() {
     setDatabaseParserLogLimit('10')
     setDatabaseParserAttemptLogsResult(null)
     setDatabaseParserAttemptSummaryResult(null)
+    setDatabaseParserLogSearch('')
     setDatabaseParserExportNotice('')
     setDatabaseParserResetNotice('')
     setLlmOpsDashboardLoaded(false)
@@ -2061,6 +2063,7 @@ function App() {
   const clearDatabaseParserResultsForFilterChange = () => {
     setDatabaseParserAttemptLogsResult(null)
     setDatabaseParserAttemptSummaryResult(null)
+    setDatabaseParserLogSearch('')
     setDatabaseParserExportNotice('')
     setDatabaseParserResetNotice('')
     setLlmOpsDashboardLoaded(false)
@@ -2127,6 +2130,7 @@ function App() {
     try {
       setIsLoadingDatabaseParserAttemptLogs(true)
       setError(null)
+      setDatabaseParserLogSearch('')
       setDatabaseParserExportNotice('')
       setDatabaseParserResetNotice('')
       setStatusMessage('Loading PostgreSQL parser attempt logs...')
@@ -2459,6 +2463,17 @@ function App() {
 
     return new Date(secondLog.timestamp).getTime() - new Date(firstLog.timestamp).getTime()
   })
+
+  const filteredDatabaseParserAttemptLogs = databaseParserAttemptLogsResult
+    ? databaseParserAttemptLogsResult.logs.filter((log) => {
+        const normalizedSearch = databaseParserLogSearch.trim().toLowerCase()
+
+        return (
+          normalizedSearch.length === 0 ||
+          log.command.toLowerCase().includes(normalizedSearch)
+        )
+      })
+    : []
 
   const localParserAttemptSummary = parserAttemptLogsResult
     ? (() => {
@@ -4281,19 +4296,42 @@ uvicorn app.main:app --reload`}</pre>
                 Active filters: parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}
               </p>
 
-              {databaseParserAttemptLogsResult.logs.length === 0 ? (
+              <div className="database-parser-log-search">
+                <label>
+                  Search loaded DB parser logs
+                  <input
+                    type="search"
+                    value={databaseParserLogSearch}
+                    onChange={(event) => setDatabaseParserLogSearch(event.target.value)}
+                    placeholder="crop, detect, make it beautiful..."
+                    disabled={isBusy}
+                  />
+                </label>
+              </div>
+
+              <p className="database-parser-log-filter-count">
+                Showing {filteredDatabaseParserAttemptLogs.length} of {databaseParserAttemptLogsResult.logs.length} loaded DB parser log(s).
+              </p>
+
+              {filteredDatabaseParserAttemptLogs.length === 0 ? (
                 <div className="empty-state database-parser-empty-state">
-                  <strong>No PostgreSQL parser attempt logs found for the selected filters.</strong>
+                  <strong>
+                    {databaseParserAttemptLogsResult.logs.length === 0
+                      ? 'No PostgreSQL parser attempt logs found for the selected filters.'
+                      : 'No loaded DB parser logs match the search text.'}
+                  </strong>
                   <p>
-                    Current filters: parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}.
+                    Current filters: parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}, search = {databaseParserLogSearch.trim() || 'none'}.
                   </p>
                   <p>
-                    Try resetting parser filters, choosing a broader result filter, or running parser actions with the selected parser mode.
+                    {databaseParserAttemptLogsResult.logs.length === 0
+                      ? 'Try resetting parser filters, choosing a broader result filter, or running parser actions with the selected parser mode.'
+                      : 'Try clearing the DB parser log search or loading broader DB parser filters.'}
                   </p>
                 </div>
               ) : (
                 <div className="database-parser-log-list">
-                  {databaseParserAttemptLogsResult.logs.map((log, index) => (
+                  {filteredDatabaseParserAttemptLogs.map((log, index) => (
                     <div
                       key={`${log.timestamp}-${index}`}
                       className={`database-parser-log-card ${log.success ? 'success' : 'failure'}`}
