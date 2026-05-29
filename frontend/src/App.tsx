@@ -643,6 +643,7 @@ function App() {
   const [databaseParserExportNotice, setDatabaseParserExportNotice] = useState('')
   const [databaseParserLogSearch, setDatabaseParserLogSearch] = useState('')
   const [databaseParserLogSortOrder, setDatabaseParserLogSortOrder] = useState('newest')
+  const [databaseParserLogViewResetNotice, setDatabaseParserLogViewResetNotice] = useState('')
   const [databaseParserResetNotice, setDatabaseParserResetNotice] = useState('')
   const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
@@ -4509,7 +4510,10 @@ uvicorn app.main:app --reload`}</pre>
                   <input
                     type="search"
                     value={databaseParserLogSearch}
-                    onChange={(event) => setDatabaseParserLogSearch(event.target.value)}
+                    onChange={(event) => {
+                      setDatabaseParserLogSearch(event.target.value)
+                      setDatabaseParserLogViewResetNotice('')
+                    }}
                     placeholder="crop, detect, make it beautiful..."
                     disabled={isBusy}
                   />
@@ -4519,7 +4523,10 @@ uvicorn app.main:app --reload`}</pre>
                   Sort loaded DB logs
                   <select
                     value={databaseParserLogSortOrder}
-                    onChange={(event) => setDatabaseParserLogSortOrder(event.target.value)}
+                    onChange={(event) => {
+                      setDatabaseParserLogSortOrder(event.target.value)
+                      setDatabaseParserLogViewResetNotice('')
+                    }}
                     disabled={isBusy}
                   >
                     <option value="newest">Newest first</option>
@@ -4529,11 +4536,30 @@ uvicorn app.main:app --reload`}</pre>
                     <option value="command_az">Command A-Z</option>
                   </select>
                 </label>
+
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setDatabaseParserLogSearch('')
+                    setDatabaseParserLogSortOrder('newest')
+                    setDatabaseParserExportNotice('')
+                    setDatabaseParserLogViewResetNotice('Loaded DB log view reset.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Reset Loaded DB Log View
+                </button>
               </div>
 
               <p className="database-parser-log-filter-count">
                 Showing {filteredDatabaseParserAttemptLogs.length} of {databaseParserAttemptLogsResult.logs.length} loaded DB parser log(s). Sorted by {databaseParserLogSortOrder.replace('_', ' ')}.
               </p>
+              {databaseParserLogViewResetNotice && (
+                <p className="database-parser-log-view-reset-notice">
+                  {databaseParserLogViewResetNotice}
+                </p>
+              )}
+
 
               <div className="database-parser-visible-export-row">
                 <button
