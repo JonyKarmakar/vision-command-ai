@@ -2750,3 +2750,38 @@ input[type="file"]::file-selector-button:hover {
   color: #94a3b8;
   font-size: 0.9rem;
 }
+
+.database-parser-visible-type-breakdown {
+  margin: 1rem 0;
+}
+
+.database-parser-visible-type-breakdown h4 {
+  text-align: center;
+  margin: 0 0 0.75rem;
+  color: #f8fafc;
+}
+
+.database-parser-visible-type-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.database-parser-visible-type-card {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.45);
+  border-radius: 0.85rem;
+  padding: 0.85rem;
+  text-align: center;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.database-parser-visible-type-card strong {
+  color: #f8fafc;
+}
+
+.database-parser-visible-type-card span {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
