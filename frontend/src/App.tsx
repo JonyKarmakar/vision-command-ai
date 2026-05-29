@@ -2486,6 +2486,24 @@ function App() {
           return breakdown
         }, {})
 
+        const parserErrorBreakdown = filteredLocalParserAttemptLogs.reduce<
+          Record<string, { total: number; latencySum: number }>
+        >((breakdown, log) => {
+          const parserError = log.error || 'No error'
+
+          if (!breakdown[parserError]) {
+            breakdown[parserError] = {
+              total: 0,
+              latencySum: 0,
+            }
+          }
+
+          breakdown[parserError].total += 1
+          breakdown[parserError].latencySum += log.latency_ms
+
+          return breakdown
+        }, {})
+
         return {
           total: filteredLocalParserAttemptLogs.length,
           successful: filteredLocalParserAttemptLogs.filter((log) => log.success).length,
@@ -2510,6 +2528,13 @@ function App() {
               total: item.total,
               successful: item.successful,
               failed: item.failed,
+              averageLatencyMs: item.total > 0 ? item.latencySum / item.total : 0,
+            }))
+            .sort((a, b) => b.total - a.total),
+          byParserError: Object.entries(parserErrorBreakdown)
+            .map(([parserError, item]) => ({
+              parserError,
+              total: item.total,
               averageLatencyMs: item.total > 0 ? item.latencySum / item.total : 0,
             }))
             .sort((a, b) => b.total - a.total),
@@ -4409,6 +4434,19 @@ uvicorn app.main:app --reload`}</pre>
                           <strong>{item.parserType}</strong>
                           <span>{item.total} attempt(s)</span>
                           <span>{item.successful} success / {item.failed} failed</span>
+                          <span>{item.averageLatencyMs.toFixed(2)} ms avg</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="local-parser-attempt-error-breakdown">
+                    <h4>By parser error</h4>
+                    <div className="local-parser-attempt-error-list">
+                      {localParserAttemptSummary.byParserError.map((item) => (
+                        <div key={item.parserError} className="local-parser-attempt-error-card">
+                          <strong>{item.parserError}</strong>
+                          <span>{item.total} attempt(s)</span>
                           <span>{item.averageLatencyMs.toFixed(2)} ms avg</span>
                         </div>
                       ))}
