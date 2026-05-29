@@ -2074,6 +2074,78 @@ function App() {
     setLlmOpsParserEvaluationResult(null)
   }
 
+  const handleExportVisibleDatabaseParserAttemptLogs = () => {
+    if (!databaseParserAttemptLogsResult || sortedDatabaseParserAttemptLogs.length === 0) {
+      const exportMessage = 'No visible DB parser logs to export for the current search and sort.'
+      setDatabaseParserExportNotice(exportMessage)
+      setStatusMessage(exportMessage)
+      return
+    }
+
+    const headers = [
+      'timestamp',
+      'command',
+      'success',
+      'parser_mode',
+      'parser_type',
+      'parser_version',
+      'latency_ms',
+      'error',
+      'parsed_command',
+    ]
+
+    const escapeCsvValue = (value: unknown) => {
+      const stringValue =
+        typeof value === 'string'
+          ? value
+          : value === null || value === undefined
+            ? ''
+            : JSON.stringify(value)
+
+      return `"${stringValue.replace(/"/g, '""')}"`
+    }
+
+    const rows = sortedDatabaseParserAttemptLogs.map((log) => [
+      log.timestamp,
+      log.command,
+      String(log.success),
+      log.parser_mode,
+      log.parser_type ?? '',
+      log.parser_version ?? '',
+      log.latency_ms,
+      log.error ?? '',
+      log.parsed_command ?? '',
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map(escapeCsvValue).join(',')),
+    ].join('\n')
+
+    const searchPart = databaseParserLogSearch.trim()
+      ? `search-${databaseParserLogSearch.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+      : 'search-none'
+
+    const exportFileName = `visible_db_parser_logs_mode-${databaseParserLogParserModeFilter}_result-${databaseParserLogSuccessFilter}_limit-${databaseParserLogLimit}_${searchPart}_sort-${databaseParserLogSortOrder}.csv`
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+
+    link.href = downloadUrl
+    link.download = exportFileName
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(downloadUrl)
+
+    const exportMessage = `Exported ${sortedDatabaseParserAttemptLogs.length} visible DB parser log row(s) to ${exportFileName}.`
+
+    setDatabaseParserResetNotice('')
+    setDatabaseParserExportNotice(exportMessage)
+    setStatusMessage(exportMessage)
+  }
+
   const handleExportDatabaseParserAttemptLogs = async () => {
     try {
       setError(null)
@@ -4352,6 +4424,16 @@ uvicorn app.main:app --reload`}</pre>
               <p className="database-parser-log-filter-count">
                 Showing {filteredDatabaseParserAttemptLogs.length} of {databaseParserAttemptLogsResult.logs.length} loaded DB parser log(s). Sorted by {databaseParserLogSortOrder.replace('_', ' ')}.
               </p>
+
+              <div className="database-parser-visible-export-row">
+                <button
+                  className="secondary-button"
+                  onClick={handleExportVisibleDatabaseParserAttemptLogs}
+                  disabled={isBusy || sortedDatabaseParserAttemptLogs.length === 0}
+                >
+                  Export Visible DB Logs
+                </button>
+              </div>
 
               {filteredDatabaseParserAttemptLogs.length === 0 ? (
                 <div className="empty-state database-parser-empty-state">
