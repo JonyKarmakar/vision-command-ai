@@ -2050,18 +2050,19 @@ function App() {
     }
   }
 
-  const loadedObservabilityViewCount = [
-    databaseParserAttemptLogsResult,
-    hasLoadedCommandLogs,
-    commandLogSummary,
-    commandEvaluationResult,
-    parserComparisonResult,
-    parserAttemptLogsResult,
-    databaseParserAttemptSummaryResult,
-    llmProviderStatusResult,
-    llmOpsDashboardLoaded,
-  ].filter(Boolean).length
+  const loadedObservabilityViewNames = [
+    databaseParserAttemptLogsResult ? 'DB Parser Logs' : null,
+    hasLoadedCommandLogs ? 'Command History' : null,
+    commandLogSummary ? 'Command Summary' : null,
+    commandEvaluationResult ? 'Parser Evaluation' : null,
+    parserComparisonResult ? 'Parser Comparison' : null,
+    parserAttemptLogsResult ? 'Local Parser Attempt Logs' : null,
+    databaseParserAttemptSummaryResult ? 'DB Parser Summary' : null,
+    llmProviderStatusResult ? 'LLM Provider Status' : null,
+    llmOpsDashboardLoaded ? 'LLMOps Dashboard' : null,
+  ].filter((name): name is string => Boolean(name))
 
+  const loadedObservabilityViewCount = loadedObservabilityViewNames.length
   const hasAnyLoadedObservabilityView = loadedObservabilityViewCount > 0
 
   const clearAllLoadedObservabilityViews = () => {
@@ -3960,7 +3961,7 @@ function App() {
 
               <p className="loaded-views-status">
                 {hasAnyLoadedObservabilityView
-                  ? `${loadedObservabilityViewCount} loaded observability view(s) open.`
+                  ? `${loadedObservabilityViewCount} loaded observability view(s) open: ${loadedObservabilityViewNames.join(', ')}.`
                   : 'No loaded observability views open.'}
               </p>
           </div>
