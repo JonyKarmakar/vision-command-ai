@@ -658,6 +658,7 @@ function App() {
   const [commandHistoryResultTypeFilter, setCommandHistoryResultTypeFilter] = useState('all')
   const [commandHistoryLimit, setCommandHistoryLimit] = useState('10')
   const [commandHistorySearch, setCommandHistorySearch] = useState('')
+  const [commandHistorySortOrder, setCommandHistorySortOrder] = useState('newest')
   const [commandHistoryResetNotice, setCommandHistoryResetNotice] = useState('')
   const [commandHistoryExportNotice, setCommandHistoryExportNotice] = useState('')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
@@ -1601,6 +1602,7 @@ function App() {
     setCommandHistoryResultTypeFilter('all')
     setCommandHistoryLimit('10')
     setCommandHistorySearch('')
+    setCommandHistorySortOrder('newest')
     setCommandHistorySearch('')
     setCommandLogs([])
     setCommandLogSummary(null)
@@ -2088,6 +2090,7 @@ function App() {
     setCommandLogs([])
     setHasLoadedCommandLogs(false)
     setCommandHistorySearch('')
+    setCommandHistorySortOrder('newest')
 
     setCommandLogSummary(null)
     setCommandEvaluationResult(null)
@@ -2595,14 +2598,34 @@ function App() {
     return new Date(secondLog.timestamp).getTime() - new Date(firstLog.timestamp).getTime()
   })
 
-  const filteredCommandHistoryLogs = commandLogs.filter((log) => {
-    const normalizedSearch = commandHistorySearch.trim().toLowerCase()
+  const filteredCommandHistoryLogs = commandLogs
+    .filter((log) => {
+      const normalizedSearch = commandHistorySearch.trim().toLowerCase()
 
-    return (
-      normalizedSearch.length === 0 ||
-      log.command.toLowerCase().includes(normalizedSearch)
-    )
-  })
+      return (
+        normalizedSearch.length === 0 ||
+        log.command.toLowerCase().includes(normalizedSearch)
+      )
+    })
+    .sort((a, b) => {
+      if (commandHistorySortOrder === 'oldest') {
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      }
+
+      if (commandHistorySortOrder === 'command_az') {
+        return a.command.localeCompare(b.command)
+      }
+
+      if (commandHistorySortOrder === 'parser_mode_az') {
+        return (a.parser_mode ?? 'unknown').localeCompare(b.parser_mode ?? 'unknown')
+      }
+
+      if (commandHistorySortOrder === 'result_type_az') {
+        return a.result_type.localeCompare(b.result_type)
+      }
+
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    })
 
   const filteredDatabaseParserAttemptLogs = databaseParserAttemptLogsResult
     ? databaseParserAttemptLogsResult.logs.filter((log) => {
@@ -5323,6 +5346,7 @@ uvicorn app.main:app --reload`}</pre>
                     setCommandLogs([])
                     setHasLoadedCommandLogs(false)
                     setCommandHistorySearch('')
+                    setCommandHistorySortOrder('newest')
                   }}
                   disabled={isBusy}
                 >
@@ -5341,10 +5365,25 @@ uvicorn app.main:app --reload`}</pre>
                     disabled={isBusy}
                   />
                 </label>
+
+                <label>
+                  Sort loaded command history
+                  <select
+                    value={commandHistorySortOrder}
+                    onChange={(event) => setCommandHistorySortOrder(event.target.value)}
+                    disabled={isBusy}
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="command_az">Command A-Z</option>
+                    <option value="parser_mode_az">Parser mode A-Z</option>
+                    <option value="result_type_az">Result type A-Z</option>
+                  </select>
+                </label>
               </div>
 
               <p className="command-history-filter-count">
-                Showing {filteredCommandHistoryLogs.length} of {commandLogs.length} loaded command history log(s).
+                Showing {filteredCommandHistoryLogs.length} of {commandLogs.length} loaded command history log(s). Sorted by {commandHistorySortOrder.replaceAll('_', ' ')}.
               </p>
 
               {filteredCommandHistoryLogs.length === 0 && (
