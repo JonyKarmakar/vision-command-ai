@@ -2627,6 +2627,33 @@ function App() {
       return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     })
 
+  const visibleCommandHistorySummary = filteredCommandHistoryLogs.length > 0
+    ? {
+        total: filteredCommandHistoryLogs.length,
+        byParserMode: Object.entries(
+          filteredCommandHistoryLogs.reduce<Record<string, number>>((summary, log) => {
+            const parserMode = log.parser_mode || 'unknown'
+            summary[parserMode] = (summary[parserMode] || 0) + 1
+            return summary
+          }, {})
+        ).sort((a, b) => b[1] - a[1]),
+        byResultType: Object.entries(
+          filteredCommandHistoryLogs.reduce<Record<string, number>>((summary, log) => {
+            const resultType = log.result_type || 'unknown'
+            summary[resultType] = (summary[resultType] || 0) + 1
+            return summary
+          }, {})
+        ).sort((a, b) => b[1] - a[1]),
+        byParsedAction: Object.entries(
+          filteredCommandHistoryLogs.reduce<Record<string, number>>((summary, log) => {
+            const parsedAction = log.parsed_action || 'unknown'
+            summary[parsedAction] = (summary[parsedAction] || 0) + 1
+            return summary
+          }, {})
+        ).sort((a, b) => b[1] - a[1]),
+      }
+    : null
+
   const filteredDatabaseParserAttemptLogs = databaseParserAttemptLogsResult
     ? databaseParserAttemptLogsResult.logs.filter((log) => {
         const normalizedSearch = databaseParserLogSearch.trim().toLowerCase()
@@ -5385,6 +5412,63 @@ uvicorn app.main:app --reload`}</pre>
               <p className="command-history-filter-count">
                 Showing {filteredCommandHistoryLogs.length} of {commandLogs.length} loaded command history log(s). Sorted by {commandHistorySortOrder.replaceAll('_', ' ')}.
               </p>
+
+              {visibleCommandHistorySummary && (
+                <div className="visible-command-history-summary">
+                  <h4>Visible Command History Summary</h4>
+
+                  <div className="visible-command-history-summary-grid">
+                    <div>
+                      <span>Visible logs</span>
+                      <strong>{visibleCommandHistorySummary.total}</strong>
+                    </div>
+                    <div>
+                      <span>Parser modes</span>
+                      <strong>{visibleCommandHistorySummary.byParserMode.length}</strong>
+                    </div>
+                    <div>
+                      <span>Result types</span>
+                      <strong>{visibleCommandHistorySummary.byResultType.length}</strong>
+                    </div>
+                    <div>
+                      <span>Parsed actions</span>
+                      <strong>{visibleCommandHistorySummary.byParsedAction.length}</strong>
+                    </div>
+                  </div>
+
+                  <div className="visible-command-history-breakdowns">
+                    <div>
+                      <h5>By parser mode</h5>
+                      {visibleCommandHistorySummary.byParserMode.map(([name, count]) => (
+                        <p key={name}>
+                          <strong>{name}</strong>
+                          <span>{count} log(s)</span>
+                        </p>
+                      ))}
+                    </div>
+
+                    <div>
+                      <h5>By result type</h5>
+                      {visibleCommandHistorySummary.byResultType.map(([name, count]) => (
+                        <p key={name}>
+                          <strong>{name}</strong>
+                          <span>{count} log(s)</span>
+                        </p>
+                      ))}
+                    </div>
+
+                    <div>
+                      <h5>By parsed action</h5>
+                      {visibleCommandHistorySummary.byParsedAction.map(([name, count]) => (
+                        <p key={name}>
+                          <strong>{name}</strong>
+                          <span>{count} log(s)</span>
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {filteredCommandHistoryLogs.length === 0 && (
                 <div className="empty-state command-history-empty-state">
