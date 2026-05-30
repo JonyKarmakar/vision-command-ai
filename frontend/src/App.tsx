@@ -2653,6 +2653,20 @@ function App() {
             return summary
           }, {})
         ).sort((a, b) => b[1] - a[1]),
+        byParserType: Object.entries(
+          filteredCommandHistoryLogs.reduce<Record<string, number>>((summary, log) => {
+            const parserType = log.parser_type || 'unknown'
+            summary[parserType] = (summary[parserType] || 0) + 1
+            return summary
+          }, {})
+        ).sort((a, b) => b[1] - a[1]),
+        byParserVersion: Object.entries(
+          filteredCommandHistoryLogs.reduce<Record<string, number>>((summary, log) => {
+            const parserVersion = log.parser_version || 'unknown'
+            summary[parserVersion] = (summary[parserVersion] || 0) + 1
+            return summary
+          }, {})
+        ).sort((a, b) => b[1] - a[1]),
       }
     : null
 
@@ -4292,6 +4306,7 @@ uvicorn app.main:app --reload`}</pre>
                               <strong>{item.name}</strong>
                               <span>{item.count}</span>
                             </div>
+
                             <div className="summary-bar-track">
                               <div
                                 className="summary-bar-fill"
@@ -5462,6 +5477,14 @@ uvicorn app.main:app --reload`}</pre>
                       <span>Parsed actions</span>
                       <strong>{visibleCommandHistorySummary.byParsedAction.length}</strong>
                     </div>
+                    <div>
+                      <span>Parser types</span>
+                      <strong>{visibleCommandHistorySummary.byParserType.length}</strong>
+                    </div>
+                    <div>
+                      <span>Parser versions</span>
+                      <strong>{visibleCommandHistorySummary.byParserVersion.length}</strong>
+                    </div>
                   </div>
 
                   <div className="visible-command-history-breakdowns">
@@ -5488,6 +5511,25 @@ uvicorn app.main:app --reload`}</pre>
                     <div>
                       <h5>By parsed action</h5>
                       {visibleCommandHistorySummary.byParsedAction.map(([name, count]) => (
+                        <p key={name}>
+                          <strong>{name}</strong>
+                          <span>{count} log(s)</span>
+                        </p>
+                      ))}
+                    </div>
+                    <div>
+                      <h5>By parser type</h5>
+                      {visibleCommandHistorySummary.byParserType.map(([name, count]) => (
+                        <p key={name}>
+                          <strong>{name}</strong>
+                          <span>{count} log(s)</span>
+                        </p>
+                      ))}
+                    </div>
+
+                    <div>
+                      <h5>By parser version</h5>
+                      {visibleCommandHistorySummary.byParserVersion.map(([name, count]) => (
                         <p key={name}>
                           <strong>{name}</strong>
                           <span>{count} log(s)</span>
