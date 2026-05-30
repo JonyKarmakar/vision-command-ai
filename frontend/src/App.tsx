@@ -4504,6 +4504,22 @@ uvicorn app.main:app --reload`}</pre>
             <div className="database-parser-attempt-logs-panel">
               <h3>PostgreSQL Parser Attempt Logs</h3>
 
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setDatabaseParserAttemptLogsResult(null)
+                    setDatabaseParserLogSearch('')
+                    setDatabaseParserLogSortOrder('newest')
+                    setDatabaseParserExportNotice('')
+                    setDatabaseParserLogViewResetNotice('')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear DB Parser Logs View
+                </button>
+              </div>
+
               <div className="database-parser-log-summary">
                 <div>
                   <span>Status</span>
@@ -5152,6 +5168,20 @@ uvicorn app.main:app --reload`}</pre>
           {hasLoadedCommandLogs && (
             <div className="command-history">
               <h3>Recent Command History</h3>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setCommandLogs([])
+                    setHasLoadedCommandLogs(false)
+                    setCommandHistorySearch('')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear Command History View
+                </button>
+              </div>
 
               <div className="command-history-search">
                 <label>

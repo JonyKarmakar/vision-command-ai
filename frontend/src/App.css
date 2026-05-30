@@ -2864,3 +2864,10 @@ input[type="file"]::file-selector-button:hover {
   font-weight: 600;
   margin: 0.25rem 0 0.75rem;
 }
+
+
+.loaded-panel-actions {
+  display: flex;
+  justify-content: center;
+  margin: 0.75rem 0 1rem;
+}
