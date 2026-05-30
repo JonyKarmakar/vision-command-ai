@@ -648,7 +648,7 @@ function App() {
   const [databaseParserAttemptSummaryResult, setDatabaseParserAttemptSummaryResult] = useState<DatabaseParserAttemptSummaryResponse | null>(null)
   const [llmProviderStatusResult, setLlmProviderStatusResult] = useState<LLMProviderStatusResponse | null>(null)
   const [llmOpsDashboardLoaded, setLlmOpsDashboardLoaded] = useState(false)
-  const [llmOpsParserEvaluationResult, setLlmOpsParserEvaluationResult] = useState<ParserEvaluationSummaryResponse | null>(null)
+  const [llmOpsDashboardResult, setLlmOpsDashboardResult] = useState<LLMOpsDashboardResponse | null>(null)
   const [includeRealLlmEvaluationInDashboard, setIncludeRealLlmEvaluationInDashboard] = useState(false)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [commandLogSummary, setCommandLogSummary] = useState<CommandLogSummaryResponse | null>(null)
@@ -2050,6 +2050,19 @@ function App() {
     }
   }
 
+  const llmOpsCommandLogSummary = llmOpsDashboardResult?.command_log_summary ?? null
+  const llmOpsParserAttemptSummary = llmOpsDashboardResult?.parser_attempt_summary ?? null
+  const llmOpsProviderStatus = llmOpsDashboardResult?.provider_status ?? null
+  const llmOpsParserEvaluation = llmOpsDashboardResult?.parser_evaluation ?? null
+
+  const llmOpsHasLegacyCommandParserMetadata = llmOpsCommandLogSummary
+    ? llmOpsCommandLogSummary.by_parser_mode.some((item) => item.name === 'unknown')
+    : false
+
+  const llmOpsHasLegacyParserAttemptMode = llmOpsParserAttemptSummary
+    ? llmOpsParserAttemptSummary.by_parser_mode.some((item) => item.parser_mode === 'llm')
+    : false
+
   const loadedObservabilityViewNames = [
     databaseParserAttemptLogsResult ? 'DB Parser Logs' : null,
     hasLoadedCommandLogs ? 'Command History' : null,
@@ -2091,7 +2104,6 @@ function App() {
     setDatabaseParserAttemptSummaryResult(null)
     setLlmProviderStatusResult(null)
     setLlmOpsDashboardLoaded(false)
-    setLlmOpsParserEvaluationResult(null)
   }
 
   const handleResetParserFilters = () => {
@@ -2107,7 +2119,6 @@ function App() {
     setDatabaseParserExportNotice('')
     setDatabaseParserResetNotice('')
     setLlmOpsDashboardLoaded(false)
-    setLlmOpsParserEvaluationResult(null)
     setDatabaseParserResetNotice('Parser filters reset.')
     setStatusMessage('Parser filters reset.')
   }
@@ -2119,7 +2130,6 @@ function App() {
     setDatabaseParserExportNotice('')
     setDatabaseParserResetNotice('')
     setLlmOpsDashboardLoaded(false)
-    setLlmOpsParserEvaluationResult(null)
   }
 
   const handleExportVisibleDatabaseParserAttemptLogs = () => {
@@ -2345,7 +2355,7 @@ function App() {
       setError(null)
       setDatabaseParserResetNotice('')
       setLlmOpsDashboardLoaded(false)
-      setLlmOpsParserEvaluationResult(null)
+      setLlmOpsDashboardResult(null)
       setStatusMessage('Loading LLMOps dashboard...')
 
       const queryParams = new URLSearchParams()
@@ -2376,11 +2386,7 @@ function App() {
 
       const data: LLMOpsDashboardResponse = await response.json()
 
-      setLlmProviderStatusResult(data.provider_status)
-      setDatabaseParserAttemptSummaryResult(data.parser_attempt_summary)
-      setDatabaseParserAttemptLogsResult(data.recent_parser_attempt_logs)
-      setCommandLogSummary(data.command_log_summary)
-      setLlmOpsParserEvaluationResult(data.parser_evaluation)
+      setLlmOpsDashboardResult(data)
       setLlmOpsDashboardLoaded(true)
 
       setStatusMessage(
@@ -2848,14 +2854,6 @@ function App() {
         }
       })()
     : null
-
-  const hasLegacyCommandParserMetadata = commandLogSummary
-    ? commandLogSummary.by_parser_mode.some((item) => item.name === 'unknown')
-    : false
-
-  const hasLegacyParserAttemptMode = databaseParserAttemptSummaryResult
-    ? databaseParserAttemptSummaryResult.by_parser_mode.some((item) => item.parser_mode === 'llm')
-    : false
 
   const isRealLlmSelected = selectedParserMode === 'real_llm'
 
@@ -4128,7 +4126,7 @@ uvicorn app.main:app --reload`}</pre>
             </div>
           )}
 
-          {llmOpsDashboardLoaded && (
+          {llmOpsDashboardLoaded && llmOpsDashboardResult && (
             <div className="llmops-dashboard-panel">
               <h3>LLMOps Dashboard</h3>
 
@@ -4137,7 +4135,7 @@ uvicorn app.main:app --reload`}</pre>
                   className="secondary-button"
                   onClick={() => {
                     setLlmOpsDashboardLoaded(false)
-                    setLlmOpsParserEvaluationResult(null)
+                    setLlmOpsDashboardResult(null)
                   }}
                   disabled={isBusy}
                 >
@@ -4145,7 +4143,7 @@ uvicorn app.main:app --reload`}</pre>
                 </button>
               </div>
 
-              {(hasLegacyCommandParserMetadata || hasLegacyParserAttemptMode) && (
+              {(llmOpsHasLegacyCommandParserMetadata || llmOpsHasLegacyParserAttemptMode) && (
                 <div className="legacy-metadata-note">
                   <strong>Legacy metadata note</strong>
                   <p>
@@ -4156,7 +4154,7 @@ uvicorn app.main:app --reload`}</pre>
                 </div>
               )}
 
-              {commandLogSummary && (
+              {llmOpsCommandLogSummary && (
                 <div className="llmops-command-summary">
                   <h4>Command Execution Summary</h4>
                   <p className="small-note command-summary-filter-note">
@@ -4166,21 +4164,21 @@ uvicorn app.main:app --reload`}</pre>
                   <div className="summary-grid">
                     <div className="summary-card">
                       <span>Total commands</span>
-                      <strong>{commandLogSummary.total_commands}</strong>
+                      <strong>{llmOpsCommandLogSummary.total_commands}</strong>
                     </div>
 
                     <div className="summary-card">
                       <span>Parser modes used</span>
-                      <strong>{commandLogSummary.by_parser_mode.length}</strong>
+                      <strong>{llmOpsCommandLogSummary.by_parser_mode.length}</strong>
                     </div>
 
                     <div className="summary-card">
                       <span>Result types</span>
-                      <strong>{commandLogSummary.by_result_type.length}</strong>
+                      <strong>{llmOpsCommandLogSummary.by_result_type.length}</strong>
                     </div>
                   </div>
 
-                  {commandLogSummary.total_commands === 0 && (
+                  {llmOpsCommandLogSummary.total_commands === 0 && (
                     <div className="empty-state command-summary-empty-state">
                       <strong>No LLMOps command summary found for the selected filters.</strong>
                       <p>
@@ -4196,7 +4194,7 @@ uvicorn app.main:app --reload`}</pre>
                     <div>
                       <h5>By parser mode</h5>
                       <div className="summary-bar-list">
-                        {commandLogSummary.by_parser_mode.map((item) => (
+                        {llmOpsCommandLogSummary.by_parser_mode.map((item) => (
                           <div key={item.name} className="summary-bar-row">
                             <div className="summary-bar-meta">
                               <strong>{item.name}</strong>
@@ -4205,7 +4203,7 @@ uvicorn app.main:app --reload`}</pre>
                             <div className="summary-bar-track">
                               <div
                                 className="summary-bar-fill"
-                                style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_parser_mode) }}
+                                style={{ width: getCommandSummaryBarWidth(item.count, llmOpsCommandLogSummary.by_parser_mode) }}
                               />
                             </div>
                           </div>
@@ -4216,7 +4214,7 @@ uvicorn app.main:app --reload`}</pre>
                     <div>
                       <h5>By result type</h5>
                       <div className="summary-bar-list">
-                        {commandLogSummary.by_result_type.map((item) => (
+                        {llmOpsCommandLogSummary.by_result_type.map((item) => (
                           <div key={item.name} className="summary-bar-row">
                             <div className="summary-bar-meta">
                               <strong>{item.name}</strong>
@@ -4225,7 +4223,7 @@ uvicorn app.main:app --reload`}</pre>
                             <div className="summary-bar-track">
                               <div
                                 className="summary-bar-fill"
-                                style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_result_type) }}
+                                style={{ width: getCommandSummaryBarWidth(item.count, llmOpsCommandLogSummary.by_result_type) }}
                               />
                             </div>
                           </div>
@@ -4236,7 +4234,7 @@ uvicorn app.main:app --reload`}</pre>
                     <div>
                       <h5>By parsed action</h5>
                       <div className="summary-bar-list">
-                        {commandLogSummary.by_parsed_action.map((item) => (
+                        {llmOpsCommandLogSummary.by_parsed_action.map((item) => (
                           <div key={item.name} className="summary-bar-row">
                             <div className="summary-bar-meta">
                               <strong>{item.name}</strong>
@@ -4245,7 +4243,7 @@ uvicorn app.main:app --reload`}</pre>
                             <div className="summary-bar-track">
                               <div
                                 className="summary-bar-fill"
-                                style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_parsed_action) }}
+                                style={{ width: getCommandSummaryBarWidth(item.count, llmOpsCommandLogSummary.by_parsed_action) }}
                               />
                             </div>
                           </div>
@@ -4260,33 +4258,33 @@ uvicorn app.main:app --reload`}</pre>
               <div className="llmops-dashboard-grid">
                 <div>
                   <span>Provider</span>
-                  <strong>{llmProviderStatusResult?.provider_name ?? 'not loaded'}</strong>
+                  <strong>{llmOpsProviderStatus?.provider_name ?? 'not loaded'}</strong>
                 </div>
                 <div>
                   <span>Model</span>
-                  <strong>{llmProviderStatusResult?.provider_model ?? 'none'}</strong>
+                  <strong>{llmOpsProviderStatus?.provider_model ?? 'none'}</strong>
                 </div>
                 <div>
                   <span>Real LLM available</span>
-                  <strong>{String(llmProviderStatusResult?.real_llm_available ?? false)}</strong>
+                  <strong>{String(llmOpsProviderStatus?.real_llm_available ?? false)}</strong>
                 </div>
                 <div>
                   <span>Total parser attempts</span>
-                  <strong>{databaseParserAttemptSummaryResult?.total_attempts ?? 0}</strong>
+                  <strong>{llmOpsParserAttemptSummary?.total_attempts ?? 0}</strong>
                 </div>
                 <div>
                   <span>Success rate</span>
                   <strong>
-                    {databaseParserAttemptSummaryResult
-                      ? `${(databaseParserAttemptSummaryResult.success_rate * 100).toFixed(1)}%`
+                    {llmOpsParserAttemptSummary
+                      ? `${(llmOpsParserAttemptSummary.success_rate * 100).toFixed(1)}%`
                       : '0.0%'}
                   </strong>
                 </div>
                 <div>
                   <span>Average latency</span>
                   <strong>
-                    {databaseParserAttemptSummaryResult
-                      ? `${databaseParserAttemptSummaryResult.average_latency_ms.toFixed(2)} ms`
+                    {llmOpsParserAttemptSummary
+                      ? `${llmOpsParserAttemptSummary.average_latency_ms.toFixed(2)} ms`
                       : '0.00 ms'}
                   </strong>
                 </div>
@@ -4295,8 +4293,8 @@ uvicorn app.main:app --reload`}</pre>
               <p className="small-note">
                 <strong>LLMOps active filters:</strong> parser mode = {databaseParserLogParserModeFilter}, result = {databaseParserLogSuccessFilter}, limit = {databaseParserLogLimit}, command summary parser filter = {databaseParserLogParserModeFilter}, include real LLM evaluation = {includeRealLlmEvaluationInDashboard ? 'yes' : 'no'}
               </p>
-              {(commandLogSummary?.total_commands ?? 0) === 0 &&
-                (!databaseParserAttemptSummaryResult || databaseParserAttemptSummaryResult.total_attempts === 0) && (
+              {(llmOpsCommandLogSummary?.total_commands ?? 0) === 0 &&
+                (!llmOpsParserAttemptSummary || llmOpsParserAttemptSummary.total_attempts === 0) && (
                   <div className="empty-state llmops-empty-state">
                     <strong>No LLMOps activity data found for the selected filters.</strong>
                     <p>
@@ -4309,11 +4307,11 @@ uvicorn app.main:app --reload`}</pre>
                 )}
 
 
-              {llmOpsParserEvaluationResult && (
+              {llmOpsParserEvaluation && (
                 <div className="llmops-parser-evaluation-panel">
                   <h4>Parser Evaluation Quality</h4>
 
-                  {llmOpsParserEvaluationResult.evaluations.length === 0 ? (
+                  {llmOpsParserEvaluation.evaluations.length === 0 ? (
                     <div className="empty-state llmops-empty-state">
                       <strong>No parser evaluation results available for the selected filters.</strong>
                       <p>
@@ -4325,7 +4323,7 @@ uvicorn app.main:app --reload`}</pre>
                     </div>
                   ) : (
                     <div className="llmops-parser-evaluation-list">
-                      {llmOpsParserEvaluationResult.evaluations.map((evaluation) => (
+                      {llmOpsParserEvaluation.evaluations.map((evaluation) => (
                         <div key={evaluation.parser_type} className="llmops-parser-evaluation-card">
                           <div>
                             <span>Parser</span>
@@ -4352,10 +4350,10 @@ uvicorn app.main:app --reload`}</pre>
                     </div>
                   )}
 
-                  {llmOpsParserEvaluationResult.skipped_evaluations.length > 0 && (
+                  {llmOpsParserEvaluation.skipped_evaluations.length > 0 && (
                     <div className="llmops-skipped-evaluations">
                       <h5>Skipped parser evaluations</h5>
-                      {llmOpsParserEvaluationResult.skipped_evaluations.map((skipped) => (
+                      {llmOpsParserEvaluation.skipped_evaluations.map((skipped) => (
                         <div key={skipped.parser_mode} className="llmops-skipped-evaluation-card">
                           <strong>{skipped.parser_mode}</strong>
                           <span>{skipped.reason}</span>
