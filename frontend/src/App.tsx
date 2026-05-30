@@ -2050,6 +2050,35 @@ function App() {
     }
   }
 
+  const clearAllLoadedObservabilityViews = () => {
+    setDatabaseParserAttemptLogsResult(null)
+    setDatabaseParserLogSearch('')
+    setDatabaseParserLogSortOrder('newest')
+    setDatabaseParserExportNotice('')
+    setDatabaseParserLogViewResetNotice('')
+
+    setCommandLogs([])
+    setHasLoadedCommandLogs(false)
+    setCommandHistorySearch('')
+
+    setCommandLogSummary(null)
+    setCommandEvaluationResult(null)
+    setParserComparisonResult(null)
+
+    setParserAttemptLogsResult(null)
+    setLocalParserAttemptModeFilter('all')
+    setLocalParserAttemptResultFilter('all')
+    setLocalParserAttemptSearch('')
+    setLocalParserAttemptSortOrder('newest')
+    setLocalParserAttemptResetNotice('')
+    setLocalParserAttemptExportNotice('')
+
+    setDatabaseParserAttemptSummaryResult(null)
+    setLlmProviderStatusResult(null)
+    setLlmOpsDashboardLoaded(false)
+    setLlmOpsParserEvaluationResult(null)
+  }
+
   const handleResetParserFilters = () => {
     setDatabaseParserLogParserModeFilter('all')
     setDatabaseParserLogSuccessFilter('all')
@@ -3906,6 +3935,14 @@ function App() {
             >
               {isLoadingLlmOpsDashboard ? 'Loading LLMOps...' : 'Load LLMOps Dashboard'}
             </button>
+
+              <button
+                className="secondary-button"
+                onClick={clearAllLoadedObservabilityViews}
+                disabled={isBusy}
+              >
+                Clear All Loaded Views
+              </button>
           </div>
 
           <details className="local-ollama-help-panel">
