@@ -2670,27 +2670,37 @@ function App() {
     return new Date(secondLog.timestamp).getTime() - new Date(firstLog.timestamp).getTime()
   })
 
+  const getCommandHistorySearchMatchFields = (log: CommandLog) => {
+    const normalizedSearch = commandHistorySearch.trim().toLowerCase()
+
+    if (normalizedSearch.length === 0) {
+      return []
+    }
+
+    const searchableFields = [
+      { label: 'timestamp', value: log.timestamp },
+      { label: 'filename', value: log.filename },
+      { label: 'command', value: log.command },
+      { label: 'parsed action', value: log.parsed_action },
+      { label: 'parsed class', value: log.parsed_class },
+      { label: 'result type', value: log.result_type },
+      { label: 'parser mode', value: log.parser_mode },
+      { label: 'parser type', value: log.parser_type },
+      { label: 'parser version', value: log.parser_version },
+    ]
+
+    return searchableFields
+      .filter((field) => (field.value ?? '').toLowerCase().includes(normalizedSearch))
+      .map((field) => field.label)
+  }
+
   const filteredCommandHistoryLogs = commandLogs
     .filter((log) => {
       const normalizedSearch = commandHistorySearch.trim().toLowerCase()
 
-      const searchableFields = [
-        log.timestamp,
-        log.filename,
-        log.command,
-        log.parsed_action,
-        log.parsed_class,
-        log.result_type,
-        log.parser_mode,
-        log.parser_type,
-        log.parser_version,
-      ]
-
       return (
         normalizedSearch.length === 0 ||
-        searchableFields.some((field) =>
-          (field ?? '').toLowerCase().includes(normalizedSearch)
-        )
+        getCommandHistorySearchMatchFields(log).length > 0
       )
     })
     .sort((a, b) => {
@@ -5667,6 +5677,15 @@ uvicorn app.main:app --reload`}</pre>
                       <span className="command-log-result-type">
                         result: {log.result_type}
                       </span>
+                    )}
+
+                    {commandHistorySearch.trim() && getCommandHistorySearchMatchFields(log).length > 0 && (
+                      <div className="command-history-match-fields">
+                        <span>Matched:</span>
+                        {getCommandHistorySearchMatchFields(log).map((field) => (
+                          <strong key={field}>{field}</strong>
+                        ))}
+                      </div>
                     )}
                     {log.parser_mode && <span> · parser: {log.parser_mode}</span>}
                     {log.parser_version && <span> · {log.parser_version}</span>}
