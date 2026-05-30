@@ -2050,6 +2050,20 @@ function App() {
     }
   }
 
+  const loadedObservabilityViewCount = [
+    databaseParserAttemptLogsResult,
+    hasLoadedCommandLogs,
+    commandLogSummary,
+    commandEvaluationResult,
+    parserComparisonResult,
+    parserAttemptLogsResult,
+    databaseParserAttemptSummaryResult,
+    llmProviderStatusResult,
+    llmOpsDashboardLoaded,
+  ].filter(Boolean).length
+
+  const hasAnyLoadedObservabilityView = loadedObservabilityViewCount > 0
+
   const clearAllLoadedObservabilityViews = () => {
     setDatabaseParserAttemptLogsResult(null)
     setDatabaseParserLogSearch('')
@@ -3939,10 +3953,16 @@ function App() {
               <button
                 className="secondary-button"
                 onClick={clearAllLoadedObservabilityViews}
-                disabled={isBusy}
+                disabled={isBusy || !hasAnyLoadedObservabilityView}
               >
                 Clear All Loaded Views
               </button>
+
+              <p className="loaded-views-status">
+                {hasAnyLoadedObservabilityView
+                  ? `${loadedObservabilityViewCount} loaded observability view(s) open.`
+                  : 'No loaded observability views open.'}
+              </p>
           </div>
 
           <details className="local-ollama-help-panel">

@@ -2882,3 +2882,12 @@ input[type="file"]::file-selector-button:hover {
 .global-loaded-panel-actions .secondary-button {
   min-width: 220px;
 }
+
+
+.loaded-views-status {
+  width: 100%;
+  text-align: center;
+  color: #cbd5e1;
+  font-weight: 600;
+  margin: 0.35rem 0 0.75rem;
+}
