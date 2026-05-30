@@ -2980,3 +2980,11 @@ input[type="file"]::file-selector-button:hover {
   font-weight: 700;
   margin: 0.25rem 0 0.75rem;
 }
+
+.command-history-visible-export-notice {
+  width: 100%;
+  text-align: center;
+  color: #93c5fd;
+  font-weight: 700;
+  margin: 0.25rem 0 0.75rem;
+}
