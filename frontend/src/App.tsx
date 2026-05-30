@@ -659,6 +659,7 @@ function App() {
   const [commandHistoryLimit, setCommandHistoryLimit] = useState('10')
   const [commandHistorySearch, setCommandHistorySearch] = useState('')
   const [commandHistorySortOrder, setCommandHistorySortOrder] = useState('newest')
+  const [commandHistoryViewResetNotice, setCommandHistoryViewResetNotice] = useState('')
   const [commandHistoryResetNotice, setCommandHistoryResetNotice] = useState('')
   const [commandHistoryExportNotice, setCommandHistoryExportNotice] = useState('')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
@@ -1603,6 +1604,7 @@ function App() {
     setCommandHistoryLimit('10')
     setCommandHistorySearch('')
     setCommandHistorySortOrder('newest')
+    setCommandHistoryViewResetNotice('')
     setCommandHistorySearch('')
     setCommandLogs([])
     setCommandLogSummary(null)
@@ -5374,6 +5376,7 @@ uvicorn app.main:app --reload`}</pre>
                     setHasLoadedCommandLogs(false)
                     setCommandHistorySearch('')
                     setCommandHistorySortOrder('newest')
+                    setCommandHistoryViewResetNotice('')
                   }}
                   disabled={isBusy}
                 >
@@ -5387,7 +5390,10 @@ uvicorn app.main:app --reload`}</pre>
                   <input
                     type="search"
                     value={commandHistorySearch}
-                    onChange={(event) => setCommandHistorySearch(event.target.value)}
+                    onChange={(event) => {
+                      setCommandHistorySearch(event.target.value)
+                      setCommandHistoryViewResetNotice('')
+                    }}
                     placeholder="detect, crop, blur..."
                     disabled={isBusy}
                   />
@@ -5397,7 +5403,10 @@ uvicorn app.main:app --reload`}</pre>
                   Sort loaded command history
                   <select
                     value={commandHistorySortOrder}
-                    onChange={(event) => setCommandHistorySortOrder(event.target.value)}
+                    onChange={(event) => {
+                      setCommandHistorySortOrder(event.target.value)
+                      setCommandHistoryViewResetNotice('')
+                    }}
                     disabled={isBusy}
                   >
                     <option value="newest">Newest first</option>
@@ -5407,11 +5416,30 @@ uvicorn app.main:app --reload`}</pre>
                     <option value="result_type_az">Result type A-Z</option>
                   </select>
                 </label>
+
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setCommandHistorySearch('')
+                    setCommandHistorySortOrder('newest')
+                    setCommandHistoryViewResetNotice('Loaded command history view reset.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Reset Loaded Command History View
+                </button>
               </div>
 
               <p className="command-history-filter-count">
                 Showing {filteredCommandHistoryLogs.length} of {commandLogs.length} loaded command history log(s). Sorted by {commandHistorySortOrder.replaceAll('_', ' ')}.
               </p>
+
+              {commandHistoryViewResetNotice && (
+                <p className="command-history-view-reset-notice">
+                  {commandHistoryViewResetNotice}
+                </p>
+              )}
+
 
               {visibleCommandHistorySummary && (
                 <div className="visible-command-history-summary">
