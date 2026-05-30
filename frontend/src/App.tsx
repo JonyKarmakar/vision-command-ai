@@ -660,6 +660,7 @@ function App() {
   const [commandHistorySearch, setCommandHistorySearch] = useState('')
   const [commandHistorySortOrder, setCommandHistorySortOrder] = useState('newest')
   const [commandHistoryViewResetNotice, setCommandHistoryViewResetNotice] = useState('')
+  const [commandHistoryVisibleExportNotice, setCommandHistoryVisibleExportNotice] = useState('')
   const [commandHistoryResetNotice, setCommandHistoryResetNotice] = useState('')
   const [commandHistoryExportNotice, setCommandHistoryExportNotice] = useState('')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
@@ -1605,6 +1606,7 @@ function App() {
     setCommandHistorySearch('')
     setCommandHistorySortOrder('newest')
     setCommandHistoryViewResetNotice('')
+    setCommandHistoryVisibleExportNotice('')
     setCommandHistorySearch('')
     setCommandLogs([])
     setCommandLogSummary(null)
@@ -1709,6 +1711,74 @@ function App() {
       setStatusMessage('Could not export command history.')
     }
   }
+
+  const handleExportVisibleCommandHistoryLogs = () => {
+    if (filteredCommandHistoryLogs.length === 0) {
+      setCommandHistoryVisibleExportNotice('No visible command history rows to export.')
+      return
+    }
+
+    const escapeCsvValue = (value: string | number | null | undefined) => {
+      const stringValue = value === null || value === undefined ? '' : String(value)
+      return `"${stringValue.replaceAll('"', '""')}"`
+    }
+
+    const headers = [
+      'timestamp',
+      'filename',
+      'command',
+      'confidence_threshold',
+      'parsed_action',
+      'parsed_class',
+      'result_type',
+      'parser_mode',
+      'parser_type',
+      'parser_version',
+    ]
+
+    const rows = filteredCommandHistoryLogs.map((log) => [
+      log.timestamp,
+      log.filename,
+      log.command,
+      log.confidence_threshold,
+      log.parsed_action,
+      log.parsed_class,
+      log.result_type,
+      log.parser_mode ?? 'unknown',
+      log.parser_type ?? 'unknown',
+      log.parser_version ?? 'unknown',
+    ])
+
+    const csvContent = [
+      headers.map(escapeCsvValue).join(','),
+      ...rows.map((row) => row.map(escapeCsvValue).join(',')),
+    ].join('\n')
+
+    const searchPart = commandHistorySearch.trim()
+      ? `search-${commandHistorySearch.trim().replace(/[^a-z0-9]+/gi, '_').toLowerCase()}`
+      : 'search-all'
+
+    const exportFileName = `visible_command_history_parser-${commandHistoryParserModeFilter}_result-${commandHistoryResultTypeFilter}_limit-${commandHistoryLimit}_${searchPart}_sort-${commandHistorySortOrder}.csv`
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+
+    link.href = downloadUrl
+    link.download = exportFileName
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+
+    window.URL.revokeObjectURL(downloadUrl)
+
+    const exportMessage = `Exported ${filteredCommandHistoryLogs.length} visible command history row(s) to ${exportFileName}.`
+
+    setCommandHistoryVisibleExportNotice(exportMessage)
+    setCommandHistoryViewResetNotice('')
+    setStatusMessage(exportMessage)
+  }
+
 
   const handleLoadCommandLogSummary = async () => {
     try {
@@ -5392,6 +5462,7 @@ uvicorn app.main:app --reload`}</pre>
                     setCommandHistorySearch('')
                     setCommandHistorySortOrder('newest')
                     setCommandHistoryViewResetNotice('')
+                    setCommandHistoryVisibleExportNotice('')
                   }}
                   disabled={isBusy}
                 >
@@ -5408,6 +5479,7 @@ uvicorn app.main:app --reload`}</pre>
                     onChange={(event) => {
                       setCommandHistorySearch(event.target.value)
                       setCommandHistoryViewResetNotice('')
+                      setCommandHistoryVisibleExportNotice('')
                     }}
                     placeholder="detect, crop, blur..."
                     disabled={isBusy}
@@ -5421,6 +5493,7 @@ uvicorn app.main:app --reload`}</pre>
                     onChange={(event) => {
                       setCommandHistorySortOrder(event.target.value)
                       setCommandHistoryViewResetNotice('')
+                      setCommandHistoryVisibleExportNotice('')
                     }}
                     disabled={isBusy}
                   >
@@ -5437,11 +5510,20 @@ uvicorn app.main:app --reload`}</pre>
                   onClick={() => {
                     setCommandHistorySearch('')
                     setCommandHistorySortOrder('newest')
+                    setCommandHistoryVisibleExportNotice('')
                     setCommandHistoryViewResetNotice('Loaded command history view reset.')
                   }}
                   disabled={isBusy}
                 >
                   Reset Loaded Command History View
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={handleExportVisibleCommandHistoryLogs}
+                  disabled={isBusy || filteredCommandHistoryLogs.length === 0}
+                >
+                  Export Visible Command History CSV
                 </button>
               </div>
 
@@ -5452,6 +5534,12 @@ uvicorn app.main:app --reload`}</pre>
               {commandHistoryViewResetNotice && (
                 <p className="command-history-view-reset-notice">
                   {commandHistoryViewResetNotice}
+                </p>
+              )}
+
+              {commandHistoryVisibleExportNotice && (
+                <p className="command-history-visible-export-notice">
+                  {commandHistoryVisibleExportNotice}
                 </p>
               )}
 
