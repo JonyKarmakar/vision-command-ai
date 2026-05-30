@@ -2905,3 +2905,70 @@ input[type="file"]::file-selector-button:hover {
   border-radius: 0.7rem;
   padding: 0.55rem 0.7rem;
 }
+
+.visible-command-history-summary {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 1rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.visible-command-history-summary h4 {
+  text-align: center;
+  margin: 0 0 0.9rem;
+  color: #f8fafc;
+}
+
+.visible-command-history-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.visible-command-history-summary-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.45);
+  border-radius: 0.8rem;
+  padding: 0.85rem;
+  text-align: center;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.visible-command-history-summary-grid span,
+.visible-command-history-breakdowns span {
+  color: #94a3b8;
+}
+
+.visible-command-history-summary-grid strong {
+  color: #f8fafc;
+  font-size: 1.15rem;
+}
+
+.visible-command-history-breakdowns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.visible-command-history-breakdowns > div {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.8rem;
+  padding: 0.85rem;
+}
+
+.visible-command-history-breakdowns h5 {
+  margin: 0 0 0.6rem;
+  color: #f8fafc;
+  text-align: center;
+}
+
+.visible-command-history-breakdowns p {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.35rem 0;
+  color: #cbd5e1;
+}
