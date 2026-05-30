@@ -2674,9 +2674,23 @@ function App() {
     .filter((log) => {
       const normalizedSearch = commandHistorySearch.trim().toLowerCase()
 
+      const searchableFields = [
+        log.timestamp,
+        log.filename,
+        log.command,
+        log.parsed_action,
+        log.parsed_class,
+        log.result_type,
+        log.parser_mode,
+        log.parser_type,
+        log.parser_version,
+      ]
+
       return (
         normalizedSearch.length === 0 ||
-        log.command.toLowerCase().includes(normalizedSearch)
+        searchableFields.some((field) =>
+          (field ?? '').toLowerCase().includes(normalizedSearch)
+        )
       )
     })
     .sort((a, b) => {
@@ -5028,7 +5042,7 @@ uvicorn app.main:app --reload`}</pre>
                       setLocalParserAttemptResetNotice('')
                       setLocalParserAttemptExportNotice('')
                     }}
-                    placeholder="detect, crop, blur..."
+                    placeholder="crop, rule_based, v1, annotated_detection..."
                     disabled={isBusy}
                   />
                 </label>
