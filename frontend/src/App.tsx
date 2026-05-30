@@ -4074,6 +4074,19 @@ uvicorn app.main:app --reload`}</pre>
             <div className="llmops-dashboard-panel">
               <h3>LLMOps Dashboard</h3>
 
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setLlmOpsDashboardLoaded(false)
+                    setLlmOpsParserEvaluationResult(null)
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear LLMOps Dashboard View
+                </button>
+              </div>
+
               {(hasLegacyCommandParserMetadata || hasLegacyParserAttemptMode) && (
                 <div className="legacy-metadata-note">
                   <strong>Legacy metadata note</strong>
@@ -4305,6 +4318,18 @@ uvicorn app.main:app --reload`}</pre>
             <div className="llm-provider-status-panel">
               <h3>LLM Provider Status</h3>
 
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setLlmProviderStatusResult(null)
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear LLM Provider Status View
+                </button>
+              </div>
+
               <div className="provider-status-grid">
                 <div>
                   <span>provider_name</span>
@@ -4363,6 +4388,18 @@ uvicorn app.main:app --reload`}</pre>
           {databaseParserAttemptSummaryResult && (
             <div className="database-parser-attempt-summary-panel">
               <h3>PostgreSQL Parser Attempt Summary</h3>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setDatabaseParserAttemptSummaryResult(null)
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear DB Parser Summary View
+                </button>
+              </div>
 
               <div className="database-parser-summary-grid">
                 <div>
@@ -4730,6 +4767,24 @@ uvicorn app.main:app --reload`}</pre>
             <div className="parser-attempt-logs-panel">
               <h3>Local Parser Attempt Logs</h3>
 
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setParserAttemptLogsResult(null)
+                    setLocalParserAttemptModeFilter('all')
+                    setLocalParserAttemptResultFilter('all')
+                    setLocalParserAttemptSearch('')
+                    setLocalParserAttemptSortOrder('newest')
+                    setLocalParserAttemptResetNotice('')
+                    setLocalParserAttemptExportNotice('')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear Local Parser Attempt Logs View
+                </button>
+              </div>
+
               <p className="small-note parser-attempt-filter-note">
                 These local parser attempt logs are not affected by Command history filters. Use DB Parser Logs below for filterable PostgreSQL parser logs.
               </p>
@@ -4985,6 +5040,18 @@ uvicorn app.main:app --reload`}</pre>
             <div className="parser-comparison-panel">
               <h3>Parser Comparison Results</h3>
 
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setParserComparisonResult(null)
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear Parser Comparison View
+                </button>
+              </div>
+
               <div className="parser-comparison-grid">
                 {parserComparisonResult.evaluations.map((evaluation) => (
                   <div className="parser-comparison-card" key={evaluation.parser_type}>
@@ -5016,6 +5083,18 @@ uvicorn app.main:app --reload`}</pre>
           {commandEvaluationResult && (
             <div className="parser-evaluation-panel">
               <h3>Parser Evaluation Results</h3>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setCommandEvaluationResult(null)
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear Parser Evaluation View
+                </button>
+              </div>
 
               <div className="parser-evaluation-summary">
                 <div>
@@ -5068,6 +5147,18 @@ uvicorn app.main:app --reload`}</pre>
           {commandLogSummary && (
             <div className="command-history-summary">
               <h3>Command History Summary</h3>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setCommandLogSummary(null)
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear Command Summary View
+                </button>
+              </div>
               <p className="small-note command-summary-filter-note">
                 <strong>Command summary filters:</strong> parser = {commandHistoryParserModeFilter}, result type = {commandHistoryResultTypeFilter}
               </p>
