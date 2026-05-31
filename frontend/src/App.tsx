@@ -4856,6 +4856,24 @@ uvicorn app.main:app --reload`}</pre>
                 >
                   Clear DB Parser Logs View
                 </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      sortedDatabaseParserAttemptLogs,
+                      'visible-db-parser-logs-json',
+                      'Copied visible DB parser logs JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || sortedDatabaseParserAttemptLogs.length === 0}
+                >
+                  {copiedParserLogJsonKey === 'visible-db-parser-logs-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'visible-db-parser-logs-json'
+                      ? 'Copy failed'
+                      : 'Copy visible logs JSON'}
+                </button>
               </div>
 
               <div className="database-parser-log-summary">
@@ -5127,6 +5145,24 @@ uvicorn app.main:app --reload`}</pre>
                   disabled={isBusy}
                 >
                   Clear Local Parser Attempt Logs View
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      sortedLocalParserAttemptLogs,
+                      'visible-local-parser-logs-json',
+                      'Copied visible local parser attempt logs JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || sortedLocalParserAttemptLogs.length === 0}
+                >
+                  {copiedParserLogJsonKey === 'visible-local-parser-logs-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'visible-local-parser-logs-json'
+                      ? 'Copy failed'
+                      : 'Copy visible logs JSON'}
                 </button>
               </div>
 
