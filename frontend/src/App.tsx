@@ -5155,6 +5155,23 @@ uvicorn app.main:app --reload`}</pre>
                                 ? 'Copy failed'
                                 : 'Copy full log'}
                           </button>
+
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() =>
+                              handleDownloadJsonFile(
+                                log,
+                                `db_parser_log_${log.timestamp.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                                'Downloaded full DB parser log JSON.',
+                                `download-db-full-parser-log-json-${log.timestamp}-${index}`,
+                              )
+                            }
+                          >
+                            {downloadedParserLogJsonKey === `download-db-full-parser-log-json-${log.timestamp}-${index}`
+                              ? 'Downloaded!'
+                              : 'Download full log JSON'}
+                          </button>
                         </div>
                       </div>
 
@@ -5523,6 +5540,23 @@ uvicorn app.main:app --reload`}</pre>
                               : failedParserLogJsonKey === `local-full-parser-log-json-${log.timestamp}-${index}`
                                 ? 'Copy failed'
                                 : 'Copy full log'}
+                          </button>
+
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() =>
+                              handleDownloadJsonFile(
+                                log,
+                                `local_parser_attempt_log_${log.timestamp.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                                'Downloaded full local parser attempt log JSON.',
+                                `download-local-full-parser-log-json-${log.timestamp}-${index}`,
+                              )
+                            }
+                          >
+                            {downloadedParserLogJsonKey === `download-local-full-parser-log-json-${log.timestamp}-${index}`
+                              ? 'Downloaded!'
+                              : 'Download full log JSON'}
                           </button>
                         </div>
                       </div>
