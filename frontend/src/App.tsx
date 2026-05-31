@@ -1585,6 +1585,20 @@ function App() {
   }
 
 
+  const getSafeJsonFileSearchPart = (searchValue: string) => {
+    const normalizedSearch = searchValue.trim()
+
+    if (normalizedSearch.length === 0) {
+      return 'search-none'
+    }
+
+    return `search-${normalizedSearch
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40)}`
+  }
+
   const handleDownloadJsonFile = (
     jsonData: unknown,
     fileName: string,
@@ -4937,7 +4951,7 @@ uvicorn app.main:app --reload`}</pre>
                         sort_order: databaseParserLogSortOrder,
                         logs: sortedDatabaseParserAttemptLogs,
                       },
-                      `visible_db_parser_logs_mode-${databaseParserLogParserModeFilter}_result-${databaseParserLogSuccessFilter}_limit-${databaseParserLogLimit}_sort-${databaseParserLogSortOrder}.json`,
+                      `visible_db_parser_logs_mode-${databaseParserLogParserModeFilter}_result-${databaseParserLogSuccessFilter}_limit-${databaseParserLogLimit}_${getSafeJsonFileSearchPart(databaseParserLogSearch)}_sort-${databaseParserLogSortOrder}.json`,
                       'Downloaded visible DB parser logs JSON.',
                       'download-visible-db-parser-logs-json',
                     )
@@ -5269,7 +5283,7 @@ uvicorn app.main:app --reload`}</pre>
                         sort_order: localParserAttemptSortOrder,
                         logs: sortedLocalParserAttemptLogs,
                       },
-                      `visible_local_parser_attempt_logs_mode-${localParserAttemptModeFilter}_result-${localParserAttemptResultFilter}_sort-${localParserAttemptSortOrder}.json`,
+                      `visible_local_parser_attempt_logs_mode-${localParserAttemptModeFilter}_result-${localParserAttemptResultFilter}_${getSafeJsonFileSearchPart(localParserAttemptSearch)}_sort-${localParserAttemptSortOrder}.json`,
                       'Downloaded visible local parser attempt logs JSON.',
                       'download-visible-local-parser-logs-json',
                     )
