@@ -712,6 +712,7 @@ function App() {
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
   const [copiedParserLogJsonKey, setCopiedParserLogJsonKey] = useState('')
+  const [failedParserLogJsonKey, setFailedParserLogJsonKey] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1556,15 +1557,28 @@ function App() {
     }
   }
 
-  const handleCopyParserLogJson = (parsedCommand: unknown, copyKey: string) => {
-    void navigator.clipboard.writeText(JSON.stringify(parsedCommand, null, 2))
-    setCopiedParserLogJsonKey(copyKey)
-    setStatusMessage('Copied parsed command JSON to clipboard.')
+  const handleCopyParserLogJson = async (parsedCommand: unknown, copyKey: string) => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(parsedCommand, null, 2))
 
-    window.setTimeout(() => {
-      setCopiedParserLogJsonKey((currentKey) => (currentKey === copyKey ? '' : currentKey))
-    }, 2000)
+      setCopiedParserLogJsonKey(copyKey)
+      setFailedParserLogJsonKey('')
+      setStatusMessage('Copied parsed command JSON to clipboard.')
+
+      window.setTimeout(() => {
+        setCopiedParserLogJsonKey((currentKey) => (currentKey === copyKey ? '' : currentKey))
+      }, 2000)
+    } catch {
+      setCopiedParserLogJsonKey('')
+      setFailedParserLogJsonKey(copyKey)
+      setStatusMessage('Copy failed. Please try again.')
+
+      window.setTimeout(() => {
+        setFailedParserLogJsonKey((currentKey) => (currentKey === copyKey ? '' : currentKey))
+      }, 2000)
+    }
   }
+
 
   const handleVoiceCommand = () => {
     const SpeechRecognition =
@@ -5052,9 +5066,13 @@ uvicorn app.main:app --reload`}</pre>
                             <button
                               type="button"
                               className="secondary-button"
-                              onClick={() => handleCopyParserLogJson(log.parsed_command, `parser-json-${log.timestamp}-${index}`)}
+                              onClick={() => void handleCopyParserLogJson(log.parsed_command, `parser-json-${log.timestamp}-${index}`)}
                             >
-                              {copiedParserLogJsonKey === `parser-json-${log.timestamp}-${index}` ? 'Copied!' : 'Copy JSON'}
+                              {copiedParserLogJsonKey === `parser-json-${log.timestamp}-${index}`
+                                ? 'Copied!'
+                                : failedParserLogJsonKey === `parser-json-${log.timestamp}-${index}`
+                                  ? 'Copy failed'
+                                  : 'Copy JSON'}
                             </button>
                           </div>
                           <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
@@ -5326,9 +5344,13 @@ uvicorn app.main:app --reload`}</pre>
                             <button
                               type="button"
                               className="secondary-button"
-                              onClick={() => handleCopyParserLogJson(log.parsed_command, `parser-json-${log.timestamp}-${index}`)}
+                              onClick={() => void handleCopyParserLogJson(log.parsed_command, `parser-json-${log.timestamp}-${index}`)}
                             >
-                              {copiedParserLogJsonKey === `parser-json-${log.timestamp}-${index}` ? 'Copied!' : 'Copy JSON'}
+                              {copiedParserLogJsonKey === `parser-json-${log.timestamp}-${index}`
+                                ? 'Copied!'
+                                : failedParserLogJsonKey === `parser-json-${log.timestamp}-${index}`
+                                  ? 'Copy failed'
+                                  : 'Copy JSON'}
                             </button>
                           </div>
                           <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
