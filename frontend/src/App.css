@@ -3090,3 +3090,16 @@ input[type="file"]::file-selector-button:hover {
   padding: 0.35rem 0.65rem;
   font-size: 0.8rem;
 }
+
+.parser-log-card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.parser-log-card-header-actions .secondary-button {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+}
