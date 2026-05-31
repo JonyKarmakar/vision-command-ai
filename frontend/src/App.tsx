@@ -6095,6 +6095,23 @@ uvicorn app.main:app --reload`}</pre>
                           : 'Copy full log'}
                     </button>
 
+                    <button
+                      type="button"
+                      className="secondary-button command-history-download-json-button"
+                      onClick={() =>
+                        handleDownloadJsonFile(
+                          log,
+                          `command_history_log_${log.timestamp.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                          'Downloaded command history log JSON.',
+                          `download-command-history-log-json-${log.timestamp}-${index}`,
+                        )
+                      }
+                    >
+                      {downloadedParserLogJsonKey === `download-command-history-log-json-${log.timestamp}-${index}`
+                        ? 'Downloaded!'
+                        : 'Download full log JSON'}
+                    </button>
+
                     {commandHistorySearch.trim() && getCommandHistorySearchMatchFields(log).length > 0 && (
                       <div className="command-history-match-fields">
                         <span>Matched:</span>
