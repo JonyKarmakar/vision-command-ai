@@ -5885,6 +5885,68 @@ uvicorn app.main:app --reload`}</pre>
                 >
                   Export Visible Command History CSV
                 </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'command_history',
+                        copied_at: new Date().toISOString(),
+                        visible_count: filteredCommandHistoryLogs.length,
+                        total_loaded_count: commandLogs.length,
+                        filters: {
+                          parser_mode: commandHistoryParserModeFilter,
+                          result_type: commandHistoryResultTypeFilter,
+                          limit: commandHistoryLimit,
+                          search: commandHistorySearch.trim() || null,
+                        },
+                        sort_order: commandHistorySortOrder,
+                        logs: filteredCommandHistoryLogs,
+                      },
+                      'visible-command-history-json',
+                      'Copied visible command history JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || filteredCommandHistoryLogs.length === 0}
+                >
+                  {copiedParserLogJsonKey === 'visible-command-history-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'visible-command-history-json'
+                      ? 'Copy failed'
+                      : 'Copy visible command history JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'command_history',
+                        downloaded_at: new Date().toISOString(),
+                        visible_count: filteredCommandHistoryLogs.length,
+                        total_loaded_count: commandLogs.length,
+                        filters: {
+                          parser_mode: commandHistoryParserModeFilter,
+                          result_type: commandHistoryResultTypeFilter,
+                          limit: commandHistoryLimit,
+                          search: commandHistorySearch.trim() || null,
+                        },
+                        sort_order: commandHistorySortOrder,
+                        logs: filteredCommandHistoryLogs,
+                      },
+                      `visible_command_history_parser-${commandHistoryParserModeFilter}_result-${commandHistoryResultTypeFilter}_limit-${commandHistoryLimit}_${getSafeJsonFileSearchPart(commandHistorySearch)}_sort-${commandHistorySortOrder}.json`,
+                      'Downloaded visible command history JSON.',
+                      'download-visible-command-history-json',
+                    )
+                  }
+                  disabled={isBusy || filteredCommandHistoryLogs.length === 0}
+                  data-testid="download-visible-command-history-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-visible-command-history-json'
+                    ? 'Downloaded!'
+                    : 'Download visible command history JSON'}
+                </button>
               </div>
 
               <p className="command-history-filter-count">
