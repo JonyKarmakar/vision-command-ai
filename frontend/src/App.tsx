@@ -713,6 +713,7 @@ function App() {
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
   const [copiedParserLogJsonKey, setCopiedParserLogJsonKey] = useState('')
   const [failedParserLogJsonKey, setFailedParserLogJsonKey] = useState('')
+  const [downloadedParserLogJsonKey, setDownloadedParserLogJsonKey] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1588,6 +1589,7 @@ function App() {
     jsonData: unknown,
     fileName: string,
     successMessage: string,
+    downloadKey = '',
   ) => {
     const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
       type: 'application/json',
@@ -1603,6 +1605,14 @@ function App() {
 
     window.URL.revokeObjectURL(downloadUrl)
     setStatusMessage(successMessage)
+
+    if (downloadKey) {
+      setDownloadedParserLogJsonKey(downloadKey)
+
+      window.setTimeout(() => {
+        setDownloadedParserLogJsonKey((currentKey) => (currentKey === downloadKey ? '' : currentKey))
+      }, 2000)
+    }
   }
 
   const handleVoiceCommand = () => {
@@ -4929,12 +4939,15 @@ uvicorn app.main:app --reload`}</pre>
                       },
                       `visible_db_parser_logs_mode-${databaseParserLogParserModeFilter}_result-${databaseParserLogSuccessFilter}_limit-${databaseParserLogLimit}_sort-${databaseParserLogSortOrder}.json`,
                       'Downloaded visible DB parser logs JSON.',
+                      'download-visible-db-parser-logs-json',
                     )
                   }
                   disabled={isBusy || sortedDatabaseParserAttemptLogs.length === 0}
                   data-testid="download-visible-db-parser-logs-json"
                 >
-                  Download visible logs JSON
+                  {downloadedParserLogJsonKey === 'download-visible-db-parser-logs-json'
+                    ? 'Downloaded!'
+                    : 'Download visible logs JSON'}
                 </button>
               </div>
 
@@ -5258,12 +5271,15 @@ uvicorn app.main:app --reload`}</pre>
                       },
                       `visible_local_parser_attempt_logs_mode-${localParserAttemptModeFilter}_result-${localParserAttemptResultFilter}_sort-${localParserAttemptSortOrder}.json`,
                       'Downloaded visible local parser attempt logs JSON.',
+                      'download-visible-local-parser-logs-json',
                     )
                   }
                   disabled={isBusy || sortedLocalParserAttemptLogs.length === 0}
                   data-testid="download-visible-local-parser-logs-json"
                 >
-                  Download visible logs JSON
+                  {downloadedParserLogJsonKey === 'download-visible-local-parser-logs-json'
+                    ? 'Downloaded!'
+                    : 'Download visible logs JSON'}
                 </button>
               </div>
 
