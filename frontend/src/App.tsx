@@ -1557,13 +1557,17 @@ function App() {
     }
   }
 
-  const handleCopyParserLogJson = async (parsedCommand: unknown, copyKey: string) => {
+  const handleCopyParserLogJson = async (
+    jsonData: unknown,
+    copyKey: string,
+    successMessage = 'Copied parsed command JSON to clipboard.',
+  ) => {
     try {
-      await navigator.clipboard.writeText(JSON.stringify(parsedCommand, null, 2))
+      await navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2))
 
       setCopiedParserLogJsonKey(copyKey)
       setFailedParserLogJsonKey('')
-      setStatusMessage('Copied parsed command JSON to clipboard.')
+      setStatusMessage(successMessage)
 
       window.setTimeout(() => {
         setCopiedParserLogJsonKey((currentKey) => (currentKey === copyKey ? '' : currentKey))
@@ -5025,7 +5029,26 @@ uvicorn app.main:app --reload`}</pre>
                     >
                       <div className="database-parser-log-header">
                         <strong>{log.command}</strong>
-                        <span>{log.success ? 'Success' : 'Failed'}</span>
+                        <div className="parser-log-card-header-actions">
+                          <span>{log.success ? 'Success' : 'Failed'}</span>
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() =>
+                              void handleCopyParserLogJson(
+                                log,
+                                `db-full-parser-log-json-${log.timestamp}-${index}`,
+                                'Copied full DB parser log JSON to clipboard.',
+                              )
+                            }
+                          >
+                            {copiedParserLogJsonKey === `db-full-parser-log-json-${log.timestamp}-${index}`
+                              ? 'Copied!'
+                              : failedParserLogJsonKey === `db-full-parser-log-json-${log.timestamp}-${index}`
+                                ? 'Copy failed'
+                                : 'Copy full log'}
+                          </button>
+                        </div>
                       </div>
 
                       <p>
@@ -5315,7 +5338,26 @@ uvicorn app.main:app --reload`}</pre>
                     >
                       <div className="parser-attempt-log-header">
                         <strong>{log.command}</strong>
-                        <span>{log.success ? 'Success' : 'Failed'}</span>
+                        <div className="parser-log-card-header-actions">
+                          <span>{log.success ? 'Success' : 'Failed'}</span>
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() =>
+                              void handleCopyParserLogJson(
+                                log,
+                                `local-full-parser-log-json-${log.timestamp}-${index}`,
+                                'Copied full local parser attempt log JSON to clipboard.',
+                              )
+                            }
+                          >
+                            {copiedParserLogJsonKey === `local-full-parser-log-json-${log.timestamp}-${index}`
+                              ? 'Copied!'
+                              : failedParserLogJsonKey === `local-full-parser-log-json-${log.timestamp}-${index}`
+                                ? 'Copy failed'
+                                : 'Copy full log'}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="parse-field-list">
