@@ -5035,7 +5035,10 @@ uvicorn app.main:app --reload`}</pre>
                       )}
 
                       {log.parsed_command && (
-                        <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
+                        <details className="parser-log-json-details">
+                          <summary>View parsed command JSON</summary>
+                          <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
+                        </details>
                       )}
                     </div>
                   ))}
@@ -5297,10 +5300,10 @@ uvicorn app.main:app --reload`}</pre>
                       </div>
 
                       {log.parsed_command && (
-                        <div className="prompt-block">
-                          <h4>Parsed Command</h4>
+                        <details className="parser-log-json-details">
+                          <summary>View parsed command JSON</summary>
                           <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
-                        </div>
+                        </details>
                       )}
 
                       {log.error && (
