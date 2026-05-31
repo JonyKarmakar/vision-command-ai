@@ -2629,11 +2629,39 @@ function App() {
       })
     : []
 
+  const getLocalParserAttemptSearchMatchFields = (log: ParserAttemptLogEntry) => {
+    const normalizedSearch = localParserAttemptSearch.trim().toLowerCase()
+
+    if (normalizedSearch.length === 0) {
+      return []
+    }
+
+    const searchableFields = [
+      { label: 'timestamp', value: log.timestamp },
+      { label: 'command', value: log.command },
+      { label: 'parser mode', value: log.parser_mode },
+      { label: 'parser type', value: log.parser_type },
+      { label: 'parser version', value: log.parser_version },
+      { label: 'status', value: log.success ? 'success' : 'failed' },
+      { label: 'latency', value: String(log.latency_ms) },
+      { label: 'error', value: log.error },
+      {
+        label: 'parsed command',
+        value: log.parsed_command ? JSON.stringify(log.parsed_command) : null,
+      },
+    ]
+
+    return searchableFields
+      .filter((field) => (field.value ?? '').toLowerCase().includes(normalizedSearch))
+      .map((field) => field.label)
+  }
+
+
   const filteredLocalParserAttemptLogs = parserAttemptLogsResult
     ? parserAttemptLogsResult.logs.filter((log) => {
         const normalizedSearch = localParserAttemptSearch.trim().toLowerCase()
 
-        const matchesParserMode =
+        const matchesMode =
           localParserAttemptModeFilter === 'all' ||
           log.parser_mode === localParserAttemptModeFilter
 
@@ -2644,9 +2672,9 @@ function App() {
 
         const matchesSearch =
           normalizedSearch.length === 0 ||
-          log.command.toLowerCase().includes(normalizedSearch)
+          getLocalParserAttemptSearchMatchFields(log).length > 0
 
-        return matchesParserMode && matchesResult && matchesSearch
+        return matchesMode && matchesResult && matchesSearch
       })
     : []
 
@@ -5278,6 +5306,15 @@ uvicorn app.main:app --reload`}</pre>
                       {log.error && (
                         <div className="parser-attempt-error">
                           <strong>Error:</strong> {log.error}
+                        </div>
+                      )}
+
+                      {localParserAttemptSearch.trim() && getLocalParserAttemptSearchMatchFields(log).length > 0 && (
+                        <div className="local-parser-attempt-match-fields">
+                          <span>Matched:</span>
+                          {getLocalParserAttemptSearchMatchFields(log).map((field) => (
+                            <strong key={field}>{field}</strong>
+                          ))}
                         </div>
                       )}
 
