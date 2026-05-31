@@ -711,6 +711,7 @@ function App() {
   const [isListening, setIsListening] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
+  const [copiedParserLogJsonKey, setCopiedParserLogJsonKey] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1553,6 +1554,16 @@ function App() {
     } finally {
       setIsLoadingMediaFiles(false)
     }
+  }
+
+  const handleCopyParserLogJson = (parsedCommand: unknown, copyKey: string) => {
+    void navigator.clipboard.writeText(JSON.stringify(parsedCommand, null, 2))
+    setCopiedParserLogJsonKey(copyKey)
+    setStatusMessage('Copied parsed command JSON to clipboard.')
+
+    window.setTimeout(() => {
+      setCopiedParserLogJsonKey((currentKey) => (currentKey === copyKey ? '' : currentKey))
+    }, 2000)
   }
 
   const handleVoiceCommand = () => {
@@ -5037,6 +5048,15 @@ uvicorn app.main:app --reload`}</pre>
                       {log.parsed_command && (
                         <details className="parser-log-json-details">
                           <summary>View parsed command JSON</summary>
+                          <div className="parser-log-json-actions">
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              onClick={() => handleCopyParserLogJson(log.parsed_command, `parser-json-${log.timestamp}-${index}`)}
+                            >
+                              {copiedParserLogJsonKey === `parser-json-${log.timestamp}-${index}` ? 'Copied!' : 'Copy JSON'}
+                            </button>
+                          </div>
                           <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
                         </details>
                       )}
@@ -5302,6 +5322,15 @@ uvicorn app.main:app --reload`}</pre>
                       {log.parsed_command && (
                         <details className="parser-log-json-details">
                           <summary>View parsed command JSON</summary>
+                          <div className="parser-log-json-actions">
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              onClick={() => handleCopyParserLogJson(log.parsed_command, `parser-json-${log.timestamp}-${index}`)}
+                            >
+                              {copiedParserLogJsonKey === `parser-json-${log.timestamp}-${index}` ? 'Copied!' : 'Copy JSON'}
+                            </button>
+                          </div>
                           <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
                         </details>
                       )}
