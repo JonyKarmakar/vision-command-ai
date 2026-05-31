@@ -2764,13 +2764,40 @@ function App() {
       }
     : null
 
+  const getDatabaseParserLogSearchMatchFields = (log: DatabaseParserAttemptLog) => {
+    const normalizedSearch = databaseParserLogSearch.trim().toLowerCase()
+
+    if (normalizedSearch.length === 0) {
+      return []
+    }
+
+    const searchableFields = [
+      { label: 'timestamp', value: log.timestamp },
+      { label: 'command', value: log.command },
+      { label: 'parser mode', value: log.parser_mode },
+      { label: 'parser type', value: log.parser_type },
+      { label: 'parser version', value: log.parser_version },
+      { label: 'status', value: log.success ? 'success' : 'failed' },
+      { label: 'latency', value: String(log.latency_ms) },
+      { label: 'error', value: log.error },
+      {
+        label: 'parsed command',
+        value: log.parsed_command ? JSON.stringify(log.parsed_command) : null,
+      },
+    ]
+
+    return searchableFields
+      .filter((field) => (field.value ?? '').toLowerCase().includes(normalizedSearch))
+      .map((field) => field.label)
+  }
+
   const filteredDatabaseParserAttemptLogs = databaseParserAttemptLogsResult
     ? databaseParserAttemptLogsResult.logs.filter((log) => {
         const normalizedSearch = databaseParserLogSearch.trim().toLowerCase()
 
         return (
           normalizedSearch.length === 0 ||
-          log.command.toLowerCase().includes(normalizedSearch)
+          getDatabaseParserLogSearchMatchFields(log).length > 0
         )
       })
     : []
@@ -4968,6 +4995,15 @@ uvicorn app.main:app --reload`}</pre>
                         <p className="database-parser-log-error">
                           <strong>Error:</strong> {log.error}
                         </p>
+                      )}
+
+                      {databaseParserLogSearch.trim() && getDatabaseParserLogSearchMatchFields(log).length > 0 && (
+                        <div className="database-parser-log-match-fields">
+                          <span>Matched:</span>
+                          {getDatabaseParserLogSearchMatchFields(log).map((field) => (
+                            <strong key={field}>{field}</strong>
+                          ))}
+                        </div>
                       )}
 
                       {log.parsed_command && (
