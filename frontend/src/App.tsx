@@ -4861,7 +4861,20 @@ uvicorn app.main:app --reload`}</pre>
                   className="secondary-button"
                   onClick={() =>
                     void handleCopyParserLogJson(
-                      sortedDatabaseParserAttemptLogs,
+                      {
+                        source: 'db_parser_logs',
+                        copied_at: new Date().toISOString(),
+                        visible_count: sortedDatabaseParserAttemptLogs.length,
+                        total_loaded_count: databaseParserAttemptLogsResult?.logs.length ?? 0,
+                        filters: {
+                          parser_mode: databaseParserLogParserModeFilter,
+                          result: databaseParserLogSuccessFilter,
+                          limit: databaseParserLogLimit,
+                          search: databaseParserLogSearch.trim() || null,
+                        },
+                        sort_order: databaseParserLogSortOrder,
+                        logs: sortedDatabaseParserAttemptLogs,
+                      },
                       'visible-db-parser-logs-json',
                       'Copied visible DB parser logs JSON to clipboard.',
                     )
@@ -5151,7 +5164,19 @@ uvicorn app.main:app --reload`}</pre>
                   className="secondary-button"
                   onClick={() =>
                     void handleCopyParserLogJson(
-                      sortedLocalParserAttemptLogs,
+                      {
+                        source: 'local_parser_attempt_logs',
+                        copied_at: new Date().toISOString(),
+                        visible_count: sortedLocalParserAttemptLogs.length,
+                        total_loaded_count: parserAttemptLogsResult?.logs.length ?? 0,
+                        filters: {
+                          parser_mode: localParserAttemptModeFilter,
+                          result: localParserAttemptResultFilter,
+                          search: localParserAttemptSearch.trim() || null,
+                        },
+                        sort_order: localParserAttemptSortOrder,
+                        logs: sortedLocalParserAttemptLogs,
+                      },
                       'visible-local-parser-logs-json',
                       'Copied visible local parser attempt logs JSON to clipboard.',
                     )
