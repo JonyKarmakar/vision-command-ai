@@ -1584,6 +1584,27 @@ function App() {
   }
 
 
+  const handleDownloadJsonFile = (
+    jsonData: unknown,
+    fileName: string,
+    successMessage: string,
+  ) => {
+    const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
+      type: 'application/json',
+    })
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+
+    link.href = downloadUrl
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+
+    window.URL.revokeObjectURL(downloadUrl)
+    setStatusMessage(successMessage)
+  }
+
   const handleVoiceCommand = () => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition
@@ -4887,6 +4908,34 @@ uvicorn app.main:app --reload`}</pre>
                       ? 'Copy failed'
                       : 'Copy visible logs JSON'}
                 </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'db_parser_logs',
+                        downloaded_at: new Date().toISOString(),
+                        visible_count: sortedDatabaseParserAttemptLogs.length,
+                        total_loaded_count: databaseParserAttemptLogsResult?.logs.length ?? 0,
+                        filters: {
+                          parser_mode: databaseParserLogParserModeFilter,
+                          result: databaseParserLogSuccessFilter,
+                          limit: databaseParserLogLimit,
+                          search: databaseParserLogSearch.trim() || null,
+                        },
+                        sort_order: databaseParserLogSortOrder,
+                        logs: sortedDatabaseParserAttemptLogs,
+                      },
+                      `visible_db_parser_logs_mode-${databaseParserLogParserModeFilter}_result-${databaseParserLogSuccessFilter}_limit-${databaseParserLogLimit}_sort-${databaseParserLogSortOrder}.json`,
+                      'Downloaded visible DB parser logs JSON.',
+                    )
+                  }
+                  disabled={isBusy || sortedDatabaseParserAttemptLogs.length === 0}
+                  data-testid="download-visible-db-parser-logs-json"
+                >
+                  Download visible logs JSON
+                </button>
               </div>
 
               <div className="database-parser-log-summary">
@@ -5188,6 +5237,33 @@ uvicorn app.main:app --reload`}</pre>
                     : failedParserLogJsonKey === 'visible-local-parser-logs-json'
                       ? 'Copy failed'
                       : 'Copy visible logs JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'local_parser_attempt_logs',
+                        downloaded_at: new Date().toISOString(),
+                        visible_count: sortedLocalParserAttemptLogs.length,
+                        total_loaded_count: parserAttemptLogsResult?.logs.length ?? 0,
+                        filters: {
+                          parser_mode: localParserAttemptModeFilter,
+                          result: localParserAttemptResultFilter,
+                          search: localParserAttemptSearch.trim() || null,
+                        },
+                        sort_order: localParserAttemptSortOrder,
+                        logs: sortedLocalParserAttemptLogs,
+                      },
+                      `visible_local_parser_attempt_logs_mode-${localParserAttemptModeFilter}_result-${localParserAttemptResultFilter}_sort-${localParserAttemptSortOrder}.json`,
+                      'Downloaded visible local parser attempt logs JSON.',
+                    )
+                  }
+                  disabled={isBusy || sortedLocalParserAttemptLogs.length === 0}
+                  data-testid="download-visible-local-parser-logs-json"
+                >
+                  Download visible logs JSON
                 </button>
               </div>
 
