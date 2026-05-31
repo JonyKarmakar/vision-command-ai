@@ -3103,3 +3103,9 @@ input[type="file"]::file-selector-button:hover {
   padding: 0.3rem 0.6rem;
   font-size: 0.75rem;
 }
+
+.command-history-copy-json-button {
+  margin-left: 0.4rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+}

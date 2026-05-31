@@ -6077,6 +6077,24 @@ uvicorn app.main:app --reload`}</pre>
                       </span>
                     )}
 
+                    <button
+                      type="button"
+                      className="secondary-button command-history-copy-json-button"
+                      onClick={() =>
+                        void handleCopyParserLogJson(
+                          log,
+                          `command-history-log-json-${log.timestamp}-${index}`,
+                          'Copied command history log JSON to clipboard.',
+                        )
+                      }
+                    >
+                      {copiedParserLogJsonKey === `command-history-log-json-${log.timestamp}-${index}`
+                        ? 'Copied!'
+                        : failedParserLogJsonKey === `command-history-log-json-${log.timestamp}-${index}`
+                          ? 'Copy failed'
+                          : 'Copy full log'}
+                    </button>
+
                     {commandHistorySearch.trim() && getCommandHistorySearchMatchFields(log).length > 0 && (
                       <div className="command-history-match-fields">
                         <span>Matched:</span>
