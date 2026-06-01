@@ -6894,6 +6894,61 @@ uvicorn app.main:app --reload`}</pre>
         <section className="result-grid">
           <div className="card">
             <h2>4. Crop Result</h2>
+
+            <div className="loaded-panel-actions">
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  void handleCopyParserLogJson(
+                    {
+                      source: 'crop_result',
+                      copied_at: new Date().toISOString(),
+                      class_name: cropResult.class_name ?? null,
+                      cropped_filename: cropResult.cropped_filename,
+                      crop_box: cropResult.crop_box,
+                      selected_detection: cropResult.selected_detection ?? null,
+                      result: cropResult,
+                    },
+                    'crop-result-json',
+                    'Copied Crop Result JSON to clipboard.',
+                  )
+                }
+                disabled={isBusy || !cropResult}
+              >
+                {copiedParserLogJsonKey === 'crop-result-json'
+                  ? 'Copied!'
+                  : failedParserLogJsonKey === 'crop-result-json'
+                    ? 'Copy failed'
+                    : 'Copy Crop Result JSON'}
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  handleDownloadJsonFile(
+                    {
+                      source: 'crop_result',
+                      downloaded_at: new Date().toISOString(),
+                      class_name: cropResult.class_name ?? null,
+                      cropped_filename: cropResult.cropped_filename,
+                      crop_box: cropResult.crop_box,
+                      selected_detection: cropResult.selected_detection ?? null,
+                      result: cropResult,
+                    },
+                    `crop_result_class-${(cropResult.class_name ?? 'manual').replace(/[^a-z0-9]+/gi, '-')}_file-${cropResult.cropped_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                    'Downloaded Crop Result JSON.',
+                    'download-crop-result-json',
+                  )
+                }
+                disabled={isBusy || !cropResult}
+                data-testid="download-crop-result-json"
+              >
+                {downloadedParserLogJsonKey === 'download-crop-result-json'
+                  ? 'Downloaded!'
+                  : 'Download Crop Result JSON'}
+              </button>
+            </div>
+
             <div className="summary-box">
               {cropResult.class_name && (
                 <p><strong>Crop by class:</strong> {cropResult.class_name}</p>
