@@ -4394,6 +4394,61 @@ uvicorn app.main:app --reload`}</pre>
           {commandParseResult && (
             <div className="command-parse-result">
               <h3>Parsed Command Preview</h3>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'parsed_command_preview',
+                        copied_at: new Date().toISOString(),
+                        command: commandParseResult.command,
+                        parser_mode: commandParseResult.parser_mode ?? null,
+                        parser_type: commandParseResult.parser_type ?? null,
+                        parser_version: commandParseResult.parser_version ?? null,
+                        preview: commandParseResult,
+                      },
+                      'parsed-command-preview-json',
+                      'Copied Parsed Command Preview JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !commandParseResult}
+                >
+                  {copiedParserLogJsonKey === 'parsed-command-preview-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'parsed-command-preview-json'
+                      ? 'Copy failed'
+                      : 'Copy Parsed Command Preview JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'parsed_command_preview',
+                        downloaded_at: new Date().toISOString(),
+                        command: commandParseResult.command,
+                        parser_mode: commandParseResult.parser_mode ?? null,
+                        parser_type: commandParseResult.parser_type ?? null,
+                        parser_version: commandParseResult.parser_version ?? null,
+                        preview: commandParseResult,
+                      },
+                      `parsed_command_preview_mode-${commandParseResult.parser_mode ?? 'unknown'}_version-${(commandParseResult.parser_version ?? 'unknown').replace(/[^a-z0-9]+/gi, '-')}.json`,
+                      'Downloaded Parsed Command Preview JSON.',
+                      'download-parsed-command-preview-json',
+                    )
+                  }
+                  disabled={isBusy || !commandParseResult}
+                  data-testid="download-parsed-command-preview-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-parsed-command-preview-json'
+                    ? 'Downloaded!'
+                    : 'Download Parsed Command Preview JSON'}
+                </button>
+              </div>
+
               <p><strong>Original command:</strong> {commandParseResult.command}</p>
               {commandParseResult.parser_mode && (
                 <p><strong>Parser mode:</strong> {commandParseResult.parser_mode}</p>
