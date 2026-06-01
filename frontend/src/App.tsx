@@ -6590,6 +6590,63 @@ uvicorn app.main:app --reload`}</pre>
           <section className="result-grid">
             <div className="card">
               <h2>Video Upload Result</h2>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'video_upload_result',
+                        copied_at: new Date().toISOString(),
+                        original_filename: videoUploadResult.original_filename,
+                        stored_filename: videoUploadResult.stored_filename,
+                        content_type: videoUploadResult.content_type,
+                        file_size_bytes: videoUploadResult.file_size_bytes,
+                        metadata: videoUploadResult.metadata,
+                        result: videoUploadResult,
+                      },
+                      'video-upload-result-json',
+                      'Copied Video Upload Result JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !videoUploadResult}
+                >
+                  {copiedParserLogJsonKey === 'video-upload-result-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'video-upload-result-json'
+                      ? 'Copy failed'
+                      : 'Copy Video Upload Result JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'video_upload_result',
+                        downloaded_at: new Date().toISOString(),
+                        original_filename: videoUploadResult.original_filename,
+                        stored_filename: videoUploadResult.stored_filename,
+                        content_type: videoUploadResult.content_type,
+                        file_size_bytes: videoUploadResult.file_size_bytes,
+                        metadata: videoUploadResult.metadata,
+                        result: videoUploadResult,
+                      },
+                      `video_upload_result_file-${videoUploadResult.original_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                      'Downloaded Video Upload Result JSON.',
+                      'download-video-upload-result-json',
+                    )
+                  }
+                  disabled={isBusy || !videoUploadResult}
+                  data-testid="download-video-upload-result-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-video-upload-result-json'
+                    ? 'Downloaded!'
+                    : 'Download Video Upload Result JSON'}
+                </button>
+              </div>
+
               <div className="metadata-list">
                 <p><strong>Original filename:</strong> {videoUploadResult.original_filename}</p>
                 <p><strong>Stored filename:</strong> {videoUploadResult.stored_filename}</p>
