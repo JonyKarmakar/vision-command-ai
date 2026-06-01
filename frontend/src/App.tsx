@@ -4430,6 +4430,62 @@ uvicorn app.main:app --reload`}</pre>
                 >
                   Clear LLMOps Dashboard View
                 </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'llmops_dashboard',
+                        copied_at: new Date().toISOString(),
+                        filters: {
+                          parser_mode: databaseParserLogParserModeFilter,
+                          result: databaseParserLogSuccessFilter,
+                          limit: databaseParserLogLimit,
+                          include_real_llm_evaluation: includeRealLlmEvaluationInDashboard,
+                        },
+                        dashboard: llmOpsDashboardResult,
+                      },
+                      'llmops-dashboard-json',
+                      'Copied LLMOps Dashboard JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !llmOpsDashboardResult}
+                >
+                  {copiedParserLogJsonKey === 'llmops-dashboard-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'llmops-dashboard-json'
+                      ? 'Copy failed'
+                      : 'Copy LLMOps Dashboard JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'llmops_dashboard',
+                        downloaded_at: new Date().toISOString(),
+                        filters: {
+                          parser_mode: databaseParserLogParserModeFilter,
+                          result: databaseParserLogSuccessFilter,
+                          limit: databaseParserLogLimit,
+                          include_real_llm_evaluation: includeRealLlmEvaluationInDashboard,
+                        },
+                        dashboard: llmOpsDashboardResult,
+                      },
+                      `llmops_dashboard_parser-${databaseParserLogParserModeFilter}_result-${databaseParserLogSuccessFilter}_limit-${databaseParserLogLimit}_real-llm-${includeRealLlmEvaluationInDashboard ? 'yes' : 'no'}.json`,
+                      'Downloaded LLMOps Dashboard JSON.',
+                      'download-llmops-dashboard-json',
+                    )
+                  }
+                  disabled={isBusy || !llmOpsDashboardResult}
+                  data-testid="download-llmops-dashboard-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-llmops-dashboard-json'
+                    ? 'Downloaded!'
+                    : 'Download LLMOps Dashboard JSON'}
+                </button>
               </div>
 
               {(llmOpsHasLegacyCommandParserMetadata || llmOpsHasLegacyParserAttemptMode) && (
