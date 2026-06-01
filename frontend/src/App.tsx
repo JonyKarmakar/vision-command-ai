@@ -4313,6 +4313,56 @@ uvicorn app.main:app --reload`}</pre>
             <div className="llm-prompt-preview-panel">
               <h3>LLM Prompt Preview</h3>
 
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'llm_prompt_preview',
+                        copied_at: new Date().toISOString(),
+                        parser_mode: commandPromptPreviewResult.parser_mode,
+                        prompt_version: commandPromptPreviewResult.prompt_version,
+                        preview: commandPromptPreviewResult,
+                      },
+                      'llm-prompt-preview-json',
+                      'Copied LLM Prompt Preview JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !commandPromptPreviewResult}
+                >
+                  {copiedParserLogJsonKey === 'llm-prompt-preview-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'llm-prompt-preview-json'
+                      ? 'Copy failed'
+                      : 'Copy LLM Prompt Preview JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'llm_prompt_preview',
+                        downloaded_at: new Date().toISOString(),
+                        parser_mode: commandPromptPreviewResult.parser_mode,
+                        prompt_version: commandPromptPreviewResult.prompt_version,
+                        preview: commandPromptPreviewResult,
+                      },
+                      `llm_prompt_preview_mode-${commandPromptPreviewResult.parser_mode}_version-${commandPromptPreviewResult.prompt_version.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                      'Downloaded LLM Prompt Preview JSON.',
+                      'download-llm-prompt-preview-json',
+                    )
+                  }
+                  disabled={isBusy || !commandPromptPreviewResult}
+                  data-testid="download-llm-prompt-preview-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-llm-prompt-preview-json'
+                    ? 'Downloaded!'
+                    : 'Download LLM Prompt Preview JSON'}
+                </button>
+              </div>
+
               <div className="prompt-metadata-grid">
                 <div>
                   <span>Parser mode</span>
