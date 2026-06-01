@@ -4553,6 +4553,62 @@ uvicorn app.main:app --reload`}</pre>
 
           {commandResult && (
             <div className="command-result">
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'command_result',
+                        copied_at: new Date().toISOString(),
+                        parser_mode: commandResult.parser_mode,
+                        parser_type: commandResult.parser_type ?? null,
+                        parser_version: commandResult.parser_version ?? null,
+                        parsed_action: commandResult.parsed_command.action,
+                        result_type: commandResult.result_type,
+                        result: commandResult,
+                      },
+                      'command-result-json',
+                      'Copied Command Result JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !commandResult}
+                >
+                  {copiedParserLogJsonKey === 'command-result-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'command-result-json'
+                      ? 'Copy failed'
+                      : 'Copy Command Result JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'command_result',
+                        downloaded_at: new Date().toISOString(),
+                        parser_mode: commandResult.parser_mode,
+                        parser_type: commandResult.parser_type ?? null,
+                        parser_version: commandResult.parser_version ?? null,
+                        parsed_action: commandResult.parsed_command.action,
+                        result_type: commandResult.result_type,
+                        result: commandResult,
+                      },
+                      `command_result_action-${commandResult.parsed_command.action.replace(/[^a-z0-9]+/gi, '-')}_result-${commandResult.result_type.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                      'Downloaded Command Result JSON.',
+                      'download-command-result-json',
+                    )
+                  }
+                  disabled={isBusy || !commandResult}
+                  data-testid="download-command-result-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-command-result-json'
+                    ? 'Downloaded!'
+                    : 'Download Command Result JSON'}
+                </button>
+              </div>
+
               <p><strong>Parser mode:</strong> {commandResult.parser_mode}</p>
               {commandResult.parser_type && (
                 <p><strong>Parser type:</strong> {commandResult.parser_type}</p>
