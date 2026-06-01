@@ -5771,6 +5771,56 @@ uvicorn app.main:app --reload`}</pre>
                 >
                   Clear Parser Comparison View
                 </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'parser_comparison',
+                        copied_at: new Date().toISOString(),
+                        parser_modes: parserComparisonResult.parser_modes,
+                        total_evaluations: parserComparisonResult.evaluations.length,
+                        skipped_evaluations: parserComparisonResult.skipped_evaluations ?? [],
+                        comparison: parserComparisonResult,
+                      },
+                      'parser-comparison-json',
+                      'Copied Parser Comparison JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !parserComparisonResult}
+                >
+                  {copiedParserLogJsonKey === 'parser-comparison-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'parser-comparison-json'
+                      ? 'Copy failed'
+                      : 'Copy Parser Comparison JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'parser_comparison',
+                        downloaded_at: new Date().toISOString(),
+                        parser_modes: parserComparisonResult.parser_modes,
+                        total_evaluations: parserComparisonResult.evaluations.length,
+                        skipped_evaluations: parserComparisonResult.skipped_evaluations ?? [],
+                        comparison: parserComparisonResult,
+                      },
+                      `parser_comparison_modes-${parserComparisonResult.parser_modes.join('-').replace(/[^a-z0-9]+/gi, '-')}.json`,
+                      'Downloaded Parser Comparison JSON.',
+                      'download-parser-comparison-json',
+                    )
+                  }
+                  disabled={isBusy || !parserComparisonResult}
+                  data-testid="download-parser-comparison-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-parser-comparison-json'
+                    ? 'Downloaded!'
+                    : 'Download Parser Comparison JSON'}
+                </button>
               </div>
 
               <div className="parser-comparison-grid">
