@@ -4730,6 +4730,50 @@ uvicorn app.main:app --reload`}</pre>
                 >
                   Clear LLM Provider Status View
                 </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'llm_provider_status',
+                        copied_at: new Date().toISOString(),
+                        provider_status: llmProviderStatusResult,
+                      },
+                      'llm-provider-status-json',
+                      'Copied LLM Provider Status JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !llmProviderStatusResult}
+                >
+                  {copiedParserLogJsonKey === 'llm-provider-status-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'llm-provider-status-json'
+                      ? 'Copy failed'
+                      : 'Copy LLM Provider Status JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'llm_provider_status',
+                        downloaded_at: new Date().toISOString(),
+                        provider_status: llmProviderStatusResult,
+                      },
+                      `llm_provider_status_provider-${llmProviderStatusResult.provider_name.replace(/[^a-z0-9]+/gi, '-')}_available-${llmProviderStatusResult.real_llm_available ? 'yes' : 'no'}.json`,
+                      'Downloaded LLM Provider Status JSON.',
+                      'download-llm-provider-status-json',
+                    )
+                  }
+                  disabled={isBusy || !llmProviderStatusResult}
+                  data-testid="download-llm-provider-status-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-llm-provider-status-json'
+                    ? 'Downloaded!'
+                    : 'Download LLM Provider Status JSON'}
+                </button>
               </div>
 
               <div className="provider-status-grid">
