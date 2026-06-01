@@ -6995,6 +6995,57 @@ uvicorn app.main:app --reload`}</pre>
         <section className="result-grid">
           <div className="card">
             <h2>5. Blur Result</h2>
+
+            <div className="loaded-panel-actions">
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  void handleCopyParserLogJson(
+                    {
+                      source: 'blur_result',
+                      copied_at: new Date().toISOString(),
+                      blurred_filename: blurResult.blurred_filename,
+                      blur_box: blurResult.blur_box,
+                      result: blurResult,
+                    },
+                    'blur-result-json',
+                    'Copied Blur Result JSON to clipboard.',
+                  )
+                }
+                disabled={isBusy || !blurResult}
+              >
+                {copiedParserLogJsonKey === 'blur-result-json'
+                  ? 'Copied!'
+                  : failedParserLogJsonKey === 'blur-result-json'
+                    ? 'Copy failed'
+                    : 'Copy Blur Result JSON'}
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  handleDownloadJsonFile(
+                    {
+                      source: 'blur_result',
+                      downloaded_at: new Date().toISOString(),
+                      blurred_filename: blurResult.blurred_filename,
+                      blur_box: blurResult.blur_box,
+                      result: blurResult,
+                    },
+                    `blur_result_file-${blurResult.blurred_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                    'Downloaded Blur Result JSON.',
+                    'download-blur-result-json',
+                  )
+                }
+                disabled={isBusy || !blurResult}
+                data-testid="download-blur-result-json"
+              >
+                {downloadedParserLogJsonKey === 'download-blur-result-json'
+                  ? 'Downloaded!'
+                  : 'Download Blur Result JSON'}
+              </button>
+            </div>
+
             <div className="summary-box">
               <p><strong>Blurred filename:</strong> {blurResult.blurred_filename}</p>
               <p>
