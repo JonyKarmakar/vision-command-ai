@@ -6704,6 +6704,64 @@ uvicorn app.main:app --reload`}</pre>
           <div className="card">
             <h2>3. Detection Result</h2>
 
+            <div className="loaded-panel-actions">
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  void handleCopyParserLogJson(
+                    {
+                      source: 'image_detection_result',
+                      copied_at: new Date().toISOString(),
+                      confidence_threshold: confidenceThreshold,
+                      selected_class: selectedClass,
+                      visible_detection_count: filteredDetections.length,
+                      total_detection_count: detectionResult.detection_count,
+                      annotated_filename: detectionResult.annotated_filename,
+                      result: detectionResult,
+                      visible_detections: filteredDetections,
+                    },
+                    'detection-result-json',
+                    'Copied Detection Result JSON to clipboard.',
+                  )
+                }
+                disabled={isBusy || !detectionResult}
+              >
+                {copiedParserLogJsonKey === 'detection-result-json'
+                  ? 'Copied!'
+                  : failedParserLogJsonKey === 'detection-result-json'
+                    ? 'Copy failed'
+                    : 'Copy Detection Result JSON'}
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  handleDownloadJsonFile(
+                    {
+                      source: 'image_detection_result',
+                      downloaded_at: new Date().toISOString(),
+                      confidence_threshold: confidenceThreshold,
+                      selected_class: selectedClass,
+                      visible_detection_count: filteredDetections.length,
+                      total_detection_count: detectionResult.detection_count,
+                      annotated_filename: detectionResult.annotated_filename,
+                      result: detectionResult,
+                      visible_detections: filteredDetections,
+                    },
+                    `detection_result_count-${detectionResult.detection_count}_visible-${filteredDetections.length}_class-${selectedClass.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                    'Downloaded Detection Result JSON.',
+                    'download-detection-result-json',
+                  )
+                }
+                disabled={isBusy || !detectionResult}
+                data-testid="download-detection-result-json"
+              >
+                {downloadedParserLogJsonKey === 'download-detection-result-json'
+                  ? 'Downloaded!'
+                  : 'Download Detection Result JSON'}
+              </button>
+            </div>
+
             <div className="summary-box">
               <p><strong>Total detections:</strong> {detectionResult.detection_count}</p>
               <p><strong>Visible after filter:</strong> {filteredDetections.length}</p>
