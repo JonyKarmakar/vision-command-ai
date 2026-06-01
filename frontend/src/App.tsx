@@ -4490,6 +4490,54 @@ uvicorn app.main:app --reload`}</pre>
                 <div className="validation-result">
                   <p><strong>Status:</strong> {parsedCommandValidationResult.status}</p>
 
+                  <div className="loaded-panel-actions">
+                    <button
+                      className="secondary-button"
+                      onClick={() =>
+                        void handleCopyParserLogJson(
+                          {
+                            source: 'parsed_command_validation',
+                            copied_at: new Date().toISOString(),
+                            status: parsedCommandValidationResult.status,
+                            validation: parsedCommandValidationResult,
+                          },
+                          'parsed-command-validation-json',
+                          'Copied Parsed Command Validation JSON to clipboard.',
+                        )
+                      }
+                      disabled={isBusy || !parsedCommandValidationResult}
+                    >
+                      {copiedParserLogJsonKey === 'parsed-command-validation-json'
+                        ? 'Copied!'
+                        : failedParserLogJsonKey === 'parsed-command-validation-json'
+                          ? 'Copy failed'
+                          : 'Copy Validation JSON'}
+                    </button>
+
+                    <button
+                      className="secondary-button"
+                      onClick={() =>
+                        handleDownloadJsonFile(
+                          {
+                            source: 'parsed_command_validation',
+                            downloaded_at: new Date().toISOString(),
+                            status: parsedCommandValidationResult.status,
+                            validation: parsedCommandValidationResult,
+                          },
+                          `parsed_command_validation_status-${parsedCommandValidationResult.status.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                          'Downloaded Parsed Command Validation JSON.',
+                          'download-parsed-command-validation-json',
+                        )
+                      }
+                      disabled={isBusy || !parsedCommandValidationResult}
+                      data-testid="download-parsed-command-validation-json"
+                    >
+                      {downloadedParserLogJsonKey === 'download-parsed-command-validation-json'
+                        ? 'Downloaded!'
+                        : 'Download Validation JSON'}
+                    </button>
+                  </div>
+
                   <div className="parse-field-list">
                     {Object.entries(parsedCommandValidationResult.validated_command).map(([key, value]) => (
                       <div className="parse-field" key={key}>
