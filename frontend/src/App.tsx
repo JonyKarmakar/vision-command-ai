@@ -5221,6 +5221,23 @@ uvicorn app.main:app --reload`}</pre>
                                   ? 'Copy failed'
                                   : 'Copy JSON'}
                             </button>
+
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              onClick={() =>
+                                handleDownloadJsonFile(
+                                  log.parsed_command,
+                                  `db_parsed_command_${log.timestamp.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                                  'Downloaded DB parsed command JSON.',
+                                  `download-db-parsed-command-json-${log.timestamp}-${index}`,
+                                )
+                              }
+                            >
+                              {downloadedParserLogJsonKey === `download-db-parsed-command-json-${log.timestamp}-${index}`
+                                ? 'Downloaded!'
+                                : 'Download JSON'}
+                            </button>
                           </div>
                           <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
                         </details>
@@ -5594,6 +5611,23 @@ uvicorn app.main:app --reload`}</pre>
                                 : failedParserLogJsonKey === `parser-json-${log.timestamp}-${index}`
                                   ? 'Copy failed'
                                   : 'Copy JSON'}
+                            </button>
+
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              onClick={() =>
+                                handleDownloadJsonFile(
+                                  log.parsed_command,
+                                  `local_parsed_command_${log.timestamp.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                                  'Downloaded local parsed command JSON.',
+                                  `download-local-parsed-command-json-${log.timestamp}-${index}`,
+                                )
+                              }
+                            >
+                              {downloadedParserLogJsonKey === `download-local-parsed-command-json-${log.timestamp}-${index}`
+                                ? 'Downloaded!'
+                                : 'Download JSON'}
                             </button>
                           </div>
                           <pre>{JSON.stringify(log.parsed_command, null, 2)}</pre>
