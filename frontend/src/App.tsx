@@ -7817,6 +7817,60 @@ uvicorn app.main:app --reload`}</pre>
         <section className="card">
           <h2>Multi-Frame Detection Result</h2>
 
+          <div className="loaded-panel-actions">
+            <button
+              className="secondary-button"
+              onClick={() =>
+                void handleCopyParserLogJson(
+                  {
+                    source: 'multi_frame_detection_result',
+                    copied_at: new Date().toISOString(),
+                    frame_count: videoMultiFrameDetectionResult.frame_count,
+                    confidence_threshold: videoMultiFrameDetectionResult.confidence_threshold,
+                    class_filter: videoMultiFrameDetectionResult.class_filter,
+                    frames: videoMultiFrameDetectionResult.frames,
+                    result: videoMultiFrameDetectionResult,
+                  },
+                  'multi-frame-detection-result-json',
+                  'Copied Multi-Frame Detection Result JSON to clipboard.',
+                )
+              }
+              disabled={isBusy || !videoMultiFrameDetectionResult}
+            >
+              {copiedParserLogJsonKey === 'multi-frame-detection-result-json'
+                ? 'Copied!'
+                : failedParserLogJsonKey === 'multi-frame-detection-result-json'
+                  ? 'Copy failed'
+                  : 'Copy Multi-Frame Detection Result JSON'}
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={() =>
+                handleDownloadJsonFile(
+                  {
+                    source: 'multi_frame_detection_result',
+                    downloaded_at: new Date().toISOString(),
+                    frame_count: videoMultiFrameDetectionResult.frame_count,
+                    confidence_threshold: videoMultiFrameDetectionResult.confidence_threshold,
+                    class_filter: videoMultiFrameDetectionResult.class_filter,
+                    frames: videoMultiFrameDetectionResult.frames,
+                    result: videoMultiFrameDetectionResult,
+                  },
+                  `multi_frame_detection_result_frames-${videoMultiFrameDetectionResult.frame_count}.json`,
+                  'Downloaded Multi-Frame Detection Result JSON.',
+                  'download-multi-frame-detection-result-json',
+                )
+              }
+              disabled={isBusy || !videoMultiFrameDetectionResult}
+              data-testid="download-multi-frame-detection-result-json"
+            >
+              {downloadedParserLogJsonKey === 'download-multi-frame-detection-result-json'
+                ? 'Downloaded!'
+                : 'Download Multi-Frame Detection Result JSON'}
+            </button>
+          </div>
+
           <div className="summary-box">
             <p><strong>Processed frames:</strong> {videoMultiFrameDetectionResult.frame_count}</p>
             <p><strong>Confidence threshold:</strong> {(videoMultiFrameDetectionResult.confidence_threshold * 100).toFixed(0)}%</p>
