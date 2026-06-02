@@ -7642,6 +7642,68 @@ uvicorn app.main:app --reload`}</pre>
         <section className="card">
           <h2>Multi-Frame Extraction Result</h2>
 
+          <div className="loaded-panel-actions">
+            <button
+              className="secondary-button"
+              onClick={() =>
+                void handleCopyParserLogJson(
+                  {
+                    source: 'multi_frame_extraction_result',
+                    copied_at: new Date().toISOString(),
+                    original_filename: videoMultiFrameResult.filename,
+                    start_seconds: videoMultiFrameResult.start_seconds,
+                    end_seconds: videoMultiFrameResult.end_seconds,
+                    interval_seconds: videoMultiFrameResult.interval_seconds,
+                    frame_count: videoMultiFrameResult.frame_count,
+                    fps: videoMultiFrameResult.fps,
+                    video_duration_seconds: videoMultiFrameResult.video_duration_seconds,
+                    frames: videoMultiFrameResult.frames,
+                    result: videoMultiFrameResult,
+                  },
+                  'multi-frame-result-json',
+                  'Copied Multi-Frame Result JSON to clipboard.',
+                )
+              }
+              disabled={isBusy || !videoMultiFrameResult}
+            >
+              {copiedParserLogJsonKey === 'multi-frame-result-json'
+                ? 'Copied!'
+                : failedParserLogJsonKey === 'multi-frame-result-json'
+                  ? 'Copy failed'
+                  : 'Copy Multi-Frame Result JSON'}
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={() =>
+                handleDownloadJsonFile(
+                  {
+                    source: 'multi_frame_extraction_result',
+                    downloaded_at: new Date().toISOString(),
+                    original_filename: videoMultiFrameResult.filename,
+                    start_seconds: videoMultiFrameResult.start_seconds,
+                    end_seconds: videoMultiFrameResult.end_seconds,
+                    interval_seconds: videoMultiFrameResult.interval_seconds,
+                    frame_count: videoMultiFrameResult.frame_count,
+                    fps: videoMultiFrameResult.fps,
+                    video_duration_seconds: videoMultiFrameResult.video_duration_seconds,
+                    frames: videoMultiFrameResult.frames,
+                    result: videoMultiFrameResult,
+                  },
+                  `multi_frame_result_file-${videoMultiFrameResult.filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                  'Downloaded Multi-Frame Result JSON.',
+                  'download-multi-frame-result-json',
+                )
+              }
+              disabled={isBusy || !videoMultiFrameResult}
+              data-testid="download-multi-frame-result-json"
+            >
+              {downloadedParserLogJsonKey === 'download-multi-frame-result-json'
+                ? 'Downloaded!'
+                : 'Download Multi-Frame Result JSON'}
+            </button>
+          </div>
+
           <div className="summary-box">
             <p><strong>Original filename:</strong> {videoMultiFrameResult.filename}</p>
             <p><strong>Start:</strong> {videoMultiFrameResult.start_seconds}s</p>
