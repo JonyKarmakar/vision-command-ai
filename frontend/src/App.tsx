@@ -7480,6 +7480,63 @@ uvicorn app.main:app --reload`}</pre>
         <section className="result-grid">
           <div className="card">
             <h2>Video Frame Detection Result</h2>
+
+            <div className="loaded-panel-actions">
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  void handleCopyParserLogJson(
+                    {
+                      source: 'video_frame_detection_result',
+                      copied_at: new Date().toISOString(),
+                      frame_filename: videoFrameDetectionResult.frame_filename,
+                      detection_count: videoFrameDetectionResult.detection_count,
+                      annotated_frame_filename: videoFrameDetectionResult.annotated_frame_filename,
+                      annotated_frame_file_url: videoFrameDetectionResult.annotated_frame_file_url,
+                      detections: videoFrameDetectionResult.detections,
+                      result: videoFrameDetectionResult,
+                    },
+                    'video-frame-detection-result-json',
+                    'Copied Video Frame Detection Result JSON to clipboard.',
+                  )
+                }
+                disabled={isBusy || !videoFrameDetectionResult}
+              >
+                {copiedParserLogJsonKey === 'video-frame-detection-result-json'
+                  ? 'Copied!'
+                  : failedParserLogJsonKey === 'video-frame-detection-result-json'
+                    ? 'Copy failed'
+                    : 'Copy Video Frame Detection Result JSON'}
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  handleDownloadJsonFile(
+                    {
+                      source: 'video_frame_detection_result',
+                      downloaded_at: new Date().toISOString(),
+                      frame_filename: videoFrameDetectionResult.frame_filename,
+                      detection_count: videoFrameDetectionResult.detection_count,
+                      annotated_frame_filename: videoFrameDetectionResult.annotated_frame_filename,
+                      annotated_frame_file_url: videoFrameDetectionResult.annotated_frame_file_url,
+                      detections: videoFrameDetectionResult.detections,
+                      result: videoFrameDetectionResult,
+                    },
+                    `video_frame_detection_result_file-${videoFrameDetectionResult.frame_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                    'Downloaded Video Frame Detection Result JSON.',
+                    'download-video-frame-detection-result-json',
+                  )
+                }
+                disabled={isBusy || !videoFrameDetectionResult}
+                data-testid="download-video-frame-detection-result-json"
+              >
+                {downloadedParserLogJsonKey === 'download-video-frame-detection-result-json'
+                  ? 'Downloaded!'
+                  : 'Download Video Frame Detection Result JSON'}
+              </button>
+            </div>
+
             <div className="summary-box">
               <p><strong>Frame filename:</strong> {videoFrameDetectionResult.frame_filename}</p>
               <p><strong>Detection count:</strong> {videoFrameDetectionResult.detection_count}</p>
