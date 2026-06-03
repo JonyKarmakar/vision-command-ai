@@ -7871,6 +7871,59 @@ uvicorn app.main:app --reload`}</pre>
                     <a href={frameUrl} download={frame.frame_filename}>
                       Download frame
                     </a>
+
+                    <button
+                      className="secondary-button"
+                      onClick={() =>
+                        void handleCopyParserLogJson(
+                          {
+                            source: 'extracted_frame_gallery_item',
+                            copied_at: new Date().toISOString(),
+                            original_video_filename: videoMultiFrameResult.filename,
+                            frame_filename: frame.frame_filename,
+                            frame_file_url: frame.frame_file_url,
+                            timestamp_seconds: frame.timestamp_seconds,
+                            frame_index: frame.frame_index,
+                            frame,
+                          },
+                          `extracted-frame-json-${frame.frame_filename}`,
+                          'Copied Extracted Frame JSON to clipboard.',
+                        )
+                      }
+                      disabled={isBusy}
+                    >
+                      {copiedParserLogJsonKey === `extracted-frame-json-${frame.frame_filename}`
+                        ? 'Copied!'
+                        : failedParserLogJsonKey === `extracted-frame-json-${frame.frame_filename}`
+                          ? 'Copy failed'
+                          : 'Copy Frame JSON'}
+                    </button>
+
+                    <button
+                      className="secondary-button"
+                      onClick={() =>
+                        handleDownloadJsonFile(
+                          {
+                            source: 'extracted_frame_gallery_item',
+                            downloaded_at: new Date().toISOString(),
+                            original_video_filename: videoMultiFrameResult.filename,
+                            frame_filename: frame.frame_filename,
+                            frame_file_url: frame.frame_file_url,
+                            timestamp_seconds: frame.timestamp_seconds,
+                            frame_index: frame.frame_index,
+                            frame,
+                          },
+                          `extracted_frame_json-${frame.frame_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                          'Downloaded Extracted Frame JSON.',
+                          `download-extracted-frame-json-${frame.frame_filename}`,
+                        )
+                      }
+                      disabled={isBusy}
+                    >
+                      {downloadedParserLogJsonKey === `download-extracted-frame-json-${frame.frame_filename}`
+                        ? 'Downloaded!'
+                        : 'Download Frame JSON'}
+                    </button>
                   </div>
                 </div>
               )
@@ -8005,6 +8058,75 @@ uvicorn app.main:app --reload`}</pre>
                     <a href={annotatedFrameUrl} download={frame.annotated_frame_filename}>
                       Download annotated frame
                     </a>
+
+                    <button
+                      className="secondary-button"
+                      onClick={() =>
+                        void handleCopyParserLogJson(
+                          (() => {
+                            const classSummary = frame.detections.reduce<Record<string, number>>((summary, detection) => {
+                              summary[detection.class_name] = (summary[detection.class_name] ?? 0) + 1
+                              return summary
+                            }, {})
+
+                            return {
+                              source: 'multi_frame_detection_gallery_item',
+                              copied_at: new Date().toISOString(),
+                              frame_filename: frame.frame_filename,
+                              detection_count: frame.detection_count,
+                              class_summary: classSummary,
+                              detections: frame.detections,
+                              annotated_frame_filename: frame.annotated_frame_filename,
+                              annotated_frame_file_url: frame.annotated_frame_file_url,
+                              frame,
+                            }
+                          })(),
+                          `multi-frame-detection-frame-json-${frame.frame_filename}`,
+                          'Copied Detection Frame JSON to clipboard.',
+                        )
+                      }
+                      disabled={isBusy}
+                    >
+                      {copiedParserLogJsonKey === `multi-frame-detection-frame-json-${frame.frame_filename}`
+                        ? 'Copied!'
+                        : failedParserLogJsonKey === `multi-frame-detection-frame-json-${frame.frame_filename}`
+                          ? 'Copy failed'
+                          : 'Copy Frame JSON'}
+                    </button>
+
+                    <button
+                      className="secondary-button"
+                      onClick={() =>
+                        handleDownloadJsonFile(
+                          (() => {
+                            const classSummary = frame.detections.reduce<Record<string, number>>((summary, detection) => {
+                              summary[detection.class_name] = (summary[detection.class_name] ?? 0) + 1
+                              return summary
+                            }, {})
+
+                            return {
+                              source: 'multi_frame_detection_gallery_item',
+                              downloaded_at: new Date().toISOString(),
+                              frame_filename: frame.frame_filename,
+                              detection_count: frame.detection_count,
+                              class_summary: classSummary,
+                              detections: frame.detections,
+                              annotated_frame_filename: frame.annotated_frame_filename,
+                              annotated_frame_file_url: frame.annotated_frame_file_url,
+                              frame,
+                            }
+                          })(),
+                          `multi_frame_detection_frame_json-${frame.frame_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                          'Downloaded Detection Frame JSON.',
+                          `download-multi-frame-detection-frame-json-${frame.frame_filename}`,
+                        )
+                      }
+                      disabled={isBusy}
+                    >
+                      {downloadedParserLogJsonKey === `download-multi-frame-detection-frame-json-${frame.frame_filename}`
+                        ? 'Downloaded!'
+                        : 'Download Frame JSON'}
+                    </button>
                   </div>
                 </div>
               )
@@ -8254,6 +8376,85 @@ uvicorn app.main:app --reload`}</pre>
                             Download tracked frame
                           </a>
                         )}
+
+                        <button
+                          className="secondary-button"
+                          onClick={() =>
+                            void handleCopyParserLogJson(
+                              (() => {
+                                const classSummary = frame.detections.reduce<Record<string, number>>((summary, detection) => {
+                                  summary[detection.class_name] = (summary[detection.class_name] ?? 0) + 1
+                                  return summary
+                                }, {})
+
+                                return {
+                                  source: 'tracking_timeline_frame_item',
+                                  copied_at: new Date().toISOString(),
+                                  video_filename: videoTrackingResult.filename,
+                                  timestamp_seconds: frame.timestamp_seconds,
+                                  frame_index: frame.frame_index,
+                                  frame_filename: frame.frame_filename,
+                                  frame_file_url: frame.frame_file_url,
+                                  detection_count: frame.detection_count,
+                                  track_ids: Array.from(new Set(frame.detections.map((detection) => detection.track_id))),
+                                  class_summary: classSummary,
+                                  detections: frame.detections,
+                                  annotated_frame_filename: frame.annotated_frame_filename,
+                                  annotated_frame_file_url: frame.annotated_frame_file_url,
+                                  frame,
+                                }
+                              })(),
+                              `tracking-frame-json-${frame.frame_filename}`,
+                              'Copied Tracking Frame JSON to clipboard.',
+                            )
+                          }
+                          disabled={isBusy}
+                        >
+                          {copiedParserLogJsonKey === `tracking-frame-json-${frame.frame_filename}`
+                            ? 'Copied!'
+                            : failedParserLogJsonKey === `tracking-frame-json-${frame.frame_filename}`
+                              ? 'Copy failed'
+                              : 'Copy Frame JSON'}
+                        </button>
+
+                        <button
+                          className="secondary-button"
+                          onClick={() =>
+                            handleDownloadJsonFile(
+                              (() => {
+                                const classSummary = frame.detections.reduce<Record<string, number>>((summary, detection) => {
+                                  summary[detection.class_name] = (summary[detection.class_name] ?? 0) + 1
+                                  return summary
+                                }, {})
+
+                                return {
+                                  source: 'tracking_timeline_frame_item',
+                                  downloaded_at: new Date().toISOString(),
+                                  video_filename: videoTrackingResult.filename,
+                                  timestamp_seconds: frame.timestamp_seconds,
+                                  frame_index: frame.frame_index,
+                                  frame_filename: frame.frame_filename,
+                                  frame_file_url: frame.frame_file_url,
+                                  detection_count: frame.detection_count,
+                                  track_ids: Array.from(new Set(frame.detections.map((detection) => detection.track_id))),
+                                  class_summary: classSummary,
+                                  detections: frame.detections,
+                                  annotated_frame_filename: frame.annotated_frame_filename,
+                                  annotated_frame_file_url: frame.annotated_frame_file_url,
+                                  frame,
+                                }
+                              })(),
+                              `tracking_frame_json-${frame.frame_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                              'Downloaded Tracking Frame JSON.',
+                              `download-tracking-frame-json-${frame.frame_filename}`,
+                            )
+                          }
+                          disabled={isBusy}
+                        >
+                          {downloadedParserLogJsonKey === `download-tracking-frame-json-${frame.frame_filename}`
+                            ? 'Downloaded!'
+                            : 'Download Frame JSON'}
+                        </button>
                       </div>
                     </div>
                   )}
