@@ -8017,6 +8017,72 @@ uvicorn app.main:app --reload`}</pre>
         <section className="card">
           <h2>Video Tracking Result</h2>
 
+          <div className="loaded-panel-actions">
+            <button
+              className="secondary-button"
+              onClick={() =>
+                void handleCopyParserLogJson(
+                  {
+                    source: 'video_tracking_result',
+                    copied_at: new Date().toISOString(),
+                    filename: videoTrackingResult.filename,
+                    frame_count: videoTrackingResult.frame_count,
+                    track_count: videoTrackingResult.track_count,
+                    start_seconds: videoTrackingResult.start_seconds,
+                    end_seconds: videoTrackingResult.end_seconds,
+                    interval_seconds: videoTrackingResult.interval_seconds,
+                    max_distance_pixels: videoTrackingResult.max_distance_pixels,
+                    class_filter: videoTrackingResult.class_filter,
+                    tracks: videoTrackingResult.tracks,
+                    frames: videoTrackingResult.frames,
+                    result: videoTrackingResult,
+                  },
+                  'video-tracking-result-json',
+                  'Copied Video Tracking Result JSON to clipboard.',
+                )
+              }
+              disabled={isBusy || !videoTrackingResult}
+            >
+              {copiedParserLogJsonKey === 'video-tracking-result-json'
+                ? 'Copied!'
+                : failedParserLogJsonKey === 'video-tracking-result-json'
+                  ? 'Copy failed'
+                  : 'Copy Video Tracking Result JSON'}
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={() =>
+                handleDownloadJsonFile(
+                  {
+                    source: 'video_tracking_result',
+                    downloaded_at: new Date().toISOString(),
+                    filename: videoTrackingResult.filename,
+                    frame_count: videoTrackingResult.frame_count,
+                    track_count: videoTrackingResult.track_count,
+                    start_seconds: videoTrackingResult.start_seconds,
+                    end_seconds: videoTrackingResult.end_seconds,
+                    interval_seconds: videoTrackingResult.interval_seconds,
+                    max_distance_pixels: videoTrackingResult.max_distance_pixels,
+                    class_filter: videoTrackingResult.class_filter,
+                    tracks: videoTrackingResult.tracks,
+                    frames: videoTrackingResult.frames,
+                    result: videoTrackingResult,
+                  },
+                  `video_tracking_result_file-${videoTrackingResult.filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                  'Downloaded Video Tracking Result JSON.',
+                  'download-video-tracking-result-json',
+                )
+              }
+              disabled={isBusy || !videoTrackingResult}
+              data-testid="download-video-tracking-result-json"
+            >
+              {downloadedParserLogJsonKey === 'download-video-tracking-result-json'
+                ? 'Downloaded!'
+                : 'Download Video Tracking Result JSON'}
+            </button>
+          </div>
+
           <div className="summary-box">
             <p><strong>Video:</strong> {videoTrackingResult.filename}</p>
             <p><strong>Frames processed:</strong> {videoTrackingResult.frame_count}</p>
