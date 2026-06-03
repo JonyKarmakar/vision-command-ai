@@ -7683,14 +7683,80 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {videoSampledDetectionResult && (
-            <div className="summary-box sampled-video-summary">
-              <p><strong>Video:</strong> {videoSampledDetectionResult.filename}</p>
-              <p><strong>Interval:</strong> {videoSampledDetectionResult.interval_seconds}s</p>
-              <p><strong>Confidence threshold:</strong> {(videoSampledDetectionResult.confidence_threshold * 100).toFixed(0)}%</p>
-              <p><strong>Class filter:</strong> {videoSampledDetectionResult.class_filter ?? 'All classes'}</p>
-              <p><strong>Extracted frames:</strong> {videoSampledDetectionResult.extracted_frames.frame_count}</p>
-              <p><strong>Detected frames:</strong> {videoSampledDetectionResult.detection.frame_count}</p>
-            </div>
+            <>
+              <h3>Sampled Video Detection Result</h3>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'sampled_video_detection_result',
+                        copied_at: new Date().toISOString(),
+                        filename: videoSampledDetectionResult.filename,
+                        interval_seconds: videoSampledDetectionResult.interval_seconds,
+                        confidence_threshold: videoSampledDetectionResult.confidence_threshold,
+                        class_filter: videoSampledDetectionResult.class_filter,
+                        extracted_frame_count: videoSampledDetectionResult.extracted_frames.frame_count,
+                        detected_frame_count: videoSampledDetectionResult.detection.frame_count,
+                        extracted_frames: videoSampledDetectionResult.extracted_frames,
+                        detection: videoSampledDetectionResult.detection,
+                        result: videoSampledDetectionResult,
+                      },
+                      'sampled-video-detection-result-json',
+                      'Copied Sampled Video Detection Result JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !videoSampledDetectionResult}
+                >
+                  {copiedParserLogJsonKey === 'sampled-video-detection-result-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'sampled-video-detection-result-json'
+                      ? 'Copy failed'
+                      : 'Copy Sampled Video Detection Result JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'sampled_video_detection_result',
+                        downloaded_at: new Date().toISOString(),
+                        filename: videoSampledDetectionResult.filename,
+                        interval_seconds: videoSampledDetectionResult.interval_seconds,
+                        confidence_threshold: videoSampledDetectionResult.confidence_threshold,
+                        class_filter: videoSampledDetectionResult.class_filter,
+                        extracted_frame_count: videoSampledDetectionResult.extracted_frames.frame_count,
+                        detected_frame_count: videoSampledDetectionResult.detection.frame_count,
+                        extracted_frames: videoSampledDetectionResult.extracted_frames,
+                        detection: videoSampledDetectionResult.detection,
+                        result: videoSampledDetectionResult,
+                      },
+                      `sampled_video_detection_result_file-${videoSampledDetectionResult.filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                      'Downloaded Sampled Video Detection Result JSON.',
+                      'download-sampled-video-detection-result-json',
+                    )
+                  }
+                  disabled={isBusy || !videoSampledDetectionResult}
+                  data-testid="download-sampled-video-detection-result-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-sampled-video-detection-result-json'
+                    ? 'Downloaded!'
+                    : 'Download Sampled Video Detection Result JSON'}
+                </button>
+              </div>
+
+              <div className="summary-box sampled-video-summary">
+                <p><strong>Video:</strong> {videoSampledDetectionResult.filename}</p>
+                <p><strong>Interval:</strong> {videoSampledDetectionResult.interval_seconds}s</p>
+                <p><strong>Confidence threshold:</strong> {(videoSampledDetectionResult.confidence_threshold * 100).toFixed(0)}%</p>
+                <p><strong>Class filter:</strong> {videoSampledDetectionResult.class_filter ?? 'All classes'}</p>
+                <p><strong>Extracted frames:</strong> {videoSampledDetectionResult.extracted_frames.frame_count}</p>
+                <p><strong>Detected frames:</strong> {videoSampledDetectionResult.detection.frame_count}</p>
+              </div>
+            </>
           )}
         </section>
       )}
