@@ -8118,6 +8118,106 @@ uvicorn app.main:app --reload`}</pre>
           <div className="video-timeline">
             <h3>Tracking Timeline</h3>
 
+            <div className="loaded-panel-actions">
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  void handleCopyParserLogJson(
+                    (() => {
+                      const timeline = videoTrackingResult.frames.map((frame) => {
+                        const classSummary = frame.detections.reduce<Record<string, number>>((summary, detection) => {
+                          summary[detection.class_name] = (summary[detection.class_name] ?? 0) + 1
+                          return summary
+                        }, {})
+
+                        return {
+                          timestamp_seconds: frame.timestamp_seconds,
+                          frame_index: frame.frame_index,
+                          detection_count: frame.detection_count,
+                          track_ids: Array.from(new Set(frame.detections.map((detection) => detection.track_id))),
+                          class_summary: classSummary,
+                          annotated_frame_filename: frame.annotated_frame_filename,
+                          annotated_frame_file_url: frame.annotated_frame_file_url,
+                        }
+                      })
+
+                      return {
+                        source: 'video_tracking_timeline',
+                        copied_at: new Date().toISOString(),
+                        filename: videoTrackingResult.filename,
+                        frame_count: videoTrackingResult.frame_count,
+                        track_count: videoTrackingResult.track_count,
+                        start_seconds: videoTrackingResult.start_seconds,
+                        end_seconds: videoTrackingResult.end_seconds,
+                        interval_seconds: videoTrackingResult.interval_seconds,
+                        max_distance_pixels: videoTrackingResult.max_distance_pixels,
+                        class_filter: videoTrackingResult.class_filter,
+                        timeline,
+                      }
+                    })(),
+                    'video-tracking-timeline-json',
+                    'Copied Video Tracking Timeline JSON to clipboard.',
+                  )
+                }
+                disabled={isBusy || !videoTrackingResult}
+              >
+                {copiedParserLogJsonKey === 'video-tracking-timeline-json'
+                  ? 'Copied!'
+                  : failedParserLogJsonKey === 'video-tracking-timeline-json'
+                    ? 'Copy failed'
+                    : 'Copy Video Tracking Timeline JSON'}
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  handleDownloadJsonFile(
+                    (() => {
+                      const timeline = videoTrackingResult.frames.map((frame) => {
+                        const classSummary = frame.detections.reduce<Record<string, number>>((summary, detection) => {
+                          summary[detection.class_name] = (summary[detection.class_name] ?? 0) + 1
+                          return summary
+                        }, {})
+
+                        return {
+                          timestamp_seconds: frame.timestamp_seconds,
+                          frame_index: frame.frame_index,
+                          detection_count: frame.detection_count,
+                          track_ids: Array.from(new Set(frame.detections.map((detection) => detection.track_id))),
+                          class_summary: classSummary,
+                          annotated_frame_filename: frame.annotated_frame_filename,
+                          annotated_frame_file_url: frame.annotated_frame_file_url,
+                        }
+                      })
+
+                      return {
+                        source: 'video_tracking_timeline',
+                        downloaded_at: new Date().toISOString(),
+                        filename: videoTrackingResult.filename,
+                        frame_count: videoTrackingResult.frame_count,
+                        track_count: videoTrackingResult.track_count,
+                        start_seconds: videoTrackingResult.start_seconds,
+                        end_seconds: videoTrackingResult.end_seconds,
+                        interval_seconds: videoTrackingResult.interval_seconds,
+                        max_distance_pixels: videoTrackingResult.max_distance_pixels,
+                        class_filter: videoTrackingResult.class_filter,
+                        timeline,
+                      }
+                    })(),
+                    `video_tracking_timeline_file-${videoTrackingResult.filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                    'Downloaded Video Tracking Timeline JSON.',
+                    'download-video-tracking-timeline-json',
+                  )
+                }
+                disabled={isBusy || !videoTrackingResult}
+                data-testid="download-video-tracking-timeline-json"
+              >
+                {downloadedParserLogJsonKey === 'download-video-tracking-timeline-json'
+                  ? 'Downloaded!'
+                  : 'Download Video Tracking Timeline JSON'}
+              </button>
+            </div>
+
             {videoTrackingResult.frames.map((frame, index) => (
               <div className="timeline-item" key={`${frame.frame_filename}-tracking`}>
                 <div className="timeline-index">
