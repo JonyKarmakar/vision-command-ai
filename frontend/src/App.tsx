@@ -3527,22 +3527,76 @@ function App() {
         )}
 
         {databaseStats && (
-          <div className="stats-grid">
-            <div className="stat-item">
-              <span>Status</span>
-              <strong>{databaseStats.status}</strong>
+          <>
+            <div className="loaded-panel-actions">
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  void handleCopyParserLogJson(
+                    {
+                      source: 'database_statistics',
+                      copied_at: new Date().toISOString(),
+                      status: databaseStats.status,
+                      media_files_count: databaseStats.media_files_count,
+                      command_logs_count: databaseStats.command_logs_count,
+                      result: databaseStats,
+                    },
+                    'database-stats-json',
+                    'Copied Database Stats JSON to clipboard.',
+                  )
+                }
+                disabled={isBusy || !databaseStats}
+              >
+                {copiedParserLogJsonKey === 'database-stats-json'
+                  ? 'Copied!'
+                  : failedParserLogJsonKey === 'database-stats-json'
+                    ? 'Copy failed'
+                    : 'Copy Database Stats JSON'}
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  handleDownloadJsonFile(
+                    {
+                      source: 'database_statistics',
+                      downloaded_at: new Date().toISOString(),
+                      status: databaseStats.status,
+                      media_files_count: databaseStats.media_files_count,
+                      command_logs_count: databaseStats.command_logs_count,
+                      result: databaseStats,
+                    },
+                    `database_stats_media-${databaseStats.media_files_count}_commands-${databaseStats.command_logs_count}.json`,
+                    'Downloaded Database Stats JSON.',
+                    'download-database-stats-json',
+                  )
+                }
+                disabled={isBusy || !databaseStats}
+                data-testid="download-database-stats-json"
+              >
+                {downloadedParserLogJsonKey === 'download-database-stats-json'
+                  ? 'Downloaded!'
+                  : 'Download Database Stats JSON'}
+              </button>
             </div>
 
-            <div className="stat-item">
-              <span>Uploaded media</span>
-              <strong>{databaseStats.media_files_count}</strong>
-            </div>
+            <div className="stats-grid">
+              <div className="stat-item">
+                <span>Status</span>
+                <strong>{databaseStats.status}</strong>
+              </div>
 
-            <div className="stat-item">
-              <span>Command logs</span>
-              <strong>{databaseStats.command_logs_count}</strong>
+              <div className="stat-item">
+                <span>Uploaded media</span>
+                <strong>{databaseStats.media_files_count}</strong>
+              </div>
+
+              <div className="stat-item">
+                <span>Command logs</span>
+                <strong>{databaseStats.command_logs_count}</strong>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {detectionSummary && (
