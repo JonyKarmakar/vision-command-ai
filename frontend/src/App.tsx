@@ -708,6 +708,16 @@ function App() {
   const [isLoadingDetectionSummary, setIsLoadingDetectionSummary] = useState(false)
   const [isLoadingInferenceLogs, setIsLoadingInferenceLogs] = useState(false)
   const [isLoadingInferenceSummary, setIsLoadingInferenceSummary] = useState(false)
+
+  const hasLoadedDashboardViews = Boolean(
+    databaseStats ||
+      modelInfo ||
+      modelClasses ||
+      detectionLogs.length > 0 ||
+      detectionSummary ||
+      inferenceLogs.length > 0 ||
+      inferenceSummary,
+  )
   const [isListening, setIsListening] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -1413,6 +1423,19 @@ function App() {
     }
   }
 
+
+  const handleClearDashboardViews = () => {
+    setDatabaseStats(null)
+    setModelInfo(null)
+    setModelClasses(null)
+    setModelClassSearch('')
+    setDetectionLogs([])
+    setDetectionSummary(null)
+    setInferenceLogs([])
+    setInferenceSummary(null)
+    setError(null)
+    setStatusMessage('Dashboard views cleared.')
+  }
 
   const handleLoadDatabaseStats = async () => {
     try {
@@ -3416,6 +3439,14 @@ function App() {
               disabled={isBusy}
             >
               {isLoadingInferenceSummary ? 'Loading inference summary...' : 'Load Inference Summary'}
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={handleClearDashboardViews}
+              disabled={isBusy || !hasLoadedDashboardViews}
+            >
+              Clear Dashboard Views
             </button>
           </div>
         </div>
