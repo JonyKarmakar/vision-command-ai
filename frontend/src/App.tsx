@@ -718,6 +718,36 @@ function App() {
       inferenceLogs.length > 0 ||
       inferenceSummary,
   )
+
+  const hasLoadedWorkspaceViews = Boolean(
+    uploadResult ||
+      videoUploadResult ||
+      videoTrimResult ||
+      videoFrameResult ||
+      videoMultiFrameResult ||
+      videoMultiFrameDetectionResult ||
+      videoSampledDetectionResult ||
+      videoTrackingResult ||
+      videoFrameDetectionResult ||
+      detectionResult ||
+      cropResult ||
+      blurResult ||
+      commandResult ||
+      commandParseResult ||
+      parsedCommandValidationResult ||
+      commandPromptPreviewResult ||
+      commandEvaluationResult ||
+      parserComparisonResult ||
+      parserAttemptLogsResult ||
+      databaseParserAttemptLogsResult ||
+      databaseParserAttemptSummaryResult ||
+      llmProviderStatusResult ||
+      llmOpsDashboardResult ||
+      commandLogs.length > 0 ||
+      commandLogSummary ||
+      mediaFiles.length > 0 ||
+      hasLoadedDashboardViews,
+  )
   const [isListening, setIsListening] = useState(false)
 
   const [statusMessage, setStatusMessage] = useState<string>('Ready to upload an image.')
@@ -1435,6 +1465,57 @@ function App() {
     setInferenceSummary(null)
     setError(null)
     setStatusMessage('Dashboard views cleared.')
+  }
+
+  const handleClearAllWorkspaceViews = () => {
+    setUploadResult(null)
+    setSelectedFile(null)
+
+    setVideoUploadResult(null)
+    setSelectedVideoFile(null)
+    setVideoTrimResult(null)
+    setVideoFrameResult(null)
+    setVideoMultiFrameResult(null)
+    setVideoMultiFrameDetectionResult(null)
+    setVideoSampledDetectionResult(null)
+    setVideoTrackingResult(null)
+    setVideoFrameDetectionResult(null)
+
+    setDetectionResult(null)
+    setCropResult(null)
+    setBlurResult(null)
+    setLastDetectionThreshold(null)
+    setLastDetectionClass(null)
+
+    setCommandResult(null)
+    setCommandParseResult(null)
+    setParsedCommandValidationResult(null)
+    setCommandPromptPreviewResult(null)
+    setCommandEvaluationResult(null)
+    setParserComparisonResult(null)
+    setParserAttemptLogsResult(null)
+    setDatabaseParserAttemptLogsResult(null)
+    setDatabaseParserAttemptSummaryResult(null)
+    setLlmProviderStatusResult(null)
+    setLlmOpsDashboardLoaded(false)
+    setLlmOpsDashboardResult(null)
+
+    setCommandLogs([])
+    setCommandLogSummary(null)
+    setHasLoadedCommandLogs(false)
+    setMediaFiles([])
+
+    setDatabaseStats(null)
+    setModelInfo(null)
+    setModelClasses(null)
+    setModelClassSearch('')
+    setDetectionLogs([])
+    setDetectionSummary(null)
+    setInferenceLogs([])
+    setInferenceSummary(null)
+
+    setError(null)
+    setStatusMessage('All workspace views cleared.')
   }
 
   const handleLoadDatabaseStats = async () => {
@@ -3448,12 +3529,32 @@ function App() {
             >
               Clear Dashboard Views
             </button>
+
+            <button
+              className="secondary-button danger-button"
+              onClick={handleClearAllWorkspaceViews}
+              disabled={isBusy || !hasLoadedWorkspaceViews}
+            >
+              Clear All Workspace Views
+            </button>
           </div>
         </div>
 
         {modelInfo && (
           <div className="model-info-panel">
-            <h3>Model Information</h3>
+            <div className="view-panel-header">
+              <h3>Model Information</h3>
+              <button
+                className="secondary-button view-clear-button"
+                onClick={() => {
+                  setModelInfo(null)
+                  setStatusMessage('Model Information view cleared.')
+                }}
+                disabled={isBusy}
+              >
+                Clear View
+              </button>
+            </div>
 
             <div className="model-info-grid">
               <div className="stat-item">
@@ -3503,7 +3604,20 @@ function App() {
                   Use these names in crop, blur, detect, and tracking commands.
                 </p>
               </div>
-              <span className="model-class-count">{modelClasses.class_count} classes</span>
+              <div className="view-panel-header-actions">
+                <span className="model-class-count">{modelClasses.class_count} classes</span>
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setModelClasses(null)
+                    setModelClassSearch('')
+                    setStatusMessage('Supported Model Classes view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
+              </div>
             </div>
 
             <label className="model-class-search">
@@ -3609,6 +3723,17 @@ function App() {
                   ? 'Downloaded!'
                   : 'Download Database Stats JSON'}
               </button>
+
+              <button
+                className="secondary-button view-clear-button"
+                onClick={() => {
+                  setDatabaseStats(null)
+                  setStatusMessage('Database Stats view cleared.')
+                }}
+                disabled={isBusy}
+              >
+                Clear View
+              </button>
             </div>
 
             <div className="stats-grid">
@@ -3632,7 +3757,19 @@ function App() {
 
         {detectionSummary && (
           <div className="detection-summary">
-            <h3>Detection Summary</h3>
+            <div className="view-panel-header">
+              <h3>Detection Summary</h3>
+              <button
+                className="secondary-button view-clear-button"
+                onClick={() => {
+                  setDetectionSummary(null)
+                  setStatusMessage('Detection Summary view cleared.')
+                }}
+                disabled={isBusy}
+              >
+                Clear View
+              </button>
+            </div>
 
             <div className="summary-total">
               <span>Total stored detections</span>
@@ -3663,7 +3800,19 @@ function App() {
 
         {inferenceSummary && (
           <div className="inference-summary">
-            <h3>Inference Summary</h3>
+            <div className="view-panel-header">
+              <h3>Inference Summary</h3>
+              <button
+                className="secondary-button view-clear-button"
+                onClick={() => {
+                  setInferenceSummary(null)
+                  setStatusMessage('Inference Summary view cleared.')
+                }}
+                disabled={isBusy}
+              >
+                Clear View
+              </button>
+            </div>
 
             <div className="loaded-panel-actions">
               <button
@@ -3777,7 +3926,19 @@ function App() {
 
         {inferenceLogs.length > 0 && (
           <div className="inference-history">
-            <h3>Recent Model Inference Logs</h3>
+            <div className="view-panel-header">
+              <h3>Recent Model Inference Logs</h3>
+              <button
+                className="secondary-button view-clear-button"
+                onClick={() => {
+                  setInferenceLogs([])
+                  setStatusMessage('Inference Logs view cleared.')
+                }}
+                disabled={isBusy}
+              >
+                Clear View
+              </button>
+            </div>
 
             {inferenceLogs.map((log, index) => (
               <div className="inference-log-item" key={`${log.filename}-${log.created_at}-${index}`}>
@@ -3801,7 +3962,19 @@ function App() {
 
         {detectionLogs.length > 0 && (
           <div className="detection-history">
-            <h3>Recent Detection History</h3>
+            <div className="view-panel-header">
+              <h3>Recent Detection History</h3>
+              <button
+                className="secondary-button view-clear-button"
+                onClick={() => {
+                  setDetectionLogs([])
+                  setStatusMessage('Detection History view cleared.')
+                }}
+                disabled={isBusy}
+              >
+                Clear View
+              </button>
+            </div>
 
             {detectionLogs.map((detection, index) => (
               <div className="detection-log-item" key={`${detection.filename}-${detection.created_at}-${index}`}>
@@ -3872,7 +4045,19 @@ function App() {
 
       {mediaFiles.length > 0 && (
         <section className="card media-history">
-          <h2>Uploaded Media History</h2>
+          <div className="view-panel-header">
+      <h2>Uploaded Media History</h2>
+      <button
+        className="secondary-button view-clear-button"
+        onClick={() => {
+          setMediaFiles([])
+          setStatusMessage('Uploaded Media History view cleared.')
+        }}
+        disabled={isBusy}
+      >
+        Clear View
+      </button>
+    </div>
 
           <div className="loaded-panel-actions">
             <button
