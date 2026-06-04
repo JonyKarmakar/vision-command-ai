@@ -3634,6 +3634,66 @@ function App() {
           <div className="inference-summary">
             <h3>Inference Summary</h3>
 
+            <div className="loaded-panel-actions">
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  void handleCopyParserLogJson(
+                    {
+                      source: 'inference_summary',
+                      copied_at: new Date().toISOString(),
+                      status: inferenceSummary.status,
+                      total_inferences: inferenceSummary.total_inferences,
+                      average_inference_time_ms: inferenceSummary.average_inference_time_ms,
+                      max_inference_time_ms: inferenceSummary.max_inference_time_ms,
+                      total_detections: inferenceSummary.total_detections,
+                      average_detections_per_run: inferenceSummary.average_detections_per_run,
+                      by_endpoint: inferenceSummary.by_endpoint,
+                      result: inferenceSummary,
+                    },
+                    'inference-summary-json',
+                    'Copied Inference Summary JSON to clipboard.',
+                  )
+                }
+                disabled={isBusy || !inferenceSummary}
+              >
+                {copiedParserLogJsonKey === 'inference-summary-json'
+                  ? 'Copied!'
+                  : failedParserLogJsonKey === 'inference-summary-json'
+                    ? 'Copy failed'
+                    : 'Copy Inference Summary JSON'}
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  handleDownloadJsonFile(
+                    {
+                      source: 'inference_summary',
+                      downloaded_at: new Date().toISOString(),
+                      status: inferenceSummary.status,
+                      total_inferences: inferenceSummary.total_inferences,
+                      average_inference_time_ms: inferenceSummary.average_inference_time_ms,
+                      max_inference_time_ms: inferenceSummary.max_inference_time_ms,
+                      total_detections: inferenceSummary.total_detections,
+                      average_detections_per_run: inferenceSummary.average_detections_per_run,
+                      by_endpoint: inferenceSummary.by_endpoint,
+                      result: inferenceSummary,
+                    },
+                    `inference_summary_runs-${inferenceSummary.total_inferences}_detections-${inferenceSummary.total_detections}.json`,
+                    'Downloaded Inference Summary JSON.',
+                    'download-inference-summary-json',
+                  )
+                }
+                disabled={isBusy || !inferenceSummary}
+                data-testid="download-inference-summary-json"
+              >
+                {downloadedParserLogJsonKey === 'download-inference-summary-json'
+                  ? 'Downloaded!'
+                  : 'Download Inference Summary JSON'}
+              </button>
+            </div>
+
             <div className="inference-summary-grid">
               <div className="stat-item">
                 <span>Total runs</span>
