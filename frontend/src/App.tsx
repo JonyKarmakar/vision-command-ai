@@ -1543,8 +1543,17 @@ function App() {
       const response = await fetch('/api/db/media-files?limit=10')
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Could not load uploaded media history')
+        const errorText = await response.text()
+        let errorMessage = errorText || 'Could not load uploaded media history'
+
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.detail || errorMessage
+        } catch {
+          // Keep plain text backend error message.
+        }
+
+        throw new Error(errorMessage)
       }
 
       const data: { count: number; media_files: MediaFileLog[] } = await response.json()
@@ -3719,6 +3728,74 @@ function App() {
       {mediaFiles.length > 0 && (
         <section className="card media-history">
           <h2>Uploaded Media History</h2>
+
+          <div className="loaded-panel-actions">
+            <button
+              className="secondary-button"
+              onClick={() =>
+                void handleCopyParserLogJson(
+                  {
+                    source: 'uploaded_media_history',
+                    copied_at: new Date().toISOString(),
+                    media_count: mediaFiles.length,
+                    items: mediaFiles.map((mediaFile) => ({
+                      original_filename: mediaFile.original_filename,
+                      stored_filename: mediaFile.stored_filename,
+                      content_type: mediaFile.content_type,
+                      width: mediaFile.width,
+                      height: mediaFile.height,
+                      created_at: mediaFile.created_at,
+                      file_url: mediaFile.file_url,
+                      media_url: `/api${mediaFile.file_url}`,
+                      media_file: mediaFile,
+                    })),
+                  },
+                  'uploaded-media-history-json',
+                  'Copied Uploaded Media History JSON to clipboard.',
+                )
+              }
+              disabled={isBusy || mediaFiles.length === 0}
+            >
+              {copiedParserLogJsonKey === 'uploaded-media-history-json'
+                ? 'Copied!'
+                : failedParserLogJsonKey === 'uploaded-media-history-json'
+                  ? 'Copy failed'
+                  : 'Copy Uploaded Media History JSON'}
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={() =>
+                handleDownloadJsonFile(
+                  {
+                    source: 'uploaded_media_history',
+                    downloaded_at: new Date().toISOString(),
+                    media_count: mediaFiles.length,
+                    items: mediaFiles.map((mediaFile) => ({
+                      original_filename: mediaFile.original_filename,
+                      stored_filename: mediaFile.stored_filename,
+                      content_type: mediaFile.content_type,
+                      width: mediaFile.width,
+                      height: mediaFile.height,
+                      created_at: mediaFile.created_at,
+                      file_url: mediaFile.file_url,
+                      media_url: `/api${mediaFile.file_url}`,
+                      media_file: mediaFile,
+                    })),
+                  },
+                  `uploaded_media_history_count-${mediaFiles.length}.json`,
+                  'Downloaded Uploaded Media History JSON.',
+                  'download-uploaded-media-history-json',
+                )
+              }
+              disabled={isBusy || mediaFiles.length === 0}
+              data-testid="download-uploaded-media-history-json"
+            >
+              {downloadedParserLogJsonKey === 'download-uploaded-media-history-json'
+                ? 'Downloaded!'
+                : 'Download Uploaded Media History JSON'}
+            </button>
+          </div>
 
           {mediaFiles.map((mediaFile) => {
             const mediaUrl = `/api${mediaFile.file_url}`
