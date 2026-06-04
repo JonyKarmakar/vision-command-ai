@@ -19,20 +19,31 @@ def initialize_media_files_table():
                 """
                 CREATE TABLE IF NOT EXISTS media_files (
                     id SERIAL PRIMARY KEY,
-                    original_filename TEXT NOT NULL,
-                    stored_filename TEXT NOT NULL,
-                    content_type TEXT NOT NULL,
-                    width INTEGER NOT NULL,
-                    height INTEGER NOT NULL,
-                    storage_path TEXT NOT NULL,
-                    file_url TEXT NOT NULL,
-                    created_at TEXT NOT NULL
+                    original_filename TEXT,
+                    stored_filename TEXT,
+                    content_type TEXT,
+                    width INTEGER,
+                    height INTEGER,
+                    storage_path TEXT,
+                    file_url TEXT,
+                    created_at TEXT
                 );
                 """
             )
+
+            cursor.execute("ALTER TABLE media_files ADD COLUMN IF NOT EXISTS original_filename TEXT;")
+            cursor.execute("ALTER TABLE media_files ADD COLUMN IF NOT EXISTS stored_filename TEXT;")
+            cursor.execute("ALTER TABLE media_files ADD COLUMN IF NOT EXISTS content_type TEXT;")
+            cursor.execute("ALTER TABLE media_files ADD COLUMN IF NOT EXISTS width INTEGER;")
+            cursor.execute("ALTER TABLE media_files ADD COLUMN IF NOT EXISTS height INTEGER;")
+            cursor.execute("ALTER TABLE media_files ADD COLUMN IF NOT EXISTS storage_path TEXT;")
+            cursor.execute("ALTER TABLE media_files ADD COLUMN IF NOT EXISTS file_url TEXT;")
+            cursor.execute("ALTER TABLE media_files ADD COLUMN IF NOT EXISTS created_at TEXT;")
+
         connection.commit()
 
     return True
+
 
 
 def save_media_file_to_database(media_data: dict, created_at: str):
@@ -96,16 +107,16 @@ def get_database_media_files(limit: int = 20):
             cursor.execute(
                 """
                 SELECT
-                    original_filename,
-                    stored_filename,
-                    content_type,
-                    width,
-                    height,
-                    storage_path,
-                    file_url,
-                    created_at
+                    COALESCE(original_filename, stored_filename, 'unknown') AS original_filename,
+                    COALESCE(stored_filename, original_filename, 'unknown') AS stored_filename,
+                    COALESCE(content_type, 'application/octet-stream') AS content_type,
+                    COALESCE(width, 0) AS width,
+                    COALESCE(height, 0) AS height,
+                    COALESCE(storage_path, '') AS storage_path,
+                    COALESCE(file_url, '') AS file_url,
+                    COALESCE(created_at, '') AS created_at
                 FROM media_files
-                ORDER BY id DESC
+                ORDER BY created_at DESC NULLS LAST
                 LIMIT %s;
                 """,
                 (limit,),
@@ -131,6 +142,7 @@ def get_database_media_files(limit: int = 20):
         "count": len(media_files),
         "media_files": media_files,
     }
+
 
 
 def initialize_command_logs_table():
