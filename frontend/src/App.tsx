@@ -713,14 +713,18 @@ function App() {
   const parsedCommandPreviewRef = useRef<HTMLDivElement | null>(null)
   const parsedCommandValidationRef = useRef<HTMLDivElement | null>(null)
   const commandResultRef = useRef<HTMLDivElement | null>(null)
+  const uploadResultRef = useRef<HTMLElement | null>(null)
+  const videoUploadResultRef = useRef<HTMLElement | null>(null)
   const detectionResultRef = useRef<HTMLElement | null>(null)
   const cropResultRef = useRef<HTMLElement | null>(null)
   const blurResultRef = useRef<HTMLElement | null>(null)
   const videoTrimResultRef = useRef<HTMLElement | null>(null)
   const videoFrameResultRef = useRef<HTMLElement | null>(null)
+  const videoFrameDetectionResultRef = useRef<HTMLElement | null>(null)
+  const videoSampledDetectionResultRef = useRef<HTMLHeadingElement | null>(null)
   const videoMultiFrameResultRef = useRef<HTMLElement | null>(null)
   const videoMultiFrameDetectionResultRef = useRef<HTMLElement | null>(null)
-  const videoTrackingResultRef = useRef<HTMLElement | null>(null)
+  const videoTrackingResultRef = useRef<HTMLHeadingElement | null>(null)
   const parserComparisonRef = useRef<HTMLDivElement | null>(null)
   const commandHistoryRef = useRef<HTMLDivElement | null>(null)
 
@@ -731,7 +735,7 @@ function App() {
         block: 'start',
         inline: 'nearest',
       })
-    }, 80)
+    }, 180)
   }
 
   const scrollToCommandOutputView = (resultType: string) => {
@@ -855,6 +859,7 @@ function App() {
 
       const data: VideoUploadResponse = await response.json()
       setVideoUploadResult(data)
+      scrollToLoadedView(videoUploadResultRef)
       setStatusMessage('Video upload complete. You can preview or download it.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -901,6 +906,7 @@ function App() {
 
       const data: VideoTrimResponse = await response.json()
       setVideoTrimResult(data)
+      scrollToLoadedView(videoTrimResultRef)
       setStatusMessage('Video trim complete. Trimmed video is ready.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -946,6 +952,7 @@ function App() {
 
       const data: VideoFrameExtractResponse = await response.json()
       setVideoFrameResult(data)
+      scrollToLoadedView(videoFrameResultRef)
       setVideoMultiFrameResult(null)
       setVideoFrameDetectionResult(null)
       setStatusMessage('Frame extraction complete. Extracted frame is ready.')
@@ -982,6 +989,7 @@ function App() {
 
       const data: VideoFrameDetectionResponse = await response.json()
       setVideoFrameDetectionResult(data)
+      scrollToLoadedView(videoFrameDetectionResultRef)
       setStatusMessage(`Frame detection complete. Found ${data.detection_count} object(s).`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -1037,6 +1045,7 @@ function App() {
 
       const data: VideoMultiFrameExtractResponse = await response.json()
       setVideoMultiFrameResult(data)
+      scrollToLoadedView(videoMultiFrameResultRef)
       setVideoMultiFrameDetectionResult(null)
       setStatusMessage(`Extracted ${data.frame_count} frame(s) from the video.`)
     } catch (err) {
@@ -1077,6 +1086,7 @@ function App() {
 
       const data: VideoMultiFrameDetectionResponse = await response.json()
       setVideoMultiFrameDetectionResult(data)
+      scrollToLoadedView(videoMultiFrameDetectionResultRef)
       setStatusMessage(`Detected objects on ${data.frame_count} extracted frame(s).`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -1129,6 +1139,7 @@ function App() {
       const data: VideoSampledDetectionResponse = await response.json()
 
       setVideoSampledDetectionResult(data)
+      scrollToLoadedView(videoSampledDetectionResultRef)
       setVideoTrackingResult(null)
       setVideoMultiFrameResult(data.extracted_frames)
       setVideoMultiFrameDetectionResult(data.detection)
@@ -1190,6 +1201,7 @@ function App() {
 
       const data: VideoTrackingResponse = await response.json()
       setVideoTrackingResult(data)
+      scrollToLoadedView(videoTrackingResultRef)
       setStatusMessage(`Video tracking complete. Found ${data.track_count} track(s).`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -1233,6 +1245,7 @@ function App() {
 
       const data: UploadResponse = await response.json()
       setUploadResult(data)
+      scrollToLoadedView(uploadResultRef)
       setStatusMessage('Upload complete. You can now run YOLO detection or type a command.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -1279,6 +1292,7 @@ function App() {
 
       const data: DetectionResponse = await response.json()
       setDetectionResult(data)
+      scrollToLoadedView(detectionResultRef)
       setLastDetectionThreshold(confidenceThreshold)
       setLastDetectionClass(selectedClass)
       setClassOptions((previousClasses) =>
@@ -1328,6 +1342,7 @@ function App() {
 
       const data: CropResponse = await response.json()
       setCropResult(data)
+      scrollToLoadedView(cropResultRef)
       setStatusMessage('Crop complete. Cropped output is ready.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -1367,6 +1382,7 @@ function App() {
 
       const data: BlurResponse = await response.json()
       setBlurResult(data)
+      scrollToLoadedView(blurResultRef)
       setStatusMessage('Blur complete. Blurred output is ready.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -7096,7 +7112,7 @@ uvicorn app.main:app --reload`}</pre>
 
       {videoUploadResult && (
         <>
-          <section className="result-grid">
+          <section className="result-grid" ref={videoUploadResultRef}>
             <div className="card">
               <h2>Video Upload Result</h2>
 
@@ -7240,7 +7256,7 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {uploadResult && (
-        <section className="result-grid">
+        <section className="result-grid" ref={uploadResultRef}>
           <div className="card">
             <h2>2. Upload Result</h2>
 
@@ -8063,7 +8079,7 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {videoFrameDetectionResult && (
-        <section className="result-grid">
+        <section className="result-grid" ref={videoFrameDetectionResultRef}>
           <div className="card">
             <h2>Video Frame Detection Result</h2>
 
@@ -8281,7 +8297,7 @@ uvicorn app.main:app --reload`}</pre>
 
       {videoSampledDetectionResult && (
             <>
-              <h3>Sampled Video Detection Result</h3>
+              <h3 ref={videoSampledDetectionResultRef}>Sampled Video Detection Result</h3>
 
               <div className="loaded-panel-actions">
                 <button
@@ -8767,7 +8783,7 @@ uvicorn app.main:app --reload`}</pre>
 
       {videoTrackingResult && (
         <section className="card">
-          <h2>Video Tracking Result</h2>
+          <h2 ref={videoTrackingResultRef}>Video Tracking Result</h2>
 
           <div className="loaded-panel-actions">
             <button
