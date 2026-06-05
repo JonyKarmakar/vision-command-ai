@@ -3312,6 +3312,22 @@ input[type="file"]::file-selector-button:hover {
   box-shadow: 0 10px 24px rgba(79, 70, 229, 0.28);
 }
 
+.workspace-result-navigator-button.active,
+.workspace-result-navigator-button[aria-current='true'] {
+  border-color: rgba(34, 197, 94, 0.85);
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(124, 58, 237, 0.88));
+  box-shadow:
+    0 10px 28px rgba(37, 99, 235, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.workspace-result-navigator-button.active .workspace-result-navigator-dot,
+.workspace-result-navigator-button[aria-current='true'] .workspace-result-navigator-dot {
+  background: #bbf7d0;
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.22);
+}
+
 .workspace-result-navigator-button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -3344,4 +3360,9 @@ input[type="file"]::file-selector-button:hover {
   .workspace-result-navigator-button {
     flex: 0 0 auto;
   }
+}
+
+
+[data-workspace-result-label] {
+  scroll-margin-top: 128px;
 }
