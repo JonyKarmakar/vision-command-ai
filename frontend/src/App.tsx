@@ -811,6 +811,13 @@ function App() {
     .toISOString()
     .replace(/[:.]/g, '-')}.json`
 
+  const workspaceSnapshotJson = JSON.stringify(workspaceSnapshot, null, 2)
+  const workspaceSnapshotSizeBytes = new Blob([workspaceSnapshotJson]).size
+  const workspaceSnapshotEstimatedSize =
+    workspaceSnapshotSizeBytes < 1024
+      ? `${workspaceSnapshotSizeBytes} B`
+      : `${(workspaceSnapshotSizeBytes / 1024).toFixed(1)} KB`
+
   const handleWorkspaceResultNavigatorClick = (
     label: string,
     targetRef: { current: HTMLElement | null },
@@ -3683,82 +3690,119 @@ function App() {
       </section>
 
       {workspaceResultNavigatorItems.length > 0 && (
-        <section className="workspace-result-navigator" aria-label="Loaded result views">
-          <div className="workspace-result-navigator-header">
-            <div>
-              <span className="workspace-result-navigator-eyebrow">Workspace quick jump</span>
-              <h2>Loaded views</h2>
+        <>
+          <section className="workspace-result-navigator" aria-label="Loaded result views">
+            <div className="workspace-result-navigator-header">
+              <div>
+                <span className="workspace-result-navigator-eyebrow">Workspace quick jump</span>
+                <h2>Loaded views</h2>
+              </div>
+
+              <span className="workspace-result-navigator-count">
+                {workspaceResultNavigatorItems.length} open
+              </span>
             </div>
 
-            <span className="workspace-result-navigator-count">
-              {workspaceResultNavigatorItems.length} open
-            </span>
-          </div>
+            <div className="workspace-result-navigator-buttons">
+              {workspaceResultNavigatorItems.map((item) => (
+                <button
+                  key={item.label}
+                  className={
+                    activeWorkspaceResultLabel === item.label
+                      ? 'workspace-result-navigator-button active'
+                      : 'workspace-result-navigator-button'
+                  }
+                  onClick={() => handleWorkspaceResultNavigatorClick(item.label, item.targetRef)}
+                  disabled={isBusy}
+                  type="button"
+                  aria-current={activeWorkspaceResultLabel === item.label ? 'true' : undefined}
+                >
+                  <span className="workspace-result-navigator-dot"></span>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </section>
 
-          <div className="workspace-result-navigator-buttons">
-            {workspaceResultNavigatorItems.map((item) => (
+          <section className="workspace-snapshot-panel" aria-label="Workspace snapshot export">
+            <div className="workspace-snapshot-compact" aria-label="Workspace snapshot summary">
+              <span>
+                Snapshot: <strong>{workspaceResultNavigatorItems.length}</strong> view(s)
+              </span>
+              <span>
+                Active: <strong>{activeWorkspaceResultLabel ?? 'None'}</strong>
+              </span>
+              <span>
+                Size: <strong>{workspaceSnapshotEstimatedSize}</strong>
+              </span>
+            </div>
+
+            <details className="workspace-snapshot-details">
+              <summary>Show snapshot details</summary>
+
+              <div className="workspace-snapshot-details-content">
+                <p>
+                  File: <strong>{workspaceSnapshotFileName}</strong>
+                </p>
+
+                <div className="workspace-snapshot-preview-included">
+                  <span>Included</span>
+                  <div>
+                    {workspaceResultNavigatorItems.map((item) => (
+                      <span key={item.label} className="workspace-snapshot-preview-chip">
+                        {item.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <div className="workspace-snapshot-actions" aria-label="Workspace snapshot actions">
               <button
-                key={item.label}
-                className={
-                  activeWorkspaceResultLabel === item.label
-                    ? 'workspace-result-navigator-button active'
-                    : 'workspace-result-navigator-button'
+                className="workspace-snapshot-button"
+                onClick={() =>
+                  void handleCopyParserLogJson(
+                    workspaceSnapshot,
+                    'workspace-snapshot-json',
+                  )
                 }
-                onClick={() => handleWorkspaceResultNavigatorClick(item.label, item.targetRef)}
                 disabled={isBusy}
                 type="button"
-                aria-current={activeWorkspaceResultLabel === item.label ? 'true' : undefined}
               >
-                <span className="workspace-result-navigator-dot"></span>
-                {item.label}
+                {copiedParserLogJsonKey === 'workspace-snapshot-json'
+                  ? 'Copied Workspace Snapshot'
+                  : failedParserLogJsonKey === 'workspace-snapshot-json'
+                    ? 'Copy Failed'
+                    : 'Copy Workspace Snapshot JSON'}
               </button>
-            ))}
-          </div>
 
-          <div className="workspace-snapshot-actions" aria-label="Workspace snapshot actions">
-            <button
-              className="workspace-snapshot-button"
-              onClick={() =>
-                void handleCopyParserLogJson(
-                  workspaceSnapshot,
-                  'workspace-snapshot-json',
-                )
-              }
-              disabled={isBusy}
-              type="button"
-            >
-              {copiedParserLogJsonKey === 'workspace-snapshot-json'
-                ? 'Copied Workspace Snapshot'
-                : failedParserLogJsonKey === 'workspace-snapshot-json'
-                  ? 'Copy Failed'
-                  : 'Copy Workspace Snapshot JSON'}
-            </button>
-
-            <button
-              className="workspace-snapshot-button"
-              onClick={() => {
-                handleDownloadJsonFile(
-                  workspaceSnapshot,
-                  workspaceSnapshotFileName,
-                  'download-workspace-snapshot-json',
-                )
-                setDownloadedParserLogJsonKey('download-workspace-snapshot-json')
-
-                window.setTimeout(() => {
-                  setDownloadedParserLogJsonKey((currentKey) =>
-                    currentKey === 'download-workspace-snapshot-json' ? '' : currentKey,
+              <button
+                className="workspace-snapshot-button"
+                onClick={() => {
+                  handleDownloadJsonFile(
+                    workspaceSnapshot,
+                    workspaceSnapshotFileName,
+                    'download-workspace-snapshot-json',
                   )
-                }, 2500)
-              }}
-              disabled={isBusy}
-              type="button"
-            >
-              {downloadedParserLogJsonKey === 'download-workspace-snapshot-json'
-                ? 'Downloaded Workspace Snapshot'
-                : 'Download Workspace Snapshot JSON'}
-            </button>
-          </div>
-        </section>
+                  setDownloadedParserLogJsonKey('download-workspace-snapshot-json')
+
+                  window.setTimeout(() => {
+                    setDownloadedParserLogJsonKey((currentKey) =>
+                      currentKey === 'download-workspace-snapshot-json' ? '' : currentKey,
+                    )
+                  }, 2500)
+                }}
+                disabled={isBusy}
+                type="button"
+              >
+                {downloadedParserLogJsonKey === 'download-workspace-snapshot-json'
+                  ? 'Downloaded Workspace Snapshot'
+                  : 'Download Workspace Snapshot JSON'}
+              </button>
+            </div>
+          </section>
+        </>
       )}
 
       <section className="card database-dashboard">
