@@ -3208,3 +3208,19 @@ input[type="file"]::file-selector-button:hover {
     width: 100%;
   }
 }
+
+
+.llm-prompt-preview-panel,
+.command-parse-result,
+.parsed-command-validation-panel,
+.command-result,
+.parser-comparison-panel,
+.command-history {
+  scroll-margin-top: 96px;
+}
+
+
+.result-grid,
+.video-tracking-result-card {
+  scroll-margin-top: 96px;
+}
