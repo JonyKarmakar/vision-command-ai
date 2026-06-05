@@ -784,6 +784,33 @@ function App() {
       item !== null,
   )
 
+
+  const workspaceSnapshot = {
+    exported_at: new Date().toISOString(),
+    active_result_view: activeWorkspaceResultLabel,
+    loaded_result_count: workspaceResultNavigatorItems.length,
+    loaded_result_views: workspaceResultNavigatorItems.map((item) => item.label),
+    results: {
+      ...(uploadResult ? { uploadResult } : {}),
+      ...(detectionResult ? { detectionResult } : {}),
+      ...(cropResult ? { cropResult } : {}),
+      ...(blurResult ? { blurResult } : {}),
+      ...(videoUploadResult ? { videoUploadResult } : {}),
+      ...(videoTrimResult ? { videoTrimResult } : {}),
+      ...(videoFrameResult ? { videoFrameResult } : {}),
+      ...(videoFrameDetectionResult ? { videoFrameDetectionResult } : {}),
+      ...(videoMultiFrameResult ? { videoMultiFrameResult } : {}),
+      ...(videoMultiFrameDetectionResult ? { videoMultiFrameDetectionResult } : {}),
+      ...(videoSampledDetectionResult ? { videoSampledDetectionResult } : {}),
+      ...(videoTrackingResult ? { videoTrackingResult } : {}),
+      ...(commandResult ? { commandResult } : {}),
+    },
+  }
+
+  const workspaceSnapshotFileName = `visioncommand-workspace-snapshot-${new Date()
+    .toISOString()
+    .replace(/[:.]/g, '-')}.json`
+
   const handleWorkspaceResultNavigatorClick = (
     label: string,
     targetRef: { current: HTMLElement | null },
@@ -3686,6 +3713,50 @@ function App() {
                 {item.label}
               </button>
             ))}
+          </div>
+
+          <div className="workspace-snapshot-actions" aria-label="Workspace snapshot actions">
+            <button
+              className="workspace-snapshot-button"
+              onClick={() =>
+                void handleCopyParserLogJson(
+                  workspaceSnapshot,
+                  'workspace-snapshot-json',
+                )
+              }
+              disabled={isBusy}
+              type="button"
+            >
+              {copiedParserLogJsonKey === 'workspace-snapshot-json'
+                ? 'Copied Workspace Snapshot'
+                : failedParserLogJsonKey === 'workspace-snapshot-json'
+                  ? 'Copy Failed'
+                  : 'Copy Workspace Snapshot JSON'}
+            </button>
+
+            <button
+              className="workspace-snapshot-button"
+              onClick={() => {
+                handleDownloadJsonFile(
+                  workspaceSnapshot,
+                  workspaceSnapshotFileName,
+                  'download-workspace-snapshot-json',
+                )
+                setDownloadedParserLogJsonKey('download-workspace-snapshot-json')
+
+                window.setTimeout(() => {
+                  setDownloadedParserLogJsonKey((currentKey) =>
+                    currentKey === 'download-workspace-snapshot-json' ? '' : currentKey,
+                  )
+                }, 2500)
+              }}
+              disabled={isBusy}
+              type="button"
+            >
+              {downloadedParserLogJsonKey === 'download-workspace-snapshot-json'
+                ? 'Downloaded Workspace Snapshot'
+                : 'Download Workspace Snapshot JSON'}
+            </button>
           </div>
         </section>
       )}
