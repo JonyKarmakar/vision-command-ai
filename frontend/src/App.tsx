@@ -754,6 +754,32 @@ function App() {
     scrollToLoadedView(resultViewByType[resultType] ?? commandResultRef)
   }
 
+
+  const workspaceResultNavigatorItems = [
+    uploadResult ? { label: 'Image Upload', scroll: () => scrollToLoadedView(uploadResultRef) } : null,
+    detectionResult ? { label: 'Detection', scroll: () => scrollToLoadedView(detectionResultRef) } : null,
+    cropResult ? { label: 'Crop', scroll: () => scrollToLoadedView(cropResultRef) } : null,
+    blurResult ? { label: 'Blur', scroll: () => scrollToLoadedView(blurResultRef) } : null,
+    videoUploadResult ? { label: 'Video Upload', scroll: () => scrollToLoadedView(videoUploadResultRef) } : null,
+    videoTrimResult ? { label: 'Video Trim', scroll: () => scrollToLoadedView(videoTrimResultRef) } : null,
+    videoFrameResult ? { label: 'Extracted Frame', scroll: () => scrollToLoadedView(videoFrameResultRef) } : null,
+    videoFrameDetectionResult
+      ? { label: 'Frame Detection', scroll: () => scrollToLoadedView(videoFrameDetectionResultRef) }
+      : null,
+    videoMultiFrameResult
+      ? { label: 'Multi-Frame Extraction', scroll: () => scrollToLoadedView(videoMultiFrameResultRef) }
+      : null,
+    videoMultiFrameDetectionResult
+      ? { label: 'Multi-Frame Detection', scroll: () => scrollToLoadedView(videoMultiFrameDetectionResultRef) }
+      : null,
+    videoSampledDetectionResult
+      ? { label: 'Sampled Video Detection', scroll: () => scrollToLoadedView(videoSampledDetectionResultRef) }
+      : null,
+    videoTrackingResult
+      ? { label: 'Video Tracking', scroll: () => scrollToLoadedView(videoTrackingResultRef) }
+      : null,
+  ].filter((item): item is { label: string; scroll: () => void } => item !== null)
+
   const hasLoadedDashboardViews = Boolean(
     databaseStats ||
       modelInfo ||
@@ -3527,6 +3553,36 @@ function App() {
         <span className={isBusy ? 'status-dot active' : 'status-dot'} />
         <p>{statusMessage}</p>
       </section>
+
+      {workspaceResultNavigatorItems.length > 0 && (
+        <section className="workspace-result-navigator" aria-label="Loaded result views">
+          <div className="workspace-result-navigator-header">
+            <div>
+              <span className="workspace-result-navigator-eyebrow">Workspace quick jump</span>
+              <h2>Loaded views</h2>
+            </div>
+
+            <span className="workspace-result-navigator-count">
+              {workspaceResultNavigatorItems.length} open
+            </span>
+          </div>
+
+          <div className="workspace-result-navigator-buttons">
+            {workspaceResultNavigatorItems.map((item) => (
+              <button
+                key={item.label}
+                className="workspace-result-navigator-button"
+                onClick={item.scroll}
+                disabled={isBusy}
+                type="button"
+              >
+                <span className="workspace-result-navigator-dot"></span>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="card database-dashboard">
         <div className="dashboard-header">
