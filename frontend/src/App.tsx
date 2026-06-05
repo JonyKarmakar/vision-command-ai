@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
 type UploadResponse = {
@@ -715,7 +715,7 @@ function App() {
   const commandResultRef = useRef<HTMLDivElement | null>(null)
   const uploadResultRef = useRef<HTMLElement | null>(null)
   const videoUploadResultRef = useRef<HTMLElement | null>(null)
-  const detectionResultRef = useRef<HTMLElement | null>(null)
+  const detectionResultRef = useRef<HTMLHeadingElement | null>(null)
   const cropResultRef = useRef<HTMLElement | null>(null)
   const blurResultRef = useRef<HTMLElement | null>(null)
   const videoTrimResultRef = useRef<HTMLElement | null>(null)
@@ -727,6 +727,7 @@ function App() {
   const videoTrackingResultRef = useRef<HTMLHeadingElement | null>(null)
   const parserComparisonRef = useRef<HTMLDivElement | null>(null)
   const commandHistoryRef = useRef<HTMLDivElement | null>(null)
+  const [activeWorkspaceResultLabel, setActiveWorkspaceResultLabel] = useState<string | null>(null)
 
   const scrollToLoadedView = (targetRef: { current: HTMLElement | null }) => {
     window.setTimeout(() => {
@@ -756,29 +757,128 @@ function App() {
 
 
   const workspaceResultNavigatorItems = [
-    uploadResult ? { label: 'Image Upload', scroll: () => scrollToLoadedView(uploadResultRef) } : null,
-    detectionResult ? { label: 'Detection', scroll: () => scrollToLoadedView(detectionResultRef) } : null,
-    cropResult ? { label: 'Crop', scroll: () => scrollToLoadedView(cropResultRef) } : null,
-    blurResult ? { label: 'Blur', scroll: () => scrollToLoadedView(blurResultRef) } : null,
-    videoUploadResult ? { label: 'Video Upload', scroll: () => scrollToLoadedView(videoUploadResultRef) } : null,
-    videoTrimResult ? { label: 'Video Trim', scroll: () => scrollToLoadedView(videoTrimResultRef) } : null,
-    videoFrameResult ? { label: 'Extracted Frame', scroll: () => scrollToLoadedView(videoFrameResultRef) } : null,
+    uploadResult ? { label: 'Image Upload', targetRef: uploadResultRef } : null,
+    detectionResult ? { label: 'Detection', targetRef: detectionResultRef } : null,
+    cropResult ? { label: 'Crop', targetRef: cropResultRef } : null,
+    blurResult ? { label: 'Blur', targetRef: blurResultRef } : null,
+    videoUploadResult ? { label: 'Video Upload', targetRef: videoUploadResultRef } : null,
+    videoTrimResult ? { label: 'Video Trim', targetRef: videoTrimResultRef } : null,
+    videoFrameResult ? { label: 'Extracted Frame', targetRef: videoFrameResultRef } : null,
     videoFrameDetectionResult
-      ? { label: 'Frame Detection', scroll: () => scrollToLoadedView(videoFrameDetectionResultRef) }
+      ? { label: 'Frame Detection', targetRef: videoFrameDetectionResultRef }
       : null,
     videoMultiFrameResult
-      ? { label: 'Multi-Frame Extraction', scroll: () => scrollToLoadedView(videoMultiFrameResultRef) }
+      ? { label: 'Multi-Frame Extraction', targetRef: videoMultiFrameResultRef }
       : null,
     videoMultiFrameDetectionResult
-      ? { label: 'Multi-Frame Detection', scroll: () => scrollToLoadedView(videoMultiFrameDetectionResultRef) }
+      ? { label: 'Multi-Frame Detection', targetRef: videoMultiFrameDetectionResultRef }
       : null,
     videoSampledDetectionResult
-      ? { label: 'Sampled Video Detection', scroll: () => scrollToLoadedView(videoSampledDetectionResultRef) }
+      ? { label: 'Sampled Video Detection', targetRef: videoSampledDetectionResultRef }
       : null,
     videoTrackingResult
-      ? { label: 'Video Tracking', scroll: () => scrollToLoadedView(videoTrackingResultRef) }
+      ? { label: 'Video Tracking', targetRef: videoTrackingResultRef }
       : null,
-  ].filter((item): item is { label: string; scroll: () => void } => item !== null)
+  ].filter(
+    (item): item is { label: string; targetRef: { current: HTMLElement | null } } =>
+      item !== null,
+  )
+
+  const handleWorkspaceResultNavigatorClick = (
+    label: string,
+    targetRef: { current: HTMLElement | null },
+  ) => {
+    setActiveWorkspaceResultLabel(label)
+    scrollToLoadedView(targetRef)
+  }
+
+  useEffect(() => {
+    if (workspaceResultNavigatorItems.length === 0) {
+      setActiveWorkspaceResultLabel(null)
+      return
+    }
+
+    let animationFrameId: number | null = null
+
+    const updateActiveWorkspaceResult = () => {
+      const activeLine = Math.min(320, window.innerHeight * 0.35)
+
+      const measuredItems = workspaceResultNavigatorItems
+        .map((item) => {
+          const targetElement = item.targetRef.current
+
+          if (!targetElement) {
+            return null
+          }
+
+          targetElement.setAttribute('data-workspace-result-label', item.label)
+
+          return {
+            label: item.label,
+            top: targetElement.getBoundingClientRect().top,
+          }
+        })
+        .filter((item): item is { label: string; top: number } => item !== null)
+
+      if (measuredItems.length === 0) {
+        return
+      }
+
+      const passedItems = measuredItems.filter((item) => item.top <= activeLine)
+      const activeItem =
+        passedItems.length > 0
+          ? passedItems.reduce((closest, item) => (item.top > closest.top ? item : closest))
+          : measuredItems.reduce((closest, item) =>
+              Math.abs(item.top - activeLine) < Math.abs(closest.top - activeLine)
+                ? item
+                : closest,
+            )
+
+      setActiveWorkspaceResultLabel(activeItem.label)
+    }
+
+    const scheduleActiveWorkspaceUpdate = () => {
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+
+      animationFrameId = window.requestAnimationFrame(updateActiveWorkspaceResult)
+    }
+
+    setActiveWorkspaceResultLabel((currentLabel) =>
+      currentLabel && workspaceResultNavigatorItems.some((item) => item.label === currentLabel)
+        ? currentLabel
+        : workspaceResultNavigatorItems[0].label,
+    )
+
+    scheduleActiveWorkspaceUpdate()
+
+    window.addEventListener('scroll', scheduleActiveWorkspaceUpdate, { passive: true })
+    window.addEventListener('resize', scheduleActiveWorkspaceUpdate)
+
+    return () => {
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+
+      window.removeEventListener('scroll', scheduleActiveWorkspaceUpdate)
+      window.removeEventListener('resize', scheduleActiveWorkspaceUpdate)
+    }
+  }, [
+    uploadResult,
+    detectionResult,
+    cropResult,
+    blurResult,
+    videoUploadResult,
+    videoTrimResult,
+    videoFrameResult,
+    videoFrameDetectionResult,
+    videoMultiFrameResult,
+    videoMultiFrameDetectionResult,
+    videoSampledDetectionResult,
+    videoTrackingResult,
+  ])
+
 
   const hasLoadedDashboardViews = Boolean(
     databaseStats ||
@@ -1318,6 +1418,7 @@ function App() {
 
       const data: DetectionResponse = await response.json()
       setDetectionResult(data)
+      setActiveWorkspaceResultLabel('Detection')
       scrollToLoadedView(detectionResultRef)
       setLastDetectionThreshold(confidenceThreshold)
       setLastDetectionClass(selectedClass)
@@ -3571,10 +3672,15 @@ function App() {
             {workspaceResultNavigatorItems.map((item) => (
               <button
                 key={item.label}
-                className="workspace-result-navigator-button"
-                onClick={item.scroll}
+                className={
+                  activeWorkspaceResultLabel === item.label
+                    ? 'workspace-result-navigator-button active'
+                    : 'workspace-result-navigator-button'
+                }
+                onClick={() => handleWorkspaceResultNavigatorClick(item.label, item.targetRef)}
                 disabled={isBusy}
                 type="button"
+                aria-current={activeWorkspaceResultLabel === item.label ? 'true' : undefined}
               >
                 <span className="workspace-result-navigator-dot"></span>
                 {item.label}
@@ -7419,9 +7525,9 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {detectionResult && (
-        <section className="result-grid" ref={detectionResultRef}>
+        <section className="result-grid">
           <div className="card">
-            <h2>3. Detection Result</h2>
+            <h2 ref={detectionResultRef}>3. Detection Result</h2>
 
             <div className="loaded-panel-actions">
               <button
