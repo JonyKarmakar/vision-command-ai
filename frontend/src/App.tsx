@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import './App.css'
 
 type UploadResponse = {
@@ -708,6 +708,47 @@ function App() {
   const [isLoadingDetectionSummary, setIsLoadingDetectionSummary] = useState(false)
   const [isLoadingInferenceLogs, setIsLoadingInferenceLogs] = useState(false)
   const [isLoadingInferenceSummary, setIsLoadingInferenceSummary] = useState(false)
+
+  const llmPromptPreviewRef = useRef<HTMLDivElement | null>(null)
+  const parsedCommandPreviewRef = useRef<HTMLDivElement | null>(null)
+  const parsedCommandValidationRef = useRef<HTMLDivElement | null>(null)
+  const commandResultRef = useRef<HTMLDivElement | null>(null)
+  const detectionResultRef = useRef<HTMLElement | null>(null)
+  const cropResultRef = useRef<HTMLElement | null>(null)
+  const blurResultRef = useRef<HTMLElement | null>(null)
+  const videoTrimResultRef = useRef<HTMLElement | null>(null)
+  const videoFrameResultRef = useRef<HTMLElement | null>(null)
+  const videoMultiFrameResultRef = useRef<HTMLElement | null>(null)
+  const videoMultiFrameDetectionResultRef = useRef<HTMLElement | null>(null)
+  const videoTrackingResultRef = useRef<HTMLElement | null>(null)
+  const parserComparisonRef = useRef<HTMLDivElement | null>(null)
+  const commandHistoryRef = useRef<HTMLDivElement | null>(null)
+
+  const scrollToLoadedView = (targetRef: { current: HTMLElement | null }) => {
+    window.setTimeout(() => {
+      targetRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest',
+      })
+    }, 80)
+  }
+
+  const scrollToCommandOutputView = (resultType: string) => {
+    const resultViewByType: Record<string, { current: HTMLElement | null }> = {
+      annotated_detection: detectionResultRef,
+      crop_by_class: cropResultRef,
+      blur_by_class: blurResultRef,
+      blur_all_by_class: blurResultRef,
+      trim_video: videoTrimResultRef,
+      extract_frame: videoFrameResultRef,
+      extract_frames: videoMultiFrameResultRef,
+      detect_frames: videoMultiFrameDetectionResultRef,
+      track_video: videoTrackingResultRef,
+    }
+
+    scrollToLoadedView(resultViewByType[resultType] ?? commandResultRef)
+  }
 
   const hasLoadedDashboardViews = Boolean(
     databaseStats ||
@@ -1831,6 +1872,7 @@ function App() {
 
       const data: { count: number; logs: CommandLog[] } = await response.json()
       setCommandLogs(data.logs)
+      scrollToLoadedView(commandHistoryRef)
       setHasLoadedCommandLogs(true)
       setStatusMessage(
         `Loaded ${data.count} recent command log(s) from PostgreSQL${
@@ -2043,6 +2085,7 @@ function App() {
 
       const data: CommandPromptPreviewResponse = await response.json()
       setCommandPromptPreviewResult(data)
+      scrollToLoadedView(llmPromptPreviewRef)
       setStatusMessage(`Loaded prompt preview: ${data.prompt_version}.`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -2082,6 +2125,7 @@ function App() {
 
       const data: CommandParseResponse = await response.json()
       setCommandParseResult(data)
+      scrollToLoadedView(parsedCommandPreviewRef)
       setStatusMessage(`Command parsed as: ${data.parsed_command.action}.`)
     } catch (err) {
       const message = getErrorMessage(err, 'Command parsing failed.')
@@ -2144,6 +2188,7 @@ function App() {
 
       const data: ParserComparisonResponse = await response.json()
       setParserComparisonResult(data)
+      scrollToLoadedView(parserComparisonRef)
       setStatusMessage(
         `Loaded parser comparison for ${data.parser_modes.length} parser mode(s).`,
       )
@@ -2184,6 +2229,7 @@ function App() {
 
       const data: ParsedCommandValidationResponse = await response.json()
       setParsedCommandValidationResult(data)
+      scrollToLoadedView(parsedCommandValidationRef)
       setStatusMessage('Parsed command JSON is valid.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -2720,6 +2766,7 @@ function App() {
 
       const data: CommandResponse = await response.json()
       setCommandResult(data)
+      scrollToCommandOutputView(data.result_type)
 
       if (data.result_type === 'annotated_detection') {
         const result = data.result as DetectionResponse
@@ -4670,7 +4717,7 @@ function App() {
           </div>
 
           {commandPromptPreviewResult && (
-            <div className="llm-prompt-preview-panel">
+            <div className="llm-prompt-preview-panel" ref={llmPromptPreviewRef}>
               <h3>LLM Prompt Preview</h3>
 
               <div className="loaded-panel-actions">
@@ -4763,7 +4810,7 @@ function App() {
           )}
 
           {commandParseResult && (
-            <div className="command-parse-result">
+            <div className="command-parse-result" ref={parsedCommandPreviewRef}>
               <h3>Parsed Command Preview</h3>
 
               <div className="loaded-panel-actions">
@@ -4854,7 +4901,7 @@ function App() {
           )}
 
           {commandParseResult && (
-            <div className="parsed-command-validation-panel">
+            <div className="parsed-command-validation-panel" ref={parsedCommandValidationRef}>
               <h3>Parsed Command Validation</h3>
               <p className="small-note">
                 Validate the structured JSON before it is passed to the execution layer.
@@ -4945,7 +4992,9 @@ function App() {
           )}
 
           {commandResult && (
-            <div className="command-result">
+            <div className="command-result" ref={commandResultRef}>
+              <h3>Command Result</h3>
+
               <div className="loaded-panel-actions">
                 <button
                   className="secondary-button"
@@ -6427,7 +6476,7 @@ uvicorn app.main:app --reload`}</pre>
           )}
 
           {parserComparisonResult && (
-            <div className="parser-comparison-panel">
+            <div className="parser-comparison-panel" ref={parserComparisonRef}>
               <h3>Parser Comparison Results</h3>
 
               <div className="loaded-panel-actions">
@@ -6697,7 +6746,7 @@ uvicorn app.main:app --reload`}</pre>
           )}
 
           {hasLoadedCommandLogs && (
-            <div className="command-history">
+            <div className="command-history" ref={commandHistoryRef}>
               <h3>Recent Command History</h3>
 
               <div className="loaded-panel-actions">
@@ -7298,7 +7347,7 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {detectionResult && (
-        <section className="result-grid">
+        <section className="result-grid" ref={detectionResultRef}>
           <div className="card">
             <h2>3. Detection Result</h2>
 
@@ -7500,7 +7549,7 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {cropResult && (
-        <section className="result-grid">
+        <section className="result-grid" ref={cropResultRef}>
           <div className="card">
             <h2>4. Crop Result</h2>
 
@@ -7612,7 +7661,7 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {blurResult && (
-        <section className="result-grid">
+        <section className="result-grid" ref={blurResultRef}>
           <div className="card">
             <h2>5. Blur Result</h2>
 
@@ -7790,7 +7839,7 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {videoTrimResult && (
-        <section className="result-grid">
+        <section className="result-grid" ref={videoTrimResultRef}>
           <div className="card">
             <h2>Trimmed Video Result</h2>
 
@@ -7898,7 +7947,7 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {videoFrameResult && (
-        <section className="result-grid">
+        <section className="result-grid" ref={videoFrameResultRef}>
           <div className="card">
             <h2>Extracted Frame Result</h2>
 
@@ -8321,7 +8370,7 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {videoMultiFrameResult && (
-        <section className="card">
+        <section className="card" ref={videoMultiFrameResultRef}>
           <h2>Multi-Frame Extraction Result</h2>
 
           <div className="loaded-panel-actions">
@@ -8503,7 +8552,7 @@ uvicorn app.main:app --reload`}</pre>
       )}
 
       {videoMultiFrameDetectionResult && (
-        <section className="card">
+        <section className="card" ref={videoMultiFrameDetectionResultRef}>
           <h2>Multi-Frame Detection Result</h2>
 
           <div className="loaded-panel-actions">
