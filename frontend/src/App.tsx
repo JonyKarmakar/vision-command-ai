@@ -5014,6 +5014,17 @@ uvicorn app.main:app --reload`}</pre>
                     ? 'Downloaded!'
                     : 'Download Command Result JSON'}
                 </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setCommandResult(null)
+                    setStatusMessage('Command Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
               </div>
 
               <p><strong>Parser mode:</strong> {commandResult.parser_mode}</p>
@@ -7052,6 +7063,17 @@ uvicorn app.main:app --reload`}</pre>
                     ? 'Downloaded!'
                     : 'Download Video Upload Result JSON'}
                 </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setVideoUploadResult(null)
+                    setStatusMessage('Video Upload Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
               </div>
 
               <div className="metadata-list">
@@ -7187,6 +7209,17 @@ uvicorn app.main:app --reload`}</pre>
                   ? 'Downloaded!'
                   : 'Download Image Upload Result JSON'}
               </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setUploadResult(null)
+                    setStatusMessage('Image Upload Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
             </div>
 
             <div className="metadata-list">
@@ -7283,6 +7316,17 @@ uvicorn app.main:app --reload`}</pre>
                   ? 'Downloaded!'
                   : 'Download Detection Result JSON'}
               </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setDetectionResult(null)
+                    setStatusMessage('Detection Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
             </div>
 
             <div className="summary-box">
@@ -7470,6 +7514,17 @@ uvicorn app.main:app --reload`}</pre>
                   ? 'Downloaded!'
                   : 'Download Crop Result JSON'}
               </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setCropResult(null)
+                    setStatusMessage('Crop Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
             </div>
 
             <div className="summary-box">
@@ -7567,6 +7622,17 @@ uvicorn app.main:app --reload`}</pre>
                   ? 'Downloaded!'
                   : 'Download Blur Result JSON'}
               </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setBlurResult(null)
+                    setStatusMessage('Blur Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
             </div>
 
             <div className="summary-box">
@@ -7742,6 +7808,17 @@ uvicorn app.main:app --reload`}</pre>
                   ? 'Downloaded!'
                   : 'Download Video Trim Result JSON'}
               </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setVideoTrimResult(null)
+                    setStatusMessage('Video Trim Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
             </div>
 
             <div className="metadata-list">
@@ -7839,6 +7916,17 @@ uvicorn app.main:app --reload`}</pre>
                   ? 'Downloaded!'
                   : 'Download Extracted Frame Result JSON'}
               </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setVideoFrameResult(null)
+                    setStatusMessage('Extracted Frame Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
             </div>
 
             <div className="metadata-list">
@@ -7942,6 +8030,17 @@ uvicorn app.main:app --reload`}</pre>
                   ? 'Downloaded!'
                   : 'Download Video Frame Detection Result JSON'}
               </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setVideoFrameDetectionResult(null)
+                    setStatusMessage('Video Frame Detection Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
             </div>
 
             <div className="summary-box">
@@ -8153,6 +8252,17 @@ uvicorn app.main:app --reload`}</pre>
                     ? 'Downloaded!'
                     : 'Download Sampled Video Detection Result JSON'}
                 </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setVideoSampledDetectionResult(null)
+                    setStatusMessage('Sampled Video Detection Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
               </div>
 
               <div className="summary-box sampled-video-summary">
@@ -8232,6 +8342,17 @@ uvicorn app.main:app --reload`}</pre>
                 ? 'Downloaded!'
                 : 'Download Multi-Frame Result JSON'}
             </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setVideoMultiFrameResult(null)
+                    setStatusMessage('Multi-Frame Extraction Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
           </div>
 
           <div className="summary-box">
@@ -8395,6 +8516,17 @@ uvicorn app.main:app --reload`}</pre>
                 ? 'Downloaded!'
                 : 'Download Multi-Frame Detection Result JSON'}
             </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setVideoMultiFrameDetectionResult(null)
+                    setStatusMessage('Multi-Frame Detection Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
           </div>
 
           <div className="summary-box">
@@ -8610,6 +8742,17 @@ uvicorn app.main:app --reload`}</pre>
                 ? 'Downloaded!'
                 : 'Download Video Tracking Result JSON'}
             </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setVideoTrackingResult(null)
+                    setStatusMessage('Video Tracking Result view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
           </div>
 
           <div className="summary-box">
