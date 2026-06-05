@@ -2325,6 +2325,10 @@ function App() {
     : false
 
   const loadedObservabilityViewNames = [
+    commandPromptPreviewResult ? 'LLM Prompt Preview' : null,
+    commandParseResult ? 'Parsed Command Preview' : null,
+    parsedCommandValidationResult ? 'Parsed Command Validation' : null,
+    commandResult ? 'Command Result' : null,
     databaseParserAttemptLogsResult ? 'DB Parser Logs' : null,
     hasLoadedCommandLogs ? 'Command History' : null,
     commandLogSummary ? 'Command Summary' : null,
@@ -2340,6 +2344,11 @@ function App() {
   const hasAnyLoadedObservabilityView = loadedObservabilityViewCount > 0
 
   const clearAllLoadedObservabilityViews = () => {
+    setCommandPromptPreviewResult(null)
+    setCommandParseResult(null)
+    setParsedCommandValidationResult(null)
+    setCommandResult(null)
+
     setDatabaseParserAttemptLogsResult(null)
     setDatabaseParserLogSearch('')
     setDatabaseParserLogSortOrder('newest')
@@ -4768,6 +4777,17 @@ uvicorn app.main:app --reload`}</pre>
                     ? 'Downloaded!'
                     : 'Download LLM Prompt Preview JSON'}
                 </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setCommandPromptPreviewResult(null)
+                    setStatusMessage('LLM Prompt Preview view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
               </div>
 
               <div className="prompt-metadata-grid">
@@ -4853,6 +4873,17 @@ uvicorn app.main:app --reload`}</pre>
                   {downloadedParserLogJsonKey === 'download-parsed-command-preview-json'
                     ? 'Downloaded!'
                     : 'Download Parsed Command Preview JSON'}
+                </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setCommandParseResult(null)
+                    setStatusMessage('Parsed Command Preview view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
                 </button>
               </div>
 
@@ -4943,6 +4974,17 @@ uvicorn app.main:app --reload`}</pre>
                         ? 'Downloaded!'
                         : 'Download Validation JSON'}
                     </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setParsedCommandValidationResult(null)
+                    setStatusMessage('Parsed Command Validation view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
                   </div>
 
                   <div className="parse-field-list">
