@@ -3366,3 +3366,51 @@ input[type="file"]::file-selector-button:hover {
 [data-workspace-result-label] {
   scroll-margin-top: 128px;
 }
+
+
+.workspace-snapshot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.workspace-snapshot-button {
+  min-height: 2.35rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 0.8rem;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.72);
+  font-size: 0.84rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.workspace-snapshot-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.7);
+  background: rgba(30, 64, 175, 0.7);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
+}
+
+.workspace-snapshot-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .workspace-snapshot-actions {
+    flex-direction: column;
+  }
+
+  .workspace-snapshot-button {
+    width: 100%;
+  }
+}
