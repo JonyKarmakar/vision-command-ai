@@ -743,6 +743,7 @@ function App() {
   const [workspaceSnapshotImportNotice, setWorkspaceSnapshotImportNotice] = useState('')
   const [workspaceLocalBackupNotice, setWorkspaceLocalBackupNotice] = useState('')
   const [workspaceLocalBackupError, setWorkspaceLocalBackupError] = useState('')
+  const [workspaceLocalBackupAutoSavedAt, setWorkspaceLocalBackupAutoSavedAt] = useState('')
 
   const scrollToLoadedView = (targetRef: { current: HTMLElement | null }) => {
     window.setTimeout(() => {
@@ -1034,6 +1035,9 @@ function App() {
 
       window.localStorage.setItem(workspaceLocalBackupStorageKey, workspaceSnapshotJson)
 
+      const savedAt = new Date().toLocaleTimeString()
+
+      setWorkspaceLocalBackupAutoSavedAt(savedAt)
       setWorkspaceLocalBackupError('')
       setWorkspaceLocalBackupNotice(
         `Local workspace backup saved with ${workspaceResultNavigatorItems.length} result view(s).`,
@@ -1107,10 +1111,49 @@ function App() {
   const handleClearLocalWorkspaceBackup = () => {
     window.localStorage.removeItem(workspaceLocalBackupStorageKey)
 
+    setWorkspaceLocalBackupAutoSavedAt('')
     setWorkspaceLocalBackupError('')
     setWorkspaceLocalBackupNotice('Local workspace backup cleared.')
     setStatusMessage('Local workspace backup cleared.')
   }
+
+  useEffect(() => {
+    if (workspaceResultNavigatorItems.length === 0) {
+      return
+    }
+
+    const autoSaveTimer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(workspaceLocalBackupStorageKey, workspaceSnapshotJson)
+
+        setWorkspaceLocalBackupAutoSavedAt(new Date().toLocaleTimeString())
+        setWorkspaceLocalBackupError('')
+      } catch (err) {
+        const message = getErrorMessage(err, 'Could not auto-save workspace locally.')
+
+        setWorkspaceLocalBackupError(message)
+      }
+    }, 600)
+
+    return () => {
+      window.clearTimeout(autoSaveTimer)
+    }
+  }, [
+    uploadResult,
+    detectionResult,
+    cropResult,
+    blurResult,
+    videoUploadResult,
+    videoTrimResult,
+    videoFrameResult,
+    videoFrameDetectionResult,
+    videoMultiFrameResult,
+    videoMultiFrameDetectionResult,
+    videoSampledDetectionResult,
+    videoTrackingResult,
+    commandResult,
+    activeWorkspaceResultLabel,
+  ])
 
   useEffect(() => {
     if (workspaceResultNavigatorItems.length === 0) {
@@ -4044,6 +4087,17 @@ function App() {
           <p className="small-note">
             Save the current workspace in this browser, or restore the last local backup after clearing the workspace.
           </p>
+
+          <div className="workspace-local-backup-status">
+            <span>Automatic local backup</span>
+            <strong>
+              {workspaceLocalBackupAutoSavedAt
+                ? `Last saved at ${workspaceLocalBackupAutoSavedAt}`
+                : workspaceResultNavigatorItems.length > 0
+                  ? 'Waiting for workspace changes'
+                  : 'No loaded views to auto-save'}
+            </strong>
+          </div>
 
           <div className="workspace-local-backup-actions" aria-label="Local workspace backup actions">
             <button
