@@ -744,6 +744,13 @@ function App() {
   const [workspaceLocalBackupNotice, setWorkspaceLocalBackupNotice] = useState('')
   const [workspaceLocalBackupError, setWorkspaceLocalBackupError] = useState('')
   const [workspaceLocalBackupAutoSavedAt, setWorkspaceLocalBackupAutoSavedAt] = useState('')
+  const [workspaceLocalBackupPreview, setWorkspaceLocalBackupPreview] = useState<{
+    savedAt: string
+    loadedResultCount: number
+    activeResultView: string | null
+    resultViews: string[]
+    size: string
+  } | null>(null)
 
   const scrollToLoadedView = (targetRef: { current: HTMLElement | null }) => {
     window.setTimeout(() => {
@@ -860,6 +867,67 @@ function App() {
       results.videoTrackingResult ? 'Video Tracking' : null,
       results.commandResult ? 'Command Result' : null,
     ].filter((label): label is string => label !== null)
+
+  const formatWorkspaceSnapshotSize = (snapshotText: string) => {
+    const sizeBytes = new Blob([snapshotText]).size
+
+    return sizeBytes < 1024 ? `${sizeBytes} B` : `${(sizeBytes / 1024).toFixed(1)} KB`
+  }
+
+  const getWorkspaceLocalBackupPreview = (snapshotText: string) => {
+    const parsedSnapshot: unknown = JSON.parse(snapshotText)
+
+    if (!isRecord(parsedSnapshot) || !isRecord(parsedSnapshot.results)) {
+      throw new Error('The local workspace backup is not a valid workspace snapshot.')
+    }
+
+    const results = parsedSnapshot.results as Record<string, unknown>
+    const resultViews = getWorkspaceSnapshotResultLabels(results)
+
+    if (resultViews.length === 0) {
+      throw new Error('The local workspace backup does not contain supported result views.')
+    }
+
+    const activeResultView =
+      typeof parsedSnapshot.active_result_view === 'string'
+        ? parsedSnapshot.active_result_view
+        : null
+
+    const savedAt =
+      typeof parsedSnapshot.exported_at === 'string'
+        ? new Date(parsedSnapshot.exported_at).toLocaleString()
+        : 'Unknown time'
+
+    return {
+      savedAt,
+      loadedResultCount: resultViews.length,
+      activeResultView,
+      resultViews,
+      size: formatWorkspaceSnapshotSize(snapshotText),
+    }
+  }
+
+  const refreshWorkspaceLocalBackupPreview = (snapshotText?: string | null) => {
+    const savedSnapshot =
+      snapshotText ?? window.localStorage.getItem(workspaceLocalBackupStorageKey)
+
+    if (!savedSnapshot) {
+      setWorkspaceLocalBackupPreview(null)
+      return null
+    }
+
+    try {
+      const preview = getWorkspaceLocalBackupPreview(savedSnapshot)
+
+      setWorkspaceLocalBackupPreview(preview)
+      setWorkspaceLocalBackupAutoSavedAt(preview.savedAt)
+
+      return preview
+    } catch {
+      setWorkspaceLocalBackupPreview(null)
+      return null
+    }
+  }
 
   const handleWorkspaceSnapshotImportChange = async (
     event: ChangeEvent<HTMLInputElement>,
@@ -1035,9 +1103,8 @@ function App() {
 
       window.localStorage.setItem(workspaceLocalBackupStorageKey, workspaceSnapshotJson)
 
-      const savedAt = new Date().toLocaleTimeString()
+      refreshWorkspaceLocalBackupPreview(workspaceSnapshotJson)
 
-      setWorkspaceLocalBackupAutoSavedAt(savedAt)
       setWorkspaceLocalBackupError('')
       setWorkspaceLocalBackupNotice(
         `Local workspace backup saved with ${workspaceResultNavigatorItems.length} result view(s).`,
@@ -1059,6 +1126,8 @@ function App() {
       if (!savedSnapshot) {
         throw new Error('No local workspace backup found in this browser.')
       }
+
+      refreshWorkspaceLocalBackupPreview(savedSnapshot)
 
       const parsedSnapshot: unknown = JSON.parse(savedSnapshot)
 
@@ -1112,10 +1181,15 @@ function App() {
     window.localStorage.removeItem(workspaceLocalBackupStorageKey)
 
     setWorkspaceLocalBackupAutoSavedAt('')
+    setWorkspaceLocalBackupPreview(null)
     setWorkspaceLocalBackupError('')
     setWorkspaceLocalBackupNotice('Local workspace backup cleared.')
     setStatusMessage('Local workspace backup cleared.')
   }
+
+  useEffect(() => {
+    refreshWorkspaceLocalBackupPreview()
+  }, [])
 
   useEffect(() => {
     if (workspaceResultNavigatorItems.length === 0) {
@@ -1126,7 +1200,7 @@ function App() {
       try {
         window.localStorage.setItem(workspaceLocalBackupStorageKey, workspaceSnapshotJson)
 
-        setWorkspaceLocalBackupAutoSavedAt(new Date().toLocaleTimeString())
+        refreshWorkspaceLocalBackupPreview(workspaceSnapshotJson)
         setWorkspaceLocalBackupError('')
       } catch (err) {
         const message = getErrorMessage(err, 'Could not auto-save workspace locally.')
@@ -4098,6 +4172,42 @@ function App() {
                   : 'No loaded views to auto-save'}
             </strong>
           </div>
+
+          {workspaceLocalBackupPreview ? (
+            <div className="workspace-local-backup-preview">
+              <div className="workspace-local-backup-preview-header">
+                <div>
+                  <span>Local backup available</span>
+                  <strong>{workspaceLocalBackupPreview.loadedResultCount} result view(s)</strong>
+                </div>
+
+                <div>
+                  <span>Saved at</span>
+                  <strong>{workspaceLocalBackupPreview.savedAt}</strong>
+                </div>
+
+                <div>
+                  <span>Size</span>
+                  <strong>{workspaceLocalBackupPreview.size}</strong>
+                </div>
+
+                <div>
+                  <span>Active view</span>
+                  <strong>{workspaceLocalBackupPreview.activeResultView ?? 'None'}</strong>
+                </div>
+              </div>
+
+              <div className="workspace-local-backup-preview-chips">
+                {workspaceLocalBackupPreview.resultViews.map((label) => (
+                  <span key={label}>{label}</span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="workspace-local-backup-empty">
+              No saved local backup found in this browser yet.
+            </p>
+          )}
 
           <div className="workspace-local-backup-actions" aria-label="Local workspace backup actions">
             <button
