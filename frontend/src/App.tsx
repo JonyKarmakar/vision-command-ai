@@ -760,6 +760,8 @@ function App() {
     loadedResultCount: number
     resultViews: string[]
   } | null>(null)
+  const [isWorkspaceRecoveryBannerDismissed, setIsWorkspaceRecoveryBannerDismissed] =
+    useState(false)
 
   const scrollToLoadedView = (targetRef: { current: HTMLElement | null }) => {
     window.setTimeout(() => {
@@ -930,6 +932,7 @@ function App() {
 
       setWorkspaceLocalBackupPreview(preview)
       setWorkspaceLocalBackupAutoSavedAt(preview.savedAt)
+      setIsWorkspaceRecoveryBannerDismissed(false)
 
       return preview
     } catch {
@@ -1195,6 +1198,7 @@ function App() {
       })
 
       restoreWorkspaceSnapshotData(localSnapshotData, 'local browser backup', 'local')
+      setIsWorkspaceRecoveryBannerDismissed(true)
     } catch (err) {
       const message = getErrorMessage(err, 'Could not load local workspace backup.')
 
@@ -1219,6 +1223,7 @@ function App() {
 
     setWorkspaceLocalBackupAutoSavedAt('')
     setWorkspaceLocalBackupPreview(null)
+    setIsWorkspaceRecoveryBannerDismissed(false)
     setWorkspaceLocalBackupError('')
     setWorkspaceLocalBackupNotice('Local workspace backup cleared.')
     setStatusMessage('Local workspace backup cleared.')
@@ -4140,6 +4145,12 @@ function App() {
     },
   ])
 
+  const showWorkspaceRecoveryBanner =
+    workspaceLocalBackupPreview !== null &&
+    workspaceResultNavigatorItems.length === 0 &&
+    workspaceClearUndoSnapshot === null &&
+    !isWorkspaceRecoveryBannerDismissed
+
   return (
     <main className="page">
       <section className="hero">
@@ -4154,6 +4165,44 @@ function App() {
         <span className={isBusy ? 'status-dot active' : 'status-dot'} />
         <p>{statusMessage}</p>
       </section>
+
+      {showWorkspaceRecoveryBanner && workspaceLocalBackupPreview && (
+        <section className="workspace-recovery-banner" aria-label="Local workspace recovery">
+          <div>
+            <strong>Local workspace backup available</strong>
+            <p>
+              Restore {workspaceLocalBackupPreview.loadedResultCount} saved result view(s)
+              from {workspaceLocalBackupPreview.savedAt}.
+            </p>
+
+            <div className="workspace-recovery-banner-chips">
+              {workspaceLocalBackupPreview.resultViews.map((label) => (
+                <span key={label}>{label}</span>
+              ))}
+            </div>
+          </div>
+
+          <div className="workspace-recovery-banner-actions">
+            <button
+              className="secondary-button workspace-recovery-banner-restore-button"
+              onClick={handleLoadLocalWorkspaceSnapshot}
+              disabled={isBusy}
+              type="button"
+            >
+              Restore Local Workspace
+            </button>
+
+            <button
+              className="workspace-recovery-banner-dismiss-button"
+              onClick={() => setIsWorkspaceRecoveryBannerDismissed(true)}
+              disabled={isBusy}
+              type="button"
+            >
+              Dismiss
+            </button>
+          </div>
+        </section>
+      )}
 
       {workspaceClearUndoSnapshot && workspaceClearUndoPreview && (
         <section className="workspace-undo-clear-panel" aria-label="Undo cleared workspace">
