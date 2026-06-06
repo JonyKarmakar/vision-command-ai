@@ -1178,6 +1178,16 @@ function App() {
   }
 
   const handleClearLocalWorkspaceBackup = () => {
+    const shouldClearLocalBackup = window.confirm(
+      'Clear the saved local workspace backup from this browser? This cannot be undone.',
+    )
+
+    if (!shouldClearLocalBackup) {
+      setWorkspaceLocalBackupNotice('Clear local workspace backup cancelled.')
+      setStatusMessage('Clear local workspace backup cancelled.')
+      return
+    }
+
     window.localStorage.removeItem(workspaceLocalBackupStorageKey)
 
     setWorkspaceLocalBackupAutoSavedAt('')
@@ -2089,6 +2099,15 @@ function App() {
   }
 
   const handleClearAllWorkspaceViews = () => {
+    const shouldClearWorkspaceViews = window.confirm(
+      'Clear all loaded workspace views and result panels? Your local backup will not be deleted.',
+    )
+
+    if (!shouldClearWorkspaceViews) {
+      setStatusMessage('Clear all workspace views cancelled.')
+      return
+    }
+
     setUploadResult(null)
     setSelectedFile(null)
 
