@@ -1090,9 +1090,13 @@ function App() {
     if (noticeTarget === 'import') {
       setWorkspaceSnapshotImportNotice(restoreMessage)
       setWorkspaceLocalBackupNotice('')
+      setWorkspaceClearUndoSnapshot(null)
+      setWorkspaceClearUndoPreview(null)
     } else if (noticeTarget === 'local') {
       setWorkspaceLocalBackupNotice(restoreMessage)
       setWorkspaceSnapshotImportNotice('')
+      setWorkspaceClearUndoSnapshot(null)
+      setWorkspaceClearUndoPreview(null)
     } else {
       setWorkspaceSnapshotImportNotice('')
       setWorkspaceLocalBackupNotice('')
@@ -1116,9 +1120,41 @@ function App() {
     )
   }
 
+  const shouldProceedWithWorkspaceRestore = () => {
+    const hasLoadedWorkspaceViews = workspaceResultNavigatorItems.length > 0
+    const hasUndoClearRecovery = workspaceClearUndoSnapshot !== null
+
+    if (!hasLoadedWorkspaceViews && !hasUndoClearRecovery) {
+      return true
+    }
+
+    const confirmationMessage = hasLoadedWorkspaceViews
+      ? hasUndoClearRecovery
+        ? 'Restoring this workspace will replace your currently loaded result views and discard the current Undo Clear Workspace recovery. Continue?'
+        : 'Restoring this workspace will replace your currently loaded result views. Continue?'
+      : 'Restoring this workspace will discard the current Undo Clear Workspace recovery. Continue?'
+
+    const shouldRestoreWorkspace = window.confirm(confirmationMessage)
+
+    if (!shouldRestoreWorkspace) {
+      setStatusMessage(
+        hasUndoClearRecovery
+          ? 'Workspace restore cancelled. Undo Clear Workspace is still available.'
+          : 'Workspace restore cancelled.',
+      )
+      return false
+    }
+
+    return true
+  }
+
   const handleRestoreWorkspaceSnapshot = () => {
     if (!workspaceSnapshotImportData) {
       setWorkspaceSnapshotImportError('Please choose a workspace snapshot JSON file first.')
+      return
+    }
+
+    if (!shouldProceedWithWorkspaceRestore()) {
       return
     }
 
@@ -1187,6 +1223,10 @@ function App() {
         active_result_view: activeResultView,
         loaded_result_views: loadedResultViews,
         results,
+      }
+
+      if (!shouldProceedWithWorkspaceRestore()) {
+        return
       }
 
       setWorkspaceSnapshotImportData(localSnapshotData)
