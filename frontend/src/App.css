@@ -3831,3 +3831,58 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+
+.workspace-undo-clear-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin: 1rem 0 1.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: 1rem;
+  background: rgba(120, 53, 15, 0.24);
+}
+
+.workspace-undo-clear-panel strong {
+  color: #fef3c7;
+  font-size: 0.95rem;
+}
+
+.workspace-undo-clear-panel p {
+  margin: 0.25rem 0 0;
+  color: #fde68a;
+  font-size: 0.84rem;
+}
+
+.workspace-undo-clear-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.workspace-undo-clear-chips span {
+  padding: 0.28rem 0.55rem;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 999px;
+  color: #fffbeb;
+  background: rgba(146, 64, 14, 0.32);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.workspace-undo-clear-button {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 720px) {
+  .workspace-undo-clear-panel {
+    flex-direction: column;
+  }
+
+  .workspace-undo-clear-button {
+    width: 100%;
+  }
+}

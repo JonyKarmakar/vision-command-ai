@@ -751,6 +751,15 @@ function App() {
     resultViews: string[]
     size: string
   } | null>(null)
+  const [workspaceClearUndoSnapshot, setWorkspaceClearUndoSnapshot] = useState<{
+    active_result_view?: string | null
+    loaded_result_views?: string[]
+    results: Record<string, unknown>
+  } | null>(null)
+  const [workspaceClearUndoPreview, setWorkspaceClearUndoPreview] = useState<{
+    loadedResultCount: number
+    resultViews: string[]
+  } | null>(null)
 
   const scrollToLoadedView = (targetRef: { current: HTMLElement | null }) => {
     window.setTimeout(() => {
@@ -1002,7 +1011,7 @@ function App() {
       results: Record<string, unknown>
     },
     sourceLabel: string,
-    noticeTarget: 'import' | 'local',
+    noticeTarget: 'import' | 'local' | 'workspace',
   ) => {
     const { results } = snapshotData
 
@@ -1078,12 +1087,30 @@ function App() {
     if (noticeTarget === 'import') {
       setWorkspaceSnapshotImportNotice(restoreMessage)
       setWorkspaceLocalBackupNotice('')
-    } else {
+    } else if (noticeTarget === 'local') {
       setWorkspaceLocalBackupNotice(restoreMessage)
       setWorkspaceSnapshotImportNotice('')
+    } else {
+      setWorkspaceSnapshotImportNotice('')
+      setWorkspaceLocalBackupNotice('')
     }
 
     setStatusMessage(restoreMessage)
+  }
+
+  const handleUndoClearWorkspaceViews = () => {
+    if (!workspaceClearUndoSnapshot || !workspaceClearUndoPreview) {
+      setStatusMessage('No cleared workspace available to undo.')
+      return
+    }
+
+    restoreWorkspaceSnapshotData(workspaceClearUndoSnapshot, 'last cleared workspace', 'workspace')
+
+    setWorkspaceClearUndoSnapshot(null)
+    setWorkspaceClearUndoPreview(null)
+    setStatusMessage(
+      `Undo restored ${workspaceClearUndoPreview.loadedResultCount} workspace result view(s).`,
+    )
   }
 
   const handleRestoreWorkspaceSnapshot = () => {
@@ -2108,6 +2135,23 @@ function App() {
       return
     }
 
+    if (workspaceResultNavigatorItems.length > 0) {
+      const undoResultViews = getWorkspaceSnapshotResultLabels(workspaceSnapshot.results)
+
+      setWorkspaceClearUndoSnapshot({
+        active_result_view: activeWorkspaceResultLabel,
+        loaded_result_views: workspaceResultNavigatorItems.map((item) => item.label),
+        results: { ...workspaceSnapshot.results },
+      })
+      setWorkspaceClearUndoPreview({
+        loadedResultCount: undoResultViews.length,
+        resultViews: undoResultViews,
+      })
+    } else {
+      setWorkspaceClearUndoSnapshot(null)
+      setWorkspaceClearUndoPreview(null)
+    }
+
     setUploadResult(null)
     setSelectedFile(null)
 
@@ -2155,7 +2199,7 @@ function App() {
     setInferenceSummary(null)
 
     setError(null)
-    setStatusMessage('All workspace views cleared.')
+    setStatusMessage('Workspace views cleared. Undo available.')
   }
 
   const handleLoadDatabaseStats = async () => {
@@ -4110,6 +4154,32 @@ function App() {
         <span className={isBusy ? 'status-dot active' : 'status-dot'} />
         <p>{statusMessage}</p>
       </section>
+
+      {workspaceClearUndoSnapshot && workspaceClearUndoPreview && (
+        <section className="workspace-undo-clear-panel" aria-label="Undo cleared workspace">
+          <div>
+            <strong>Undo clear available</strong>
+            <p>
+              Restore {workspaceClearUndoPreview.loadedResultCount} cleared workspace result view(s).
+            </p>
+
+            <div className="workspace-undo-clear-chips">
+              {workspaceClearUndoPreview.resultViews.map((label) => (
+                <span key={label}>{label}</span>
+              ))}
+            </div>
+          </div>
+
+          <button
+            className="secondary-button workspace-undo-clear-button"
+            onClick={handleUndoClearWorkspaceViews}
+            disabled={isBusy}
+            type="button"
+          >
+            Undo Clear Workspace
+          </button>
+        </section>
+      )}
 
       <details className="workspace-snapshot-import-panel">
         <summary>Import Workspace Snapshot JSON</summary>
