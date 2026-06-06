@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import './App.css'
 
 type UploadResponse = {
@@ -728,6 +728,19 @@ function App() {
   const parserComparisonRef = useRef<HTMLDivElement | null>(null)
   const commandHistoryRef = useRef<HTMLDivElement | null>(null)
   const [activeWorkspaceResultLabel, setActiveWorkspaceResultLabel] = useState<string | null>(null)
+  const [workspaceSnapshotImportData, setWorkspaceSnapshotImportData] = useState<{
+    active_result_view?: string | null
+    loaded_result_views?: string[]
+    results: Record<string, unknown>
+  } | null>(null)
+  const [workspaceSnapshotImportPreview, setWorkspaceSnapshotImportPreview] = useState<{
+    fileName: string
+    loadedResultCount: number
+    activeResultView: string | null
+    resultViews: string[]
+  } | null>(null)
+  const [workspaceSnapshotImportError, setWorkspaceSnapshotImportError] = useState('')
+  const [workspaceSnapshotImportNotice, setWorkspaceSnapshotImportNotice] = useState('')
 
   const scrollToLoadedView = (targetRef: { current: HTMLElement | null }) => {
     window.setTimeout(() => {
@@ -824,6 +837,170 @@ function App() {
   ) => {
     setActiveWorkspaceResultLabel(label)
     scrollToLoadedView(targetRef)
+  }
+
+  const getWorkspaceSnapshotResultLabels = (results: Record<string, unknown>) =>
+    [
+      results.uploadResult ? 'Image Upload' : null,
+      results.detectionResult ? 'Detection' : null,
+      results.cropResult ? 'Crop' : null,
+      results.blurResult ? 'Blur' : null,
+      results.videoUploadResult ? 'Video Upload' : null,
+      results.videoTrimResult ? 'Video Trim' : null,
+      results.videoFrameResult ? 'Extracted Frame' : null,
+      results.videoFrameDetectionResult ? 'Frame Detection' : null,
+      results.videoMultiFrameResult ? 'Multi-Frame Extraction' : null,
+      results.videoMultiFrameDetectionResult ? 'Multi-Frame Detection' : null,
+      results.videoSampledDetectionResult ? 'Sampled Video Detection' : null,
+      results.videoTrackingResult ? 'Video Tracking' : null,
+      results.commandResult ? 'Command Result' : null,
+    ].filter((label): label is string => label !== null)
+
+  const handleWorkspaceSnapshotImportChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const selectedSnapshotFile = event.target.files?.[0]
+
+    setWorkspaceSnapshotImportError('')
+    setWorkspaceSnapshotImportNotice('')
+
+    if (!selectedSnapshotFile) {
+      setWorkspaceSnapshotImportData(null)
+      setWorkspaceSnapshotImportPreview(null)
+      return
+    }
+
+    try {
+      const snapshotText = await selectedSnapshotFile.text()
+      const parsedSnapshot: unknown = JSON.parse(snapshotText)
+
+      if (!isRecord(parsedSnapshot) || !isRecord(parsedSnapshot.results)) {
+        throw new Error('This file is not a valid VisionCommand workspace snapshot.')
+      }
+
+      const results = parsedSnapshot.results as Record<string, unknown>
+      const resultViews = getWorkspaceSnapshotResultLabels(results)
+
+      if (resultViews.length === 0) {
+        throw new Error('This snapshot does not contain supported result views.')
+      }
+
+      const activeResultView =
+        typeof parsedSnapshot.active_result_view === 'string'
+          ? parsedSnapshot.active_result_view
+          : null
+
+      const loadedResultViews = Array.isArray(parsedSnapshot.loaded_result_views)
+        ? parsedSnapshot.loaded_result_views.filter(
+            (label): label is string => typeof label === 'string',
+          )
+        : resultViews
+
+      setWorkspaceSnapshotImportData({
+        active_result_view: activeResultView,
+        loaded_result_views: loadedResultViews,
+        results,
+      })
+
+      setWorkspaceSnapshotImportPreview({
+        fileName: selectedSnapshotFile.name,
+        loadedResultCount: resultViews.length,
+        activeResultView,
+        resultViews,
+      })
+
+      setWorkspaceSnapshotImportNotice(
+        `Snapshot ready to restore: ${resultViews.length} result view(s).`,
+      )
+    } catch (err) {
+      const message = getErrorMessage(err, 'Could not import workspace snapshot.')
+
+      setWorkspaceSnapshotImportData(null)
+      setWorkspaceSnapshotImportPreview(null)
+      setWorkspaceSnapshotImportError(message)
+      setWorkspaceSnapshotImportNotice('')
+    }
+  }
+
+  const handleRestoreWorkspaceSnapshot = () => {
+    if (!workspaceSnapshotImportData) {
+      setWorkspaceSnapshotImportError('Please choose a workspace snapshot JSON file first.')
+      return
+    }
+
+    const { results } = workspaceSnapshotImportData
+
+    const restoredUploadResult = (results.uploadResult as UploadResponse | undefined) ?? null
+    const restoredDetectionResult =
+      (results.detectionResult as DetectionResponse | undefined) ?? null
+    const restoredCropResult = (results.cropResult as CropResponse | undefined) ?? null
+    const restoredBlurResult = (results.blurResult as BlurResponse | undefined) ?? null
+    const restoredVideoUploadResult =
+      (results.videoUploadResult as VideoUploadResponse | undefined) ?? null
+    const restoredVideoTrimResult =
+      (results.videoTrimResult as VideoTrimResponse | undefined) ?? null
+    const restoredVideoFrameResult =
+      (results.videoFrameResult as VideoFrameExtractResponse | undefined) ?? null
+    const restoredVideoFrameDetectionResult =
+      (results.videoFrameDetectionResult as VideoFrameDetectionResponse | undefined) ?? null
+    const restoredVideoMultiFrameResult =
+      (results.videoMultiFrameResult as VideoMultiFrameExtractResponse | undefined) ?? null
+    const restoredVideoMultiFrameDetectionResult =
+      (results.videoMultiFrameDetectionResult as VideoMultiFrameDetectionResponse | undefined) ??
+      null
+    const restoredVideoSampledDetectionResult =
+      (results.videoSampledDetectionResult as VideoSampledDetectionResponse | undefined) ?? null
+    const restoredVideoTrackingResult =
+      (results.videoTrackingResult as VideoTrackingResponse | undefined) ?? null
+    const restoredCommandResult = (results.commandResult as CommandResponse | undefined) ?? null
+
+    setUploadResult(restoredUploadResult)
+    setDetectionResult(restoredDetectionResult)
+    setCropResult(restoredCropResult)
+    setBlurResult(restoredBlurResult)
+    setVideoUploadResult(restoredVideoUploadResult)
+    setVideoTrimResult(restoredVideoTrimResult)
+    setVideoFrameResult(restoredVideoFrameResult)
+    setVideoFrameDetectionResult(restoredVideoFrameDetectionResult)
+    setVideoMultiFrameResult(restoredVideoMultiFrameResult)
+    setVideoMultiFrameDetectionResult(restoredVideoMultiFrameDetectionResult)
+    setVideoSampledDetectionResult(restoredVideoSampledDetectionResult)
+    setVideoTrackingResult(restoredVideoTrackingResult)
+    setCommandResult(restoredCommandResult)
+
+    setSelectedClass('all')
+    setLastDetectionThreshold(null)
+    setLastDetectionClass(null)
+
+    setClassOptions(
+      restoredDetectionResult
+        ? Array.from(
+            new Set(
+              restoredDetectionResult.detections.map(
+                (detection) => detection.class_name,
+              ),
+            ),
+          ).sort()
+        : [],
+    )
+
+    const restoredLabels = getWorkspaceSnapshotResultLabels(results)
+    const preferredActiveLabel = workspaceSnapshotImportData.active_result_view
+
+    setActiveWorkspaceResultLabel(
+      preferredActiveLabel && restoredLabels.includes(preferredActiveLabel)
+        ? preferredActiveLabel
+        : restoredLabels[0] ?? null,
+    )
+
+    setError(null)
+    setWorkspaceSnapshotImportError('')
+    setWorkspaceSnapshotImportNotice(
+      `Workspace restored from snapshot with ${restoredLabels.length} result view(s).`,
+    )
+    setStatusMessage(
+      `Workspace snapshot restored with ${restoredLabels.length} result view(s).`,
+    )
   }
 
   useEffect(() => {
@@ -3688,6 +3865,68 @@ function App() {
         <span className={isBusy ? 'status-dot active' : 'status-dot'} />
         <p>{statusMessage}</p>
       </section>
+
+      <details className="workspace-snapshot-import-panel">
+        <summary>Import Workspace Snapshot JSON</summary>
+
+        <div className="workspace-snapshot-import-content">
+          <p className="small-note">
+            Restore a previously downloaded VisionCommand workspace snapshot. Restoring replaces the current loaded result views.
+          </p>
+
+          <div className="workspace-snapshot-import-actions">
+            <input
+              className="file-input workspace-snapshot-import-input"
+              type="file"
+              accept="application/json,.json"
+              onChange={(event) => void handleWorkspaceSnapshotImportChange(event)}
+              disabled={isBusy}
+            />
+
+            <button
+              className="secondary-button workspace-snapshot-import-restore-button"
+              onClick={handleRestoreWorkspaceSnapshot}
+              disabled={isBusy || !workspaceSnapshotImportData}
+              type="button"
+            >
+              Restore Workspace
+            </button>
+          </div>
+
+          {workspaceSnapshotImportPreview && (
+            <div className="workspace-snapshot-import-preview">
+              <div>
+                <span>File</span>
+                <strong>{workspaceSnapshotImportPreview.fileName}</strong>
+              </div>
+
+              <div>
+                <span>Contains</span>
+                <strong>{workspaceSnapshotImportPreview.loadedResultCount} result view(s)</strong>
+              </div>
+
+              <div>
+                <span>Active view</span>
+                <strong>{workspaceSnapshotImportPreview.activeResultView ?? 'None'}</strong>
+              </div>
+
+              <div className="workspace-snapshot-import-preview-chips">
+                {workspaceSnapshotImportPreview.resultViews.map((label) => (
+                  <span key={label}>{label}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {workspaceSnapshotImportNotice && (
+            <p className="workspace-snapshot-import-notice">{workspaceSnapshotImportNotice}</p>
+          )}
+
+          {workspaceSnapshotImportError && (
+            <p className="workspace-snapshot-import-error">{workspaceSnapshotImportError}</p>
+          )}
+        </div>
+      </details>
 
       {workspaceResultNavigatorItems.length > 0 && (
         <>
