@@ -3681,3 +3681,53 @@ input[type="file"]::file-selector-button:hover {
     width: 100%;
   }
 }
+
+
+.workspace-local-backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.workspace-local-backup-notice {
+  margin: 0;
+  color: #bbf7d0;
+  font-weight: 750;
+}
+
+.workspace-local-backup-error {
+  margin: 0;
+  color: #fecaca;
+  font-weight: 750;
+}
+
+@media (max-width: 640px) {
+  .workspace-local-backup-actions {
+    flex-direction: column;
+  }
+}
+
+
+.workspace-local-backup-panel {
+  margin: 1rem 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.workspace-local-backup-panel summary {
+  width: fit-content;
+  cursor: pointer;
+  color: #bfdbfe;
+  font-weight: 850;
+}
+
+.workspace-local-backup-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.85rem;
+}

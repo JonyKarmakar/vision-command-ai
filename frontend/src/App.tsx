@@ -741,6 +741,8 @@ function App() {
   } | null>(null)
   const [workspaceSnapshotImportError, setWorkspaceSnapshotImportError] = useState('')
   const [workspaceSnapshotImportNotice, setWorkspaceSnapshotImportNotice] = useState('')
+  const [workspaceLocalBackupNotice, setWorkspaceLocalBackupNotice] = useState('')
+  const [workspaceLocalBackupError, setWorkspaceLocalBackupError] = useState('')
 
   const scrollToLoadedView = (targetRef: { current: HTMLElement | null }) => {
     window.setTimeout(() => {
@@ -830,6 +832,8 @@ function App() {
     workspaceSnapshotSizeBytes < 1024
       ? `${workspaceSnapshotSizeBytes} B`
       : `${(workspaceSnapshotSizeBytes / 1024).toFixed(1)} KB`
+
+  const workspaceLocalBackupStorageKey = 'visioncommand-local-workspace-snapshot'
 
   const handleWorkspaceResultNavigatorClick = (
     label: string,
@@ -922,13 +926,16 @@ function App() {
     }
   }
 
-  const handleRestoreWorkspaceSnapshot = () => {
-    if (!workspaceSnapshotImportData) {
-      setWorkspaceSnapshotImportError('Please choose a workspace snapshot JSON file first.')
-      return
-    }
-
-    const { results } = workspaceSnapshotImportData
+  const restoreWorkspaceSnapshotData = (
+    snapshotData: {
+      active_result_view?: string | null
+      loaded_result_views?: string[]
+      results: Record<string, unknown>
+    },
+    sourceLabel: string,
+    noticeTarget: 'import' | 'local',
+  ) => {
+    const { results } = snapshotData
 
     const restoredUploadResult = (results.uploadResult as UploadResponse | undefined) ?? null
     const restoredDetectionResult =
@@ -985,7 +992,7 @@ function App() {
     )
 
     const restoredLabels = getWorkspaceSnapshotResultLabels(results)
-    const preferredActiveLabel = workspaceSnapshotImportData.active_result_view
+    const preferredActiveLabel = snapshotData.active_result_view
 
     setActiveWorkspaceResultLabel(
       preferredActiveLabel && restoredLabels.includes(preferredActiveLabel)
@@ -993,14 +1000,116 @@ function App() {
         : restoredLabels[0] ?? null,
     )
 
+    const restoreMessage = `Workspace restored from ${sourceLabel} with ${restoredLabels.length} result view(s).`
+
     setError(null)
     setWorkspaceSnapshotImportError('')
-    setWorkspaceSnapshotImportNotice(
-      `Workspace restored from snapshot with ${restoredLabels.length} result view(s).`,
-    )
-    setStatusMessage(
-      `Workspace snapshot restored with ${restoredLabels.length} result view(s).`,
-    )
+    setWorkspaceLocalBackupError('')
+
+    if (noticeTarget === 'import') {
+      setWorkspaceSnapshotImportNotice(restoreMessage)
+      setWorkspaceLocalBackupNotice('')
+    } else {
+      setWorkspaceLocalBackupNotice(restoreMessage)
+      setWorkspaceSnapshotImportNotice('')
+    }
+
+    setStatusMessage(restoreMessage)
+  }
+
+  const handleRestoreWorkspaceSnapshot = () => {
+    if (!workspaceSnapshotImportData) {
+      setWorkspaceSnapshotImportError('Please choose a workspace snapshot JSON file first.')
+      return
+    }
+
+    restoreWorkspaceSnapshotData(workspaceSnapshotImportData, 'imported snapshot', 'import')
+  }
+
+  const handleSaveWorkspaceLocally = () => {
+    try {
+      if (workspaceResultNavigatorItems.length === 0) {
+        throw new Error('There are no loaded result views to save locally.')
+      }
+
+      window.localStorage.setItem(workspaceLocalBackupStorageKey, workspaceSnapshotJson)
+
+      setWorkspaceLocalBackupError('')
+      setWorkspaceLocalBackupNotice(
+        `Local workspace backup saved with ${workspaceResultNavigatorItems.length} result view(s).`,
+      )
+      setStatusMessage('Workspace saved locally in this browser.')
+    } catch (err) {
+      const message = getErrorMessage(err, 'Could not save workspace locally.')
+
+      setWorkspaceLocalBackupNotice('')
+      setWorkspaceLocalBackupError(message)
+      setStatusMessage(message)
+    }
+  }
+
+  const handleLoadLocalWorkspaceSnapshot = () => {
+    try {
+      const savedSnapshot = window.localStorage.getItem(workspaceLocalBackupStorageKey)
+
+      if (!savedSnapshot) {
+        throw new Error('No local workspace backup found in this browser.')
+      }
+
+      const parsedSnapshot: unknown = JSON.parse(savedSnapshot)
+
+      if (!isRecord(parsedSnapshot) || !isRecord(parsedSnapshot.results)) {
+        throw new Error('The local workspace backup is not a valid workspace snapshot.')
+      }
+
+      const results = parsedSnapshot.results as Record<string, unknown>
+      const resultViews = getWorkspaceSnapshotResultLabels(results)
+
+      if (resultViews.length === 0) {
+        throw new Error('The local workspace backup does not contain supported result views.')
+      }
+
+      const activeResultView =
+        typeof parsedSnapshot.active_result_view === 'string'
+          ? parsedSnapshot.active_result_view
+          : null
+
+      const loadedResultViews = Array.isArray(parsedSnapshot.loaded_result_views)
+        ? parsedSnapshot.loaded_result_views.filter(
+            (label): label is string => typeof label === 'string',
+          )
+        : resultViews
+
+      const localSnapshotData = {
+        active_result_view: activeResultView,
+        loaded_result_views: loadedResultViews,
+        results,
+      }
+
+      setWorkspaceSnapshotImportData(localSnapshotData)
+      setWorkspaceSnapshotImportPreview({
+        fileName: 'Local browser backup',
+        loadedResultCount: resultViews.length,
+        activeResultView,
+        resultViews,
+      })
+
+      restoreWorkspaceSnapshotData(localSnapshotData, 'local browser backup', 'local')
+    } catch (err) {
+      const message = getErrorMessage(err, 'Could not load local workspace backup.')
+
+      setWorkspaceLocalBackupNotice('')
+      setWorkspaceLocalBackupError(message)
+      setStatusMessage(message)
+    }
+  }
+
+  const handleClearLocalWorkspaceBackup = () => {
+    window.localStorage.removeItem(workspaceLocalBackupStorageKey)
+
+    setWorkspaceLocalBackupError('')
+    setWorkspaceLocalBackupNotice('Local workspace backup cleared.')
+    setStatusMessage('Local workspace backup cleared.')
   }
 
   useEffect(() => {
@@ -3928,6 +4037,53 @@ function App() {
         </div>
       </details>
 
+      <details className="workspace-local-backup-panel">
+        <summary>Local Workspace Backup</summary>
+
+        <div className="workspace-local-backup-content">
+          <p className="small-note">
+            Save the current workspace in this browser, or restore the last local backup after clearing the workspace.
+          </p>
+
+          <div className="workspace-local-backup-actions" aria-label="Local workspace backup actions">
+            <button
+              className="workspace-snapshot-button"
+              onClick={handleSaveWorkspaceLocally}
+              disabled={isBusy || workspaceResultNavigatorItems.length === 0}
+              type="button"
+            >
+              Save Workspace Locally
+            </button>
+
+            <button
+              className="workspace-snapshot-button"
+              onClick={handleLoadLocalWorkspaceSnapshot}
+              disabled={isBusy}
+              type="button"
+            >
+              Load Local Workspace
+            </button>
+
+            <button
+              className="workspace-snapshot-button"
+              onClick={handleClearLocalWorkspaceBackup}
+              disabled={isBusy}
+              type="button"
+            >
+              Clear Local Workspace Backup
+            </button>
+          </div>
+
+          {workspaceLocalBackupNotice && (
+            <p className="workspace-local-backup-notice">{workspaceLocalBackupNotice}</p>
+          )}
+
+          {workspaceLocalBackupError && (
+            <p className="workspace-local-backup-error">{workspaceLocalBackupError}</p>
+          )}
+        </div>
+      </details>
+
       {workspaceResultNavigatorItems.length > 0 && (
         <>
           <section className="workspace-result-navigator" aria-label="Loaded result views">
@@ -4040,6 +4196,7 @@ function App() {
                   : 'Download Workspace Snapshot JSON'}
               </button>
             </div>
+
           </section>
         </>
       )}
