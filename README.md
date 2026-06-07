@@ -6,6 +6,25 @@ The project is being built as a learning-focused production-style AI system. The
 
 ---
 
+## Current Project Status
+
+VisionCommand AI is currently a full-stack computer vision studio with:
+
+- Image upload, object detection, annotation, cropping, and blurring
+- Video upload, metadata extraction, trimming, frame extraction, frame detection, sampled detection, and object tracking
+- Text-command and browser voice-command workflows
+- Parser-aware command execution with rule-based, mock LLM, and real LLM provider paths
+- PostgreSQL-backed media, command, detection, parser, and inference logs
+- LLMOps-style parser and command monitoring dashboards
+- Workspace snapshot export and import
+- Local workspace backup, automatic autosave, recovery banner, undo clear, and restore safety confirmations
+- Docker Compose setup for backend, frontend, and PostgreSQL
+- GitHub Actions CI for backend and frontend checks
+
+The project has moved beyond a simple object detection demo and now acts as a learning platform for production-style AI application development, MLOps/LLMOps observability, and full-stack engineering.
+
+---
+
 ## Current Features
 
 ### Image AI and Editing
@@ -84,6 +103,23 @@ The project is being built as a learning-focused production-style AI system. The
 - View inference logs and inference summary from the frontend
 - View model metadata from the frontend
 
+### Workspace Recovery and UX Safety
+
+- Export the current workspace as snapshot JSON
+- Copy workspace snapshot JSON to clipboard
+- Download workspace snapshot JSON
+- Import and preview a previously exported workspace snapshot
+- Restore imported workspace snapshots
+- Save the current workspace locally in browser storage
+- Automatically autosave the latest non-empty workspace
+- Preview available local backups with saved time, size, active view, and included views
+- Show a recovery banner when a local backup exists and no workspace is loaded
+- Clear all workspace views with confirmation
+- Undo the last Clear All Workspace Views action
+- Confirm before replacing active result views during restore
+- Confirm before discarding Undo Clear Workspace recovery during restore
+- Clear local workspace backup with confirmation
+
 ### DevOps and Workflow
 
 - Run backend, frontend, and PostgreSQL together using Docker Compose
@@ -160,10 +196,23 @@ vision-command-ai/
 │       └── frontend-ci.yml
 │
 ├── docs/
+│   ├── llm-command-parser-architecture.md
+│   └── workspace-recovery-flow.md
 ├── docker-compose.yml
 ├── .gitignore
 └── README.md
 ```
+
+---
+
+## Documentation
+
+Additional project documentation is available in the `docs/` folder:
+
+- `docs/llm-command-parser-architecture.md` explains the command parser architecture, parser modes, provider abstraction, and LLMOps-related design.
+- `docs/workspace-recovery-flow.md` explains the workspace recovery system, including snapshot export/import, local backup, autosave, recovery banner, clear confirmations, undo clear, restore confirmations, manual test matrix, known limitations, and future improvements.
+
+These documents should be updated whenever the related system behavior changes.
 
 ---
 
