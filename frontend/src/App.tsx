@@ -818,12 +818,30 @@ function App() {
       item !== null,
   )
 
+  const workspaceSnapshotResultViews = [
+    uploadResult ? 'Image Upload' : null,
+    detectionResult ? 'Detection' : null,
+    cropResult ? 'Crop' : null,
+    blurResult ? 'Blur' : null,
+    videoUploadResult ? 'Video Upload' : null,
+    videoTrimResult ? 'Video Trim' : null,
+    videoFrameResult ? 'Extracted Frame' : null,
+    videoFrameDetectionResult ? 'Frame Detection' : null,
+    videoMultiFrameResult ? 'Multi-Frame Extraction' : null,
+    videoMultiFrameDetectionResult ? 'Multi-Frame Detection' : null,
+    videoSampledDetectionResult ? 'Sampled Video Detection' : null,
+    videoTrackingResult ? 'Video Tracking' : null,
+    commandResult ? 'Command Result' : null,
+  ].filter((label): label is string => label !== null)
+
+  const hasWorkspaceSnapshotResults = workspaceSnapshotResultViews.length > 0
+
 
   const workspaceSnapshot = {
     exported_at: new Date().toISOString(),
     active_result_view: activeWorkspaceResultLabel,
-    loaded_result_count: workspaceResultNavigatorItems.length,
-    loaded_result_views: workspaceResultNavigatorItems.map((item) => item.label),
+    loaded_result_count: workspaceSnapshotResultViews.length,
+    loaded_result_views: workspaceSnapshotResultViews,
     results: {
       ...(uploadResult ? { uploadResult } : {}),
       ...(detectionResult ? { detectionResult } : {}),
@@ -1121,7 +1139,7 @@ function App() {
   }
 
   const shouldProceedWithWorkspaceRestore = () => {
-    const hasLoadedWorkspaceViews = workspaceResultNavigatorItems.length > 0
+    const hasLoadedWorkspaceViews = hasWorkspaceSnapshotResults
     const hasUndoClearRecovery = workspaceClearUndoSnapshot !== null
 
     if (!hasLoadedWorkspaceViews && !hasUndoClearRecovery) {
@@ -1163,7 +1181,7 @@ function App() {
 
   const handleSaveWorkspaceLocally = () => {
     try {
-      if (workspaceResultNavigatorItems.length === 0) {
+      if (!hasWorkspaceSnapshotResults) {
         throw new Error('There are no loaded result views to save locally.')
       }
 
@@ -1173,7 +1191,7 @@ function App() {
 
       setWorkspaceLocalBackupError('')
       setWorkspaceLocalBackupNotice(
-        `Local workspace backup saved with ${workspaceResultNavigatorItems.length} result view(s).`,
+        `Local workspace backup saved with ${workspaceSnapshotResultViews.length} result view(s).`,
       )
       setStatusMessage('Workspace saved locally in this browser.')
     } catch (err) {
@@ -1274,7 +1292,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (workspaceResultNavigatorItems.length === 0) {
+    if (!hasWorkspaceSnapshotResults) {
       return
     }
 
@@ -2180,12 +2198,12 @@ function App() {
       return
     }
 
-    if (workspaceResultNavigatorItems.length > 0) {
+    if (hasWorkspaceSnapshotResults) {
       const undoResultViews = getWorkspaceSnapshotResultLabels(workspaceSnapshot.results)
 
       setWorkspaceClearUndoSnapshot({
         active_result_view: activeWorkspaceResultLabel,
-        loaded_result_views: workspaceResultNavigatorItems.map((item) => item.label),
+        loaded_result_views: workspaceSnapshotResultViews,
         results: { ...workspaceSnapshot.results },
       })
       setWorkspaceClearUndoPreview({
@@ -4187,7 +4205,7 @@ function App() {
 
   const showWorkspaceRecoveryBanner =
     workspaceLocalBackupPreview !== null &&
-    workspaceResultNavigatorItems.length === 0 &&
+    !hasWorkspaceSnapshotResults &&
     workspaceClearUndoSnapshot === null &&
     !isWorkspaceRecoveryBannerDismissed
 
@@ -4345,7 +4363,7 @@ function App() {
             <strong>
               {workspaceLocalBackupAutoSavedAt
                 ? `Last saved at ${workspaceLocalBackupAutoSavedAt}`
-                : workspaceResultNavigatorItems.length > 0
+                : hasWorkspaceSnapshotResults
                   ? 'Waiting for workspace changes'
                   : 'No loaded views to auto-save'}
             </strong>
@@ -4391,7 +4409,7 @@ function App() {
             <button
               className="workspace-snapshot-button"
               onClick={handleSaveWorkspaceLocally}
-              disabled={isBusy || workspaceResultNavigatorItems.length === 0}
+              disabled={isBusy || !hasWorkspaceSnapshotResults}
               type="button"
             >
               Save Workspace Locally
