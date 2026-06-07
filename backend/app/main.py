@@ -78,6 +78,14 @@ app.include_router(health.router)
 app.include_router(model.router)
 
 
+def ensure_runtime_directories():
+    for directory in (UPLOAD_DIR, OUTPUT_DIR, VIDEO_DIR, LOG_DIR):
+        directory.mkdir(parents=True, exist_ok=True)
+
+
+ensure_runtime_directories()
+
+
 
 
 @app.post("/media/upload")
