@@ -130,11 +130,15 @@ Backend should expose:
 
 8000
 
-Current backend Docker command runs Uvicorn on:
+Current backend Docker command supports the PORT environment variable.
+
+Default local behavior:
 
 0.0.0.0:8000
 
-If Render fails to detect the port, use a follow-up code change to make the backend Docker command read the PORT environment variable.
+Cloud behavior:
+
+The backend uses the platform-provided PORT value when it is available.
 
 ---
 
@@ -392,9 +396,9 @@ Do not put OPENAI_API_KEY in frontend variables.
 
 ### Risk 1: Backend port detection
 
-Backend currently binds to 8000.
+Backend now supports the PORT environment variable.
 
-If Render has trouble detecting the port, update the Docker CMD in a future branch to use the PORT environment variable.
+If routing still fails, check the Render service logs, exposed port settings, and health check path.
 
 ### Risk 2: Media files disappear
 
