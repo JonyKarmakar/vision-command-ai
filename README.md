@@ -6,6 +6,63 @@ The project is being built as a learning-focused production-style AI system. The
 
 ---
 
+## Live Demo
+
+VisionCommand AI is deployed on Render as a first public cloud demo.
+
+Frontend:
+
+https://vision-command-frontend.onrender.com
+
+Backend:
+
+https://vision-command-backend.onrender.com
+
+The deployed demo currently includes:
+
+- React/Vite frontend static site
+- FastAPI backend web service
+- Render PostgreSQL database
+- YOLO image upload and object detection
+- Annotated image output
+- Crop and blur workflows
+- Command-based crop and blur actions
+- Database-backed detection history and inference logs
+
+The first Render deployment was manually smoke tested through the browser.
+
+Confirmed working areas:
+
+- Backend health endpoint
+- Backend model information endpoint
+- Frontend to backend API routing through `/api/*` rewrite
+- Backend to PostgreSQL connection
+- Image upload
+- YOLO detection
+- Annotated output generation
+- Crop by class
+- Blur by class
+- Command execution with `crop person` and `blur person`
+- Detection history
+- Detection summary
+- Inference logs
+- Inference summary
+- Fresh incognito browser test
+
+Deployment evidence is documented in:
+
+- `docs/render-deployment-evidence.md`
+
+Important free-tier limitations:
+
+- The Render free backend may sleep after inactivity.
+- First requests after sleep can be slow.
+- YOLO inference is slow on the free backend instance.
+- Uploaded and generated media are stored on temporary container storage.
+- The free PostgreSQL database is temporary unless upgraded.
+
+---
+
 ## Current Project Status
 
 VisionCommand AI is currently a full-stack computer vision studio with:
