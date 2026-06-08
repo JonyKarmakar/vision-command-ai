@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: vision-command-backend
+    runtime: docker
+    rootDir: backend
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vision-command-db
+          property: connectionString
+      - key: STORAGE_ROOT
+        value: /app/storage
+      - key: MODEL_NAME
+        value: yolo26n.pt
+      - key: LLM_PROVIDER
+        value: disabled
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  - type: web
+    name: vision-command-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://vision-command-backend.onrender.com/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: vision-command-db
+    plan: free
+    databaseName: vision_command
+    user: vision_user
