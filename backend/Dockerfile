@@ -2,7 +2,8 @@ FROM python:3.9-slim
 
 ENV PYTHONUNBUFFERED=1 \
     STORAGE_ROOT=/app/storage \
-    MODEL_NAME=yolo26n.pt
+    MODEL_NAME=yolo26n.pt \
+    PORT=8000
 
 WORKDIR /app
 
@@ -25,4 +26,4 @@ RUN mkdir -p /app/storage/uploads \
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
