@@ -284,24 +284,18 @@ The repository-level .gitignore excludes:
 
 *.pt
 
-However, backend/.dockerignore currently does not exclude:
+Git ignore rules and Docker ignore rules are separate.
 
-*.pt
-
-This means local .pt files may still be sent to the Docker build context even if they are not copied into the image.
-
-Future improvement:
-
-Add model artifact patterns to backend/.dockerignore, such as:
+The backend Docker ignore file now excludes common model artifact patterns:
 
 *.pt
 *.onnx
 *.engine
 *.torchscript
 
-This would reduce accidental Docker build context size.
+This helps prevent local model artifacts from being sent into the Docker build context.
 
-This should be handled in a separate small branch.
+This reduces accidental Docker build context size and keeps model artifact handling explicit.
 
 ---
 
