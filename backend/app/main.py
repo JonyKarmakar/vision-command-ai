@@ -79,7 +79,19 @@ app.include_router(health.router)
 app.include_router(model.router)
 
 
+def sync_storage_service_directories():
+    storage_service.directories.update(
+        {
+            "uploads": UPLOAD_DIR,
+            "outputs": OUTPUT_DIR,
+            "videos": VIDEO_DIR,
+            "logs": LOG_DIR,
+        }
+    )
+
+
 def ensure_runtime_directories():
+    sync_storage_service_directories()
     storage_service.ensure_directories()
 
 
@@ -95,6 +107,8 @@ def upload_media(file: UploadFile = File(...)):
             status_code=400,
             detail="Only image uploads are supported in this step",
         )
+
+    sync_storage_service_directories()
 
     original_filename = file.filename or "uploaded_image"
     stored_filename = storage_service.make_unique_filename(original_filename)
@@ -132,6 +146,8 @@ def upload_media(file: UploadFile = File(...)):
 
 @app.get("/media/uploads/{filename}")
 def get_uploaded_media(filename: str):
+    sync_storage_service_directories()
+
     try:
         file_path = storage_service.path_for("uploads", filename)
     except ValueError:
@@ -151,6 +167,8 @@ def get_uploaded_media(filename: str):
 
 @app.get("/media/outputs/{filename}")
 def get_output_media(filename: str):
+    sync_storage_service_directories()
+
     try:
         file_path = storage_service.path_for("outputs", filename)
     except ValueError:
@@ -1695,6 +1713,8 @@ def upload_video(file: UploadFile = File(...)):
 
 @app.get("/media/videos/{filename}")
 def get_uploaded_video(filename: str):
+    sync_storage_service_directories()
+
     try:
         file_path = storage_service.path_for("videos", filename)
     except ValueError:
@@ -1706,7 +1726,7 @@ def get_uploaded_video(filename: str):
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(
             status_code=404,
-            detail="Video file not found",
+            detail="Uploaded video not found",
         )
 
     return FileResponse(file_path)
