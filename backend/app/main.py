@@ -16,6 +16,7 @@ from app.services.llm_provider import get_llm_provider_status
 from app.services.llm_prompt_builder import build_command_parser_prompt
 from app.services.command_validation import validate_parsed_command
 from app.services.command_parser import normalize_requested_class_name, parse_command
+from app.services.storage_service import storage_service
 from app.services.database_service import (
     get_database_command_logs,
     get_database_command_log_summary,
@@ -79,8 +80,7 @@ app.include_router(model.router)
 
 
 def ensure_runtime_directories():
-    for directory in (UPLOAD_DIR, OUTPUT_DIR, VIDEO_DIR, LOG_DIR):
-        directory.mkdir(parents=True, exist_ok=True)
+    storage_service.ensure_directories()
 
 
 ensure_runtime_directories()
@@ -96,21 +96,15 @@ def upload_media(file: UploadFile = File(...)):
             detail="Only image uploads are supported in this step",
         )
 
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
     original_filename = file.filename or "uploaded_image"
-    file_extension = Path(original_filename).suffix
-    stored_filename = f"{uuid4().hex}{file_extension}"
-    storage_path = UPLOAD_DIR / stored_filename
-
-    with storage_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    stored_filename = storage_service.make_unique_filename(original_filename)
+    storage_path = storage_service.save_stream("uploads", stored_filename, file.file)
 
     try:
         with Image.open(storage_path) as image:
             width, height = image.size
     except UnidentifiedImageError:
-        storage_path.unlink(missing_ok=True)
+        storage_service.delete_file("uploads", stored_filename, missing_ok=True)
         raise HTTPException(
             status_code=400,
             detail="Uploaded file is not a valid image",
@@ -124,7 +118,7 @@ def upload_media(file: UploadFile = File(...)):
         "width": width,
         "height": height,
         "storage_path": str(storage_path),
-        "file_url": f"/media/uploads/{stored_filename}",
+        "file_url": storage_service.url_for("uploads", stored_filename),
     }
 
     try:
@@ -138,7 +132,13 @@ def upload_media(file: UploadFile = File(...)):
 
 @app.get("/media/uploads/{filename}")
 def get_uploaded_media(filename: str):
-    file_path = UPLOAD_DIR / filename
+    try:
+        file_path = storage_service.path_for("uploads", filename)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid uploaded filename",
+        )
 
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(
@@ -151,7 +151,13 @@ def get_uploaded_media(filename: str):
 
 @app.get("/media/outputs/{filename}")
 def get_output_media(filename: str):
-    file_path = OUTPUT_DIR / filename
+    try:
+        file_path = storage_service.path_for("outputs", filename)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid output filename",
+        )
 
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(
@@ -1689,12 +1695,18 @@ def upload_video(file: UploadFile = File(...)):
 
 @app.get("/media/videos/{filename}")
 def get_uploaded_video(filename: str):
-    file_path = VIDEO_DIR / filename
+    try:
+        file_path = storage_service.path_for("videos", filename)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid video filename",
+        )
 
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(
             status_code=404,
-            detail="Uploaded video not found",
+            detail="Video file not found",
         )
 
     return FileResponse(file_path)
