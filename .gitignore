@@ -18,3 +18,4 @@ backend/vision-env/
 .pytest_cache/
 backend/storage/
 *.pt
+storage/
