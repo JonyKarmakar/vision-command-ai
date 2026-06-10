@@ -2,7 +2,7 @@ from fastapi import HTTPException
 
 from app.services.llm_parser import get_parser_metadata, parse_command_with_mode
 from app.services.llm_provider import get_llm_provider_status
-from app.services.command_planner import plan_command
+from app.services.command_planner import get_planner_metadata, plan_command_with_mode
 
 
 
@@ -238,13 +238,7 @@ COMMAND_PLANNER_EVALUATION_CASES = [
 
 
 def evaluate_command_planner(planner_mode: str = "rule_based"):
-    supported_planner_modes = {"rule_based"}
-
-    if planner_mode not in supported_planner_modes:
-        raise HTTPException(
-            status_code=400,
-            detail="Supported planner modes are: rule_based",
-        )
+    planner_metadata = get_planner_metadata(planner_mode)
 
     results = []
 
@@ -253,7 +247,11 @@ def evaluate_command_planner(planner_mode: str = "rule_based"):
         expected = case["expected"]
 
         try:
-            plan = plan_command(command)
+            plan_result = plan_command_with_mode(
+                command=command,
+                planner_mode=planner_mode,
+            )
+            plan = plan_result["plan"]
             actual = plan.model_dump() if hasattr(plan, "model_dump") else plan.dict()
             passed = command_matches_expected(actual, expected)
             error = None
@@ -279,9 +277,9 @@ def evaluate_command_planner(planner_mode: str = "rule_based"):
     accuracy = passed_cases / total_cases if total_cases > 0 else 0
 
     return {
-        "planner_mode": planner_mode,
-        "planner_type": "rule_based",
-        "planner_version": "v1",
+        "planner_mode": planner_metadata["planner_mode"],
+        "planner_type": planner_metadata["planner_type"],
+        "planner_version": planner_metadata["planner_version"],
         "total_cases": total_cases,
         "passed_cases": passed_cases,
         "failed_cases": failed_cases,

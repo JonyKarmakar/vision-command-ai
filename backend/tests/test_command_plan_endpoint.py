@@ -75,4 +75,23 @@ def test_plan_command_endpoint_rejects_unsupported_planner_mode():
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Unsupported planner_mode. Supported modes: rule_based"
+    assert response.json()["detail"] == "Supported planner modes are: rule_based, llm_mock"
+
+
+
+def test_plan_command_endpoint_accepts_llm_mock_mode():
+    response = client.post(
+        "/commands/plan",
+        json={
+            "command": "Blur all people",
+            "planner_mode": "llm_mock",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["action"] == "blur_all_by_class"
+    assert data["target_class"] == "person"
+    assert data["target_scope"] == "all"
