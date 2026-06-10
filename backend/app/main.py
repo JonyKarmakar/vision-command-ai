@@ -10,7 +10,10 @@ from fastapi.responses import FileResponse
 from PIL import Image, ImageDraw, UnidentifiedImageError
 
 from app.routers import health, model
-from app.services.command_evaluation import evaluate_command_parser
+from app.services.command_evaluation import (
+    evaluate_command_parser,
+    evaluate_command_planner,
+)
 from app.services.llm_parser import parse_command_with_mode
 from app.services.llm_provider import get_llm_provider_status
 from app.services.llm_prompt_builder import build_command_parser_prompt
@@ -2563,6 +2566,15 @@ def parse_text_command(request: CommandParseRequest):
         )
 
         raise error
+
+
+
+@app.get("/commands/plan/evaluate")
+def evaluate_text_command_planner(
+    planner_mode: str = Query("rule_based"),
+):
+    return evaluate_command_planner(planner_mode)
+
 
 @app.get("/commands/evaluate")
 def evaluate_text_command_parser(
