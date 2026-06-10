@@ -37,4 +37,17 @@ def test_evaluate_command_planner_rejects_unsupported_mode():
         evaluate_command_planner("llm")
 
     assert exception_info.value.status_code == 400
-    assert exception_info.value.detail == "Supported planner modes are: rule_based"
+    assert exception_info.value.detail == "Supported planner modes are: rule_based, llm_mock"
+
+
+
+def test_evaluate_command_planner_accepts_llm_mock_mode():
+    result = evaluate_command_planner("llm_mock")
+
+    assert result["planner_mode"] == "llm_mock"
+    assert result["planner_type"] == "llm_mock"
+    assert result["planner_version"] == "mock-v1"
+    assert result["total_cases"] == 8
+    assert result["passed_cases"] == 8
+    assert result["failed_cases"] == 0
+    assert result["accuracy"] == 1.0

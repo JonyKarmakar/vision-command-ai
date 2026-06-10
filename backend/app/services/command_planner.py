@@ -1,6 +1,8 @@
 import re
 from typing import Optional
 
+from fastapi import HTTPException
+
 from app.schemas import CommandPlan
 from app.services.model_classes import (
     get_class_aliases,
@@ -8,6 +10,30 @@ from app.services.model_classes import (
     is_supported_model_class,
     normalize_model_class_name,
 )
+
+
+SUPPORTED_PLANNER_MODES = {"rule_based", "llm_mock"}
+
+
+def get_planner_metadata(planner_mode: str):
+    if planner_mode == "rule_based":
+        return {
+            "planner_mode": "rule_based",
+            "planner_type": "rule_based",
+            "planner_version": "v1",
+        }
+
+    if planner_mode == "llm_mock":
+        return {
+            "planner_mode": "llm_mock",
+            "planner_type": "llm_mock",
+            "planner_version": "mock-v1",
+        }
+
+    raise HTTPException(
+        status_code=400,
+        detail="Supported planner modes are: rule_based, llm_mock",
+    )
 
 
 def _normalize_command(command: str) -> str:
@@ -180,3 +206,16 @@ def plan_command(command: str) -> CommandPlan:
         needs_clarification=needs_clarification,
         clarification_question=clarification_question,
     )
+
+
+def plan_command_with_mode(command: str, planner_mode: str = "rule_based"):
+    planner_metadata = get_planner_metadata(planner_mode)
+
+    # For now, llm_mock reuses the deterministic rule-based planner internally.
+    # This creates a mode-aware baseline before connecting a real LLM planner.
+    plan = plan_command(command)
+
+    return {
+        **planner_metadata,
+        "plan": plan,
+    }
