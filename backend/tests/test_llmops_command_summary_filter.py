@@ -25,6 +25,29 @@ def test_llmops_dashboard_passes_parser_mode_to_command_summary(monkeypatch):
         fake_get_database_command_log_summary,
     )
 
+    monkeypatch.setattr(
+        main,
+        "get_database_parser_attempt_summary",
+        lambda parser_mode=None, success=None: {
+            "status": "healthy",
+            "total_attempts": 0,
+            "successful_attempts": 0,
+            "failed_attempts": 0,
+            "success_rate": 0,
+            "by_parser_mode": [],
+            "by_success": [],
+        },
+    )
+    monkeypatch.setattr(
+        main,
+        "get_database_parser_attempt_logs",
+        lambda limit=10, parser_mode=None, success=None: {
+            "status": "healthy",
+            "count": 0,
+            "logs": [],
+        },
+    )
+
     response = client.get("/llmops/dashboard?parser_mode=llm_mock")
 
     assert response.status_code == 200

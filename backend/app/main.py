@@ -2778,6 +2778,17 @@ def get_llmops_dashboard(
         "skipped_evaluations": skipped_evaluations,
     }
 
+    planner_evaluation_result = evaluate_command_planner("rule_based")
+    planner_evaluation_summary = {
+        "planner_mode": planner_evaluation_result["planner_mode"],
+        "planner_type": planner_evaluation_result["planner_type"],
+        "planner_version": planner_evaluation_result["planner_version"],
+        "total_cases": planner_evaluation_result["total_cases"],
+        "passed_cases": planner_evaluation_result["passed_cases"],
+        "failed_cases": planner_evaluation_result["failed_cases"],
+        "accuracy": planner_evaluation_result["accuracy"],
+    }
+
     return {
         "provider_status": provider_status,
         "parser_attempt_summary": get_database_parser_attempt_summary(
@@ -2791,6 +2802,7 @@ def get_llmops_dashboard(
         ),
         "command_log_summary": get_database_command_log_summary(parser_mode=parser_mode),
         "parser_evaluation": parser_evaluation_summary,
+        "planner_evaluation": planner_evaluation_summary,
     }
 
 
