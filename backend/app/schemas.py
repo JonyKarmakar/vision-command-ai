@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Any, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CropRequest(BaseModel):
@@ -77,3 +77,43 @@ class CommandParseRequest(BaseModel):
 
 class ParsedCommandValidationRequest(BaseModel):
     parsed_command: dict
+
+
+class CommandPlanRequest(BaseModel):
+    command: str
+    planner_mode: str = "rule_based"
+
+
+class CommandPlan(BaseModel):
+    media_type: Literal["image", "video", "unknown"] = "unknown"
+    action: Literal[
+        "detect",
+        "annotate",
+        "crop_by_class",
+        "blur_by_class",
+        "blur_all_by_class",
+        "zoom",
+        "track",
+        "extract_frames",
+        "summarize",
+        "unknown",
+    ] = "unknown"
+    target_class: Optional[str] = None
+    target_scope: Literal[
+        "single",
+        "all",
+        "largest",
+        "smallest",
+        "left",
+        "right",
+        "top",
+        "bottom",
+        "center",
+        "unknown",
+    ] = "unknown"
+    requires_detection: bool = False
+    requires_tracking: bool = False
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    confidence: float = 0.0
+    needs_clarification: bool = False
+    clarification_question: Optional[str] = None
