@@ -16,7 +16,10 @@ from app.services.command_evaluation import (
 )
 from app.services.llm_parser import parse_command_with_mode
 from app.services.llm_provider import get_llm_provider_status
-from app.services.llm_prompt_builder import build_command_parser_prompt
+from app.services.llm_prompt_builder import (
+    build_command_parser_prompt,
+    build_command_planner_prompt,
+)
 from app.services.command_validation import validate_parsed_command
 from app.services.command_parser import normalize_requested_class_name, parse_command
 from app.services.command_planner import plan_command_with_mode
@@ -2613,6 +2616,17 @@ def compare_text_command_parsers(
         "skipped_evaluations": skipped_evaluations,
     }
 
+
+
+
+@app.post("/commands/plan/prompt-preview")
+def preview_command_planner_prompt(request: CommandPlanRequest):
+    prompt_preview = build_command_planner_prompt(request.command)
+
+    return {
+        "command": request.command,
+        **prompt_preview,
+    }
 
 
 @app.post("/commands/parse/prompt-preview")
