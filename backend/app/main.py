@@ -16,6 +16,7 @@ from app.services.llm_provider import get_llm_provider_status
 from app.services.llm_prompt_builder import build_command_parser_prompt
 from app.services.command_validation import validate_parsed_command
 from app.services.command_parser import normalize_requested_class_name, parse_command
+from app.services.command_planner import plan_command
 from app.services.storage_service import storage_service
 from app.services.database_service import (
     get_database_command_logs,
@@ -45,6 +46,7 @@ from app.schemas import (
     BlurByClassRequest,
     CommandRequest,
     CommandParseRequest,
+    CommandPlanRequest,
     ParsedCommandValidationRequest,
     CropByClassRequest,
     CropRequest,
@@ -2502,6 +2504,18 @@ def track_sampled_video_objects(filename: str, request: VideoTrackingRequest):
         "tracks": tracks,
         "frames": frame_results,
     }
+
+
+
+@app.post("/commands/plan")
+def plan_text_command(request: CommandPlanRequest):
+    if request.planner_mode != "rule_based":
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported planner_mode. Supported modes: rule_based",
+        )
+
+    return plan_command(request.command)
 
 
 @app.post("/commands/parse")
