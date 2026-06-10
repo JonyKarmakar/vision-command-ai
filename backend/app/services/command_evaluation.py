@@ -2,6 +2,7 @@ from fastapi import HTTPException
 
 from app.services.llm_parser import get_parser_metadata, parse_command_with_mode
 from app.services.llm_provider import get_llm_provider_status
+from app.services.command_planner import plan_command
 
 
 
@@ -133,6 +134,160 @@ COMMAND_EVALUATION_CASES = [
         },
     },
 ]
+
+
+
+COMMAND_PLANNER_EVALUATION_CASES = [
+    {
+        "command": "Detect all objects in this image",
+        "expected": {
+            "media_type": "image",
+            "action": "detect",
+            "target_class": None,
+            "target_scope": "all",
+            "requires_detection": True,
+            "requires_tracking": False,
+            "needs_clarification": False,
+        },
+    },
+    {
+        "command": "Blur all people",
+        "expected": {
+            "media_type": "image",
+            "action": "blur_all_by_class",
+            "target_class": "person",
+            "target_scope": "all",
+            "requires_detection": True,
+            "requires_tracking": False,
+            "needs_clarification": False,
+        },
+    },
+    {
+        "command": "Crop the largest car",
+        "expected": {
+            "media_type": "image",
+            "action": "crop_by_class",
+            "target_class": "car",
+            "target_scope": "largest",
+            "requires_detection": True,
+            "requires_tracking": False,
+            "needs_clarification": False,
+        },
+    },
+    {
+        "command": "Track the person in the video",
+        "expected": {
+            "media_type": "video",
+            "action": "track",
+            "target_class": "person",
+            "target_scope": "single",
+            "requires_detection": True,
+            "requires_tracking": True,
+            "needs_clarification": False,
+        },
+    },
+    {
+        "command": "Zoom into the object on the left",
+        "expected": {
+            "media_type": "image",
+            "action": "zoom",
+            "target_class": None,
+            "target_scope": "left",
+            "requires_detection": True,
+            "requires_tracking": False,
+            "needs_clarification": False,
+        },
+    },
+    {
+        "command": "Crop the bike",
+        "expected": {
+            "media_type": "image",
+            "action": "crop_by_class",
+            "target_class": "bicycle",
+            "target_scope": "single",
+            "requires_detection": True,
+            "requires_tracking": False,
+            "needs_clarification": False,
+        },
+    },
+    {
+        "command": "Blur the phone",
+        "expected": {
+            "media_type": "image",
+            "action": "blur_by_class",
+            "target_class": "cell phone",
+            "target_scope": "single",
+            "requires_detection": True,
+            "requires_tracking": False,
+            "needs_clarification": False,
+        },
+    },
+    {
+        "command": "Crop the object",
+        "expected": {
+            "media_type": "image",
+            "action": "crop_by_class",
+            "target_class": None,
+            "target_scope": "single",
+            "requires_detection": True,
+            "requires_tracking": False,
+            "needs_clarification": True,
+        },
+    },
+]
+
+
+def evaluate_command_planner(planner_mode: str = "rule_based"):
+    supported_planner_modes = {"rule_based"}
+
+    if planner_mode not in supported_planner_modes:
+        raise HTTPException(
+            status_code=400,
+            detail="Supported planner modes are: rule_based",
+        )
+
+    results = []
+
+    for case in COMMAND_PLANNER_EVALUATION_CASES:
+        command = case["command"]
+        expected = case["expected"]
+
+        try:
+            plan = plan_command(command)
+            actual = plan.model_dump() if hasattr(plan, "model_dump") else plan.dict()
+            passed = command_matches_expected(actual, expected)
+            error = None
+        except Exception as exception:
+            actual = None
+            passed = False
+            error = str(exception)
+
+        results.append(
+            {
+                "command": command,
+                "expected": expected,
+                "actual": actual,
+                "passed": passed,
+                "error": error,
+            }
+        )
+
+    total_cases = len(results)
+    passed_cases = sum(1 for result in results if result["passed"])
+    failed_cases = total_cases - passed_cases
+
+    accuracy = passed_cases / total_cases if total_cases > 0 else 0
+
+    return {
+        "planner_mode": planner_mode,
+        "planner_type": "rule_based",
+        "planner_version": "v1",
+        "total_cases": total_cases,
+        "passed_cases": passed_cases,
+        "failed_cases": failed_cases,
+        "accuracy": round(accuracy, 4),
+        "results": results,
+    }
 
 
 def evaluate_command_parser(parser_mode: str = "rule_based"):
