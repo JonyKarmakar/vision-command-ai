@@ -1,0 +1,182 @@
+import re
+from typing import Optional
+
+from app.schemas import CommandPlan
+from app.services.model_classes import (
+    get_class_aliases,
+    get_supported_model_classes,
+    is_supported_model_class,
+    normalize_model_class_name,
+)
+
+
+def _normalize_command(command: str) -> str:
+    return command.lower().strip()
+
+
+def _contains_phrase(text: str, phrase: str) -> bool:
+    pattern = r"\b" + re.escape(phrase).replace(r"\ ", r"\s+") + r"\b"
+    return re.search(pattern, text) is not None
+
+
+def _extract_target_scope(normalized_command: str) -> str:
+    words = set(normalized_command.split())
+
+    if words.intersection({"all", "every", "everyone", "everything"}):
+        return "all"
+
+    if words.intersection({"largest", "biggest", "main"}):
+        return "largest"
+
+    if words.intersection({"smallest", "small"}):
+        return "smallest"
+
+    if "left" in words:
+        return "left"
+
+    if "right" in words:
+        return "right"
+
+    if words.intersection({"top", "upper"}):
+        return "top"
+
+    if words.intersection({"bottom", "lower"}):
+        return "bottom"
+
+    if words.intersection({"center", "centre", "middle"}):
+        return "center"
+
+    return "unknown"
+
+
+def _extract_target_class(normalized_command: str) -> Optional[str]:
+    phrase_to_class = {}
+
+    for class_name in get_supported_model_classes():
+        phrase_to_class[class_name] = class_name
+
+    for alias, class_name in get_class_aliases().items():
+        phrase_to_class[alias] = class_name
+
+    sorted_phrases = sorted(
+        phrase_to_class.items(),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    )
+
+    for phrase, class_name in sorted_phrases:
+        if _contains_phrase(normalized_command, phrase):
+            normalized_class = normalize_model_class_name(class_name)
+
+            if is_supported_model_class(normalized_class):
+                return normalized_class
+
+    return None
+
+
+def _infer_action(normalized_command: str, target_scope: str) -> str:
+    if "track" in normalized_command:
+        return "track"
+
+    if "extract" in normalized_command and "frame" in normalized_command:
+        return "extract_frames"
+
+    if "summarize" in normalized_command or "summary" in normalized_command:
+        return "summarize"
+
+    if "explain" in normalized_command or "describe" in normalized_command:
+        return "summarize"
+
+    if "zoom" in normalized_command:
+        return "zoom"
+
+    if "annotate" in normalized_command or "draw boxes" in normalized_command:
+        return "annotate"
+
+    if "crop" in normalized_command:
+        return "crop_by_class"
+
+    if "blur" in normalized_command:
+        return "blur_all_by_class" if target_scope == "all" else "blur_by_class"
+
+    if "detect" in normalized_command or "find" in normalized_command:
+        return "detect"
+
+    return "unknown"
+
+
+def _infer_media_type(normalized_command: str, action: str) -> str:
+    if "video" in normalized_command:
+        return "video"
+
+    if (
+        "image" in normalized_command
+        or "photo" in normalized_command
+        or "picture" in normalized_command
+    ):
+        return "image"
+
+    if action in {"track", "extract_frames"}:
+        return "video"
+
+    if action in {
+        "detect",
+        "annotate",
+        "crop_by_class",
+        "blur_by_class",
+        "blur_all_by_class",
+        "zoom",
+    }:
+        return "image"
+
+    return "unknown"
+
+
+def plan_command(command: str) -> CommandPlan:
+    normalized_command = _normalize_command(command)
+
+    target_scope = _extract_target_scope(normalized_command)
+    target_class = _extract_target_class(normalized_command)
+    action = _infer_action(normalized_command, target_scope)
+    media_type = _infer_media_type(normalized_command, action)
+
+    if action == "detect" and target_scope == "unknown":
+        target_scope = "all"
+
+    if action in {"crop_by_class", "blur_by_class", "track"} and target_scope == "unknown":
+        target_scope = "single"
+
+    if action == "zoom" and target_scope == "unknown":
+        target_scope = "center"
+
+    needs_clarification = False
+    clarification_question = None
+
+    if action == "unknown":
+        needs_clarification = True
+        clarification_question = "What would you like me to do with this image or video?"
+
+    if action in {"crop_by_class", "blur_by_class", "blur_all_by_class"} and target_class is None:
+        needs_clarification = True
+        clarification_question = "Which object class should I use for this command?"
+
+    return CommandPlan(
+        media_type=media_type,
+        action=action,
+        target_class=target_class,
+        target_scope=target_scope,
+        requires_detection=action in {
+            "detect",
+            "annotate",
+            "crop_by_class",
+            "blur_by_class",
+            "blur_all_by_class",
+            "zoom",
+            "track",
+        },
+        requires_tracking=action == "track",
+        parameters={},
+        confidence=0.35 if needs_clarification else 0.90,
+        needs_clarification=needs_clarification,
+        clarification_question=clarification_question,
+    )
