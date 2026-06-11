@@ -34,7 +34,7 @@ def test_command_planner_evaluation_endpoint_rejects_unsupported_mode():
     response = client.get("/commands/plan/evaluate?planner_mode=llm")
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Supported planner modes are: rule_based, llm_mock"
+    assert response.json()["detail"] == "Supported planner modes are: rule_based, llm_mock, real_llm"
 
 
 

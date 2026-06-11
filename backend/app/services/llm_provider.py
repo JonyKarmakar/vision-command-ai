@@ -61,6 +61,80 @@ COMMAND_PARSER_OUTPUT_SCHEMA = {
     },
 }
 
+COMMAND_PLANNER_OUTPUT_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "media_type",
+        "action",
+        "target_class",
+        "target_scope",
+        "requires_detection",
+        "requires_tracking",
+        "parameters",
+        "confidence",
+        "needs_clarification",
+        "clarification_question",
+    ],
+    "properties": {
+        "media_type": {
+            "type": "string",
+            "enum": ["image", "video", "unknown"],
+        },
+        "action": {
+            "type": "string",
+            "enum": [
+                "detect",
+                "annotate",
+                "crop_by_class",
+                "blur_by_class",
+                "blur_all_by_class",
+                "zoom",
+                "track",
+                "extract_frames",
+                "summarize",
+                "unknown",
+            ],
+        },
+        "target_class": {
+            "type": ["string", "null"],
+        },
+        "target_scope": {
+            "type": "string",
+            "enum": [
+                "single",
+                "all",
+                "largest",
+                "smallest",
+                "left",
+                "right",
+                "top",
+                "bottom",
+                "center",
+                "unknown",
+            ],
+        },
+        "requires_detection": {
+            "type": "boolean",
+        },
+        "requires_tracking": {
+            "type": "boolean",
+        },
+        "parameters": {
+            "type": "object",
+        },
+        "confidence": {
+            "type": "number",
+        },
+        "needs_clarification": {
+            "type": "boolean",
+        },
+        "clarification_question": {
+            "type": ["string", "null"],
+        },
+    },
+}
+
 
 class LLMProviderNotConfiguredError(Exception):
     pass
@@ -89,6 +163,9 @@ class BaseLLMProvider:
     def parse_command(self, system_prompt: str, user_prompt: str) -> dict:
         raise NotImplementedError
 
+    def plan_command(self, system_prompt: str, user_prompt: str) -> dict:
+        raise NotImplementedError
+
 
 class DisabledLLMProvider(BaseLLMProvider):
     provider_name = "disabled"
@@ -97,6 +174,12 @@ class DisabledLLMProvider(BaseLLMProvider):
         raise LLMProviderNotConfiguredError(
             "Real LLM provider is not configured: LLM_PROVIDER is disabled. "
             "Set LLM_PROVIDER to a supported external provider before using parser_mode=real_llm."
+        )
+
+    def plan_command(self, system_prompt: str, user_prompt: str) -> dict:
+        raise LLMProviderNotConfiguredError(
+            "Real LLM provider is not configured: LLM_PROVIDER is disabled. "
+            "Set LLM_PROVIDER to a supported external provider before using planner_mode=real_llm."
         )
 
 
@@ -116,7 +199,13 @@ class OpenAILLMProvider(BaseLLMProvider):
     def is_available_for_real_llm(self) -> bool:
         return self.is_configured()
 
-    def parse_command(self, system_prompt: str, user_prompt: str) -> dict:
+    def _generate_json_with_schema(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        schema_name: str,
+        output_schema: dict,
+    ) -> dict:
         if not self.is_configured():
             raise LLMProviderNotConfiguredError(
                 "OpenAI provider is selected but OPENAI_API_KEY or OPENAI_MODEL is missing."
@@ -131,9 +220,9 @@ class OpenAILLMProvider(BaseLLMProvider):
             text={
                 "format": {
                     "type": "json_schema",
-                    "name": "vision_command_parser",
+                    "name": schema_name,
                     "strict": True,
-                    "schema": COMMAND_PARSER_OUTPUT_SCHEMA,
+                    "schema": output_schema,
                 }
             },
         )
@@ -151,6 +240,22 @@ class OpenAILLMProvider(BaseLLMProvider):
             raise LLMProviderOutputError(
                 f"OpenAI response was not valid JSON: {str(error)}"
             )
+
+    def parse_command(self, system_prompt: str, user_prompt: str) -> dict:
+        return self._generate_json_with_schema(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            schema_name="vision_command_parser",
+            output_schema=COMMAND_PARSER_OUTPUT_SCHEMA,
+        )
+
+    def plan_command(self, system_prompt: str, user_prompt: str) -> dict:
+        return self._generate_json_with_schema(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            schema_name="vision_command_planner",
+            output_schema=COMMAND_PLANNER_OUTPUT_SCHEMA,
+        )
 
 
 def _prompt_contains_phrase(normalized_prompt: str, phrase: str) -> bool:
@@ -300,7 +405,12 @@ class OllamaLLMProvider(BaseLLMProvider):
     def is_available_for_real_llm(self) -> bool:
         return self.is_configured()
 
-    def parse_command(self, system_prompt: str, user_prompt: str) -> dict:
+    def _generate_json_with_schema(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        output_schema: dict,
+    ) -> dict:
         if not self.is_configured():
             raise LLMProviderNotConfiguredError(
                 "Ollama provider is selected but OLLAMA_BASE_URL or OLLAMA_MODEL is missing."
@@ -312,7 +422,7 @@ class OllamaLLMProvider(BaseLLMProvider):
             "model": self.model,
             "system": system_prompt,
             "prompt": user_prompt,
-            "format": COMMAND_PARSER_OUTPUT_SCHEMA,
+            "format": output_schema,
             "stream": False,
         }
 
@@ -355,13 +465,27 @@ class OllamaLLMProvider(BaseLLMProvider):
             )
 
         try:
-            parsed_output = json.loads(raw_output)
+            return json.loads(raw_output)
         except json.JSONDecodeError as exception:
             raise LLMProviderOutputError(
                 f"Ollama response field was not valid JSON: {str(exception)}"
             )
 
+    def parse_command(self, system_prompt: str, user_prompt: str) -> dict:
+        parsed_output = self._generate_json_with_schema(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            output_schema=COMMAND_PARSER_OUTPUT_SCHEMA,
+        )
+
         return _repair_ollama_parsed_command(parsed_output, user_prompt)
+
+    def plan_command(self, system_prompt: str, user_prompt: str) -> dict:
+        return self._generate_json_with_schema(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            output_schema=COMMAND_PLANNER_OUTPUT_SCHEMA,
+        )
 
 
 def get_configured_provider_name() -> str:
@@ -411,6 +535,28 @@ def parse_command_with_provider(system_prompt: str, user_prompt: str) -> dict:
         )
 
 
+def plan_command_with_provider(system_prompt: str, user_prompt: str) -> dict:
+    provider = get_llm_provider()
+
+    try:
+        return provider.plan_command(system_prompt, user_prompt)
+    except LLMProviderNotConfiguredError as error:
+        raise HTTPException(
+            status_code=503,
+            detail=str(error),
+        )
+    except LLMProviderNotImplementedError as error:
+        raise HTTPException(
+            status_code=501,
+            detail=str(error),
+        )
+    except LLMProviderOutputError as error:
+        raise HTTPException(
+            status_code=502,
+            detail=str(error),
+        )
+
+
 def get_llm_provider_status():
     provider_name = get_configured_provider_name()
     is_supported = provider_name in SUPPORTED_LLM_PROVIDERS
@@ -433,6 +579,11 @@ def get_llm_provider_status():
         "real_llm_available": real_llm_available,
         "supported_llm_providers": sorted(SUPPORTED_LLM_PROVIDERS),
         "supported_parser_modes": [
+            "rule_based",
+            "llm_mock",
+            "real_llm",
+        ],
+        "supported_planner_modes": [
             "rule_based",
             "llm_mock",
             "real_llm",

@@ -75,7 +75,7 @@ def test_plan_command_endpoint_rejects_unsupported_planner_mode():
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Supported planner modes are: rule_based, llm_mock"
+    assert response.json()["detail"] == "Supported planner modes are: rule_based, llm_mock, real_llm"
 
 
 

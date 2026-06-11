@@ -240,6 +240,18 @@ COMMAND_PLANNER_EVALUATION_CASES = [
 def evaluate_command_planner(planner_mode: str = "rule_based"):
     planner_metadata = get_planner_metadata(planner_mode)
 
+    if planner_mode == "real_llm":
+        provider_status = get_llm_provider_status()
+
+        if not provider_status["real_llm_available"]:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Real LLM planner evaluation requires a configured provider. "
+                    "Set LLM_PROVIDER=ollama or LLM_PROVIDER=openai and configure the required model settings."
+                ),
+            )
+
     results = []
 
     for case in COMMAND_PLANNER_EVALUATION_CASES:

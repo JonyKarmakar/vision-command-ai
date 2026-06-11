@@ -37,7 +37,7 @@ def test_evaluate_command_planner_rejects_unsupported_mode():
         evaluate_command_planner("llm")
 
     assert exception_info.value.status_code == 400
-    assert exception_info.value.detail == "Supported planner modes are: rule_based, llm_mock"
+    assert exception_info.value.detail == "Supported planner modes are: rule_based, llm_mock, real_llm"
 
 
 
