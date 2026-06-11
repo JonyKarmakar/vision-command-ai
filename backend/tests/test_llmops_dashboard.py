@@ -198,8 +198,27 @@ def test_llmops_dashboard_includes_real_llm_when_requested_and_available(monkeyp
             "results": [],
         }
 
+    def fake_evaluate_command_planner(planner_mode: str):
+        versions = {
+            "rule_based": "v1",
+            "llm_mock": "mock-v1",
+            "real_llm": "planner-prompt-v1",
+        }
+
+        return {
+            "planner_mode": planner_mode,
+            "planner_type": planner_mode,
+            "planner_version": versions[planner_mode],
+            "total_cases": 1,
+            "passed_cases": 1,
+            "failed_cases": 0,
+            "accuracy": 1.0,
+            "results": [],
+        }
+
     monkeypatch.setattr(main, "get_llm_provider_status", fake_provider_status)
     monkeypatch.setattr(main, "evaluate_command_parser", fake_evaluate_command_parser)
+    monkeypatch.setattr(main, "evaluate_command_planner", fake_evaluate_command_planner)
 
     response = client.get("/llmops/dashboard?include_real_llm=true")
 

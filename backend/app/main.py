@@ -2578,6 +2578,41 @@ def evaluate_text_command_planner(
     return evaluate_command_planner(planner_mode)
 
 
+
+
+
+@app.get("/commands/plan/evaluate/compare")
+def compare_text_command_planners(
+    include_real_llm: bool = Query(False),
+):
+    planner_modes = ["rule_based", "llm_mock"]
+    evaluations = [
+        evaluate_command_planner(planner_mode)
+        for planner_mode in planner_modes
+    ]
+    skipped_evaluations = []
+
+    if include_real_llm:
+        planner_modes.append("real_llm")
+        provider_status = get_llm_provider_status()
+
+        if provider_status.get("real_llm_available"):
+            evaluations.append(evaluate_command_planner("real_llm"))
+        else:
+            skipped_evaluations.append(
+                {
+                    "planner_mode": "real_llm",
+                    "reason": "Real LLM provider is not available. Configure Ollama/OpenAI before evaluating real_llm.",
+                }
+            )
+
+    return {
+        "planner_modes": planner_modes,
+        "evaluations": evaluations,
+        "skipped_evaluations": skipped_evaluations,
+    }
+
+
 @app.get("/commands/evaluate")
 def evaluate_text_command_parser(
     parser_mode: str = Query("rule_based"),
@@ -2791,15 +2826,41 @@ def get_llmops_dashboard(
         "skipped_evaluations": skipped_evaluations,
     }
 
-    planner_evaluation_result = evaluate_command_planner("rule_based")
+    planner_evaluation_results = [
+        evaluate_command_planner("rule_based"),
+        evaluate_command_planner("llm_mock"),
+    ]
+
+    planner_skipped_evaluations = []
+
+    if include_real_llm:
+        if provider_status["real_llm_available"]:
+            planner_evaluation_results.append(
+                evaluate_command_planner("real_llm")
+            )
+        else:
+            planner_skipped_evaluations.append(
+                {
+                    "planner_mode": "real_llm",
+                    "reason": "Real LLM provider is not configured or available.",
+                }
+            )
+
     planner_evaluation_summary = {
-        "planner_mode": planner_evaluation_result["planner_mode"],
-        "planner_type": planner_evaluation_result["planner_type"],
-        "planner_version": planner_evaluation_result["planner_version"],
-        "total_cases": planner_evaluation_result["total_cases"],
-        "passed_cases": planner_evaluation_result["passed_cases"],
-        "failed_cases": planner_evaluation_result["failed_cases"],
-        "accuracy": planner_evaluation_result["accuracy"],
+        "include_real_llm": include_real_llm,
+        "evaluations": [
+            {
+                "planner_mode": result["planner_mode"],
+                "planner_type": result["planner_type"],
+                "planner_version": result["planner_version"],
+                "total_cases": result["total_cases"],
+                "passed_cases": result["passed_cases"],
+                "failed_cases": result["failed_cases"],
+                "accuracy": result["accuracy"],
+            }
+            for result in planner_evaluation_results
+        ],
+        "skipped_evaluations": planner_skipped_evaluations,
     }
 
     return {

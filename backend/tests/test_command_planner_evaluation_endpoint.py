@@ -49,3 +49,41 @@ def test_command_planner_evaluation_endpoint_accepts_llm_mock_mode():
     assert data["planner_type"] == "llm_mock"
     assert data["planner_version"] == "mock-v1"
     assert data["accuracy"] == 1.0
+
+
+def test_command_planner_comparison_endpoint_returns_rule_based_and_llm_mock():
+    response = client.get("/commands/plan/evaluate/compare")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["planner_modes"] == ["rule_based", "llm_mock"]
+    assert data["skipped_evaluations"] == []
+    assert len(data["evaluations"]) == 2
+
+    planner_modes = [
+        evaluation["planner_mode"]
+        for evaluation in data["evaluations"]
+    ]
+
+    assert planner_modes == ["rule_based", "llm_mock"]
+
+
+def test_command_planner_comparison_endpoint_skips_real_llm_when_unavailable(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "disabled")
+
+    response = client.get("/commands/plan/evaluate/compare?include_real_llm=true")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["planner_modes"] == ["rule_based", "llm_mock", "real_llm"]
+    assert len(data["evaluations"]) == 2
+    assert data["skipped_evaluations"] == [
+        {
+            "planner_mode": "real_llm",
+            "reason": "Real LLM provider is not available. Configure Ollama/OpenAI before evaluating real_llm.",
+        }
+    ]
