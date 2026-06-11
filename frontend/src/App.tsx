@@ -255,6 +255,33 @@ type ParserComparisonResponse = {
   skipped_evaluations?: SkippedParserEvaluation[]
 }
 
+type CommandPlanEvaluationSummaryEntry = {
+  planner_mode: string
+  planner_type: string
+  planner_version: string
+  total_cases: number
+  passed_cases: number
+  failed_cases: number
+  accuracy: number
+}
+
+type SkippedPlannerEvaluation = {
+  planner_mode: string
+  reason: string
+}
+
+type PlannerComparisonResponse = {
+  planner_modes: string[]
+  evaluations: CommandPlanEvaluationSummaryEntry[]
+  skipped_evaluations?: SkippedPlannerEvaluation[]
+}
+
+type PlannerEvaluationSummaryResponse = {
+  include_real_llm: boolean
+  evaluations: CommandPlanEvaluationSummaryEntry[]
+  skipped_evaluations: SkippedPlannerEvaluation[]
+}
+
 type CommandPromptPreviewResponse = {
   command: string
   parser_mode: string
@@ -346,6 +373,7 @@ type LLMOpsDashboardResponse = {
   recent_parser_attempt_logs: DatabaseParserAttemptLogsResponse
   command_log_summary: CommandLogSummaryResponse
   parser_evaluation: ParserEvaluationSummaryResponse
+  planner_evaluation: PlannerEvaluationSummaryResponse
 }
 
 type DatabaseParserAttemptLogsResponse = {
@@ -367,6 +395,7 @@ type LLMProviderStatusResponse = {
   real_llm_available: boolean
   supported_llm_providers: string[]
   supported_parser_modes: string[]
+  supported_planner_modes?: string[]
 }
 
 type CommandResponse = {
@@ -629,6 +658,7 @@ function App() {
   const [commandPromptPreviewResult, setCommandPromptPreviewResult] = useState<CommandPromptPreviewResponse | null>(null)
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
   const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
+  const [plannerComparisonResult, setPlannerComparisonResult] = useState<PlannerComparisonResponse | null>(null)
   const [parserAttemptLogsResult, setParserAttemptLogsResult] = useState<ParserAttemptLogsResponse | null>(null)
   const [localParserAttemptModeFilter, setLocalParserAttemptModeFilter] = useState('all')
   const [localParserAttemptResultFilter, setLocalParserAttemptResultFilter] = useState('all')
@@ -694,6 +724,7 @@ function App() {
   const [isLoadingPromptPreview, setIsLoadingPromptPreview] = useState(false)
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
+  const [isLoadingPlannerComparison, setIsLoadingPlannerComparison] = useState(false)
   const [isLoadingParserAttemptLogs, setIsLoadingParserAttemptLogs] = useState(false)
   const [isLoadingDatabaseParserAttemptLogs, setIsLoadingDatabaseParserAttemptLogs] = useState(false)
   const [isLoadingDatabaseParserAttemptSummary, setIsLoadingDatabaseParserAttemptSummary] = useState(false)
@@ -726,6 +757,7 @@ function App() {
   const videoMultiFrameDetectionResultRef = useRef<HTMLElement | null>(null)
   const videoTrackingResultRef = useRef<HTMLHeadingElement | null>(null)
   const parserComparisonRef = useRef<HTMLDivElement | null>(null)
+  const plannerComparisonRef = useRef<HTMLDivElement | null>(null)
   const commandHistoryRef = useRef<HTMLDivElement | null>(null)
   const [activeWorkspaceResultLabel, setActiveWorkspaceResultLabel] = useState<string | null>(null)
   const [workspaceSnapshotImportData, setWorkspaceSnapshotImportData] = useState<{
@@ -1446,6 +1478,7 @@ function App() {
       commandPromptPreviewResult ||
       commandEvaluationResult ||
       parserComparisonResult ||
+      plannerComparisonResult ||
       parserAttemptLogsResult ||
       databaseParserAttemptLogsResult ||
       databaseParserAttemptSummaryResult ||
@@ -2240,6 +2273,7 @@ function App() {
     setCommandPromptPreviewResult(null)
     setCommandEvaluationResult(null)
     setParserComparisonResult(null)
+    setPlannerComparisonResult(null)
     setParserAttemptLogsResult(null)
     setDatabaseParserAttemptLogsResult(null)
     setDatabaseParserAttemptSummaryResult(null)
@@ -2906,6 +2940,42 @@ function App() {
     }
   }
 
+  const handleLoadPlannerComparison = async () => {
+    try {
+      setIsLoadingPlannerComparison(true)
+      setError(null)
+      setStatusMessage('Loading planner comparison...')
+
+      const queryParams = new URLSearchParams()
+
+      if (includeRealLlmEvaluationInDashboard) {
+        queryParams.set('include_real_llm', 'true')
+      }
+
+      const queryString = queryParams.toString()
+      const response = await fetch(
+        `/api/commands/plan/evaluate/compare${queryString ? `?${queryString}` : ''}`,
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Could not load planner comparison')
+      }
+
+      const data: PlannerComparisonResponse = await response.json()
+      setPlannerComparisonResult(data)
+      scrollToLoadedView(plannerComparisonRef)
+      setStatusMessage(
+        `Loaded planner comparison for ${data.planner_modes.length} planner mode(s).`,
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Could not load planner comparison.')
+    } finally {
+      setIsLoadingPlannerComparison(false)
+    }
+  }
+
   const handleValidateParsedCommand = async () => {
     if (!commandParseResult) {
       setError('Please parse a command before validating it.')
@@ -3067,6 +3137,7 @@ function App() {
   const llmOpsParserAttemptSummary = llmOpsDashboardResult?.parser_attempt_summary ?? null
   const llmOpsProviderStatus = llmOpsDashboardResult?.provider_status ?? null
   const llmOpsParserEvaluation = llmOpsDashboardResult?.parser_evaluation ?? null
+  const llmOpsPlannerEvaluation = llmOpsDashboardResult?.planner_evaluation ?? null
 
   const llmOpsHasLegacyCommandParserMetadata = llmOpsCommandLogSummary
     ? llmOpsCommandLogSummary.by_parser_mode.some((item) => item.name === 'unknown')
@@ -3086,6 +3157,7 @@ function App() {
     commandLogSummary ? 'Command Summary' : null,
     commandEvaluationResult ? 'Parser Evaluation' : null,
     parserComparisonResult ? 'Parser Comparison' : null,
+    plannerComparisonResult ? 'Planner Comparison' : null,
     parserAttemptLogsResult ? 'Local Parser Attempt Logs' : null,
     databaseParserAttemptSummaryResult ? 'DB Parser Summary' : null,
     llmProviderStatusResult ? 'LLM Provider Status' : null,
@@ -3115,6 +3187,7 @@ function App() {
     setCommandLogSummary(null)
     setCommandEvaluationResult(null)
     setParserComparisonResult(null)
+    setPlannerComparisonResult(null)
 
     setParserAttemptLogsResult(null)
     setLocalParserAttemptModeFilter('all')
@@ -4096,6 +4169,7 @@ function App() {
     isLoadingPromptPreview ||
     isLoadingCommandEvaluation ||
     isLoadingParserComparison ||
+    isLoadingPlannerComparison ||
     isLoadingParserAttemptLogs ||
     isLoadingDatabaseParserAttemptLogs ||
     isLoadingDatabaseParserAttemptSummary ||
@@ -5620,6 +5694,14 @@ function App() {
 
             <button
               className="secondary-button"
+              onClick={handleLoadPlannerComparison}
+              disabled={isBusy}
+            >
+              {isLoadingPlannerComparison ? 'Loading planner comparison...' : 'Load Planner Comparison'}
+            </button>
+
+            <button
+              className="secondary-button"
               onClick={handleLoadParserAttemptLogs}
               disabled={isBusy}
             >
@@ -6477,6 +6559,60 @@ uvicorn app.main:app --reload`}</pre>
                 </div>
               )}
 
+              {llmOpsPlannerEvaluation && (
+                <div className="llmops-parser-evaluation-panel">
+                  <h4>Planner Evaluation Quality</h4>
+
+                  {llmOpsPlannerEvaluation.evaluations.length === 0 ? (
+                    <div className="empty-state llmops-empty-state">
+                      <strong>No planner evaluation results available for the selected filters.</strong>
+                      <p>
+                        Include real LLM evaluation = {includeRealLlmEvaluationInDashboard ? 'yes' : 'no'}.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="llmops-parser-evaluation-list">
+                      {llmOpsPlannerEvaluation.evaluations.map((evaluation) => (
+                        <div key={evaluation.planner_mode} className="llmops-parser-evaluation-card">
+                          <div>
+                            <span>Planner</span>
+                            <strong>{evaluation.planner_mode}</strong>
+                            <small>{evaluation.planner_version}</small>
+                          </div>
+
+                          <div>
+                            <span>Accuracy</span>
+                            <strong>{Math.round(evaluation.accuracy * 100)}%</strong>
+                          </div>
+
+                          <div>
+                            <span>Total cases</span>
+                            <strong>{evaluation.total_cases}</strong>
+                          </div>
+
+                          <div>
+                            <span>Passed / Failed</span>
+                            <strong>{evaluation.passed_cases} / {evaluation.failed_cases}</strong>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {llmOpsPlannerEvaluation.skipped_evaluations.length > 0 && (
+                    <div className="llmops-skipped-evaluations">
+                      <h5>Skipped planner evaluations</h5>
+                      {llmOpsPlannerEvaluation.skipped_evaluations.map((skipped) => (
+                        <div key={skipped.planner_mode} className="llmops-skipped-evaluation-card">
+                          <strong>{skipped.planner_mode}</strong>
+                          <span>{skipped.reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <p className="small-note">
                 This dashboard combines provider status, PostgreSQL parser summary, and recent PostgreSQL parser logs.
               </p>
@@ -6584,6 +6720,15 @@ uvicorn app.main:app --reload`}</pre>
                 </div>
               </div>
 
+              <div className="provider-mode-list">
+                <span>Supported planner modes</span>
+                <div>
+                  {(llmProviderStatusResult.supported_planner_modes ?? []).map((mode) => (
+                    <strong key={mode}>{mode}</strong>
+                  ))}
+                </div>
+              </div>
+
               {!llmProviderStatusResult.is_supported && (
                 <p className="small-note">
                   The selected LLM provider is not supported by this backend yet.
@@ -6592,7 +6737,7 @@ uvicorn app.main:app --reload`}</pre>
 
               {llmProviderStatusResult.is_supported && !llmProviderStatusResult.real_llm_available && (
                 <p className="small-note">
-                  Real LLM parsing is not configured yet. This is expected until an external provider is added.
+                  Real LLM parsing/planning is not configured yet. This is expected until an external provider is added.
                 </p>
               )}
             </div>
@@ -7614,6 +7759,100 @@ uvicorn app.main:app --reload`}</pre>
                   </div>
                 )}
 
+              </div>
+            </div>
+          )}
+
+          {plannerComparisonResult && (
+            <div className="parser-comparison-panel" ref={plannerComparisonRef}>
+              <h3>Planner Comparison Results</h3>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setPlannerComparisonResult(null)
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear Planner Comparison View
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'planner_comparison',
+                        copied_at: new Date().toISOString(),
+                        planner_modes: plannerComparisonResult.planner_modes,
+                        total_evaluations: plannerComparisonResult.evaluations.length,
+                        skipped_evaluations: plannerComparisonResult.skipped_evaluations ?? [],
+                        comparison: plannerComparisonResult,
+                      },
+                      'planner-comparison-json',
+                      'Copied Planner Comparison JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !plannerComparisonResult}
+                >
+                  {copiedParserLogJsonKey === 'planner-comparison-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'planner-comparison-json'
+                      ? 'Copy failed'
+                      : 'Copy Planner Comparison JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'planner_comparison',
+                        downloaded_at: new Date().toISOString(),
+                        planner_modes: plannerComparisonResult.planner_modes,
+                        total_evaluations: plannerComparisonResult.evaluations.length,
+                        skipped_evaluations: plannerComparisonResult.skipped_evaluations ?? [],
+                        comparison: plannerComparisonResult,
+                      },
+                      `planner_comparison_modes-${plannerComparisonResult.planner_modes.join('-').replace(/[^a-z0-9]+/gi, '-')}.json`,
+                      'Downloaded Planner Comparison JSON.',
+                      'download-planner-comparison-json',
+                    )
+                  }
+                  disabled={isBusy || !plannerComparisonResult}
+                  data-testid="download-planner-comparison-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-planner-comparison-json'
+                    ? 'Downloaded!'
+                    : 'Download Planner Comparison JSON'}
+                </button>
+              </div>
+
+              <div className="parser-comparison-grid">
+                {plannerComparisonResult.evaluations.map((evaluation) => (
+                  <div className="parser-comparison-card" key={evaluation.planner_mode}>
+                    <h4>{evaluation.planner_mode}</h4>
+                    <p><strong>Type:</strong> {evaluation.planner_type}</p>
+                    <p><strong>Version:</strong> {evaluation.planner_version}</p>
+                    <p><strong>Total cases:</strong> {evaluation.total_cases}</p>
+                    <p><strong>Passed:</strong> {evaluation.passed_cases}</p>
+                    <p><strong>Failed:</strong> {evaluation.failed_cases}</p>
+                    <p><strong>Accuracy:</strong> {(evaluation.accuracy * 100).toFixed(1)}%</p>
+                  </div>
+                ))}
+                {plannerComparisonResult.skipped_evaluations &&
+                  plannerComparisonResult.skipped_evaluations.length > 0 && (
+                    <div className="parser-comparison-skipped">
+                      <h4>Skipped planner modes</h4>
+                      {plannerComparisonResult.skipped_evaluations.map((skipped) => (
+                        <div key={skipped.planner_mode} className="parser-comparison-skipped-card">
+                          <strong>{skipped.planner_mode}</strong>
+                          <span>{skipped.reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
               </div>
             </div>
           )}
