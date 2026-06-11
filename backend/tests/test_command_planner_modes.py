@@ -42,7 +42,33 @@ def test_plan_command_with_mode_llm_mock():
 
 def test_plan_command_with_mode_rejects_unsupported_mode():
     with pytest.raises(HTTPException) as exception_info:
-        plan_command_with_mode("Blur all people", "real_llm")
+        plan_command_with_mode("Blur all people", "invalid")
 
     assert exception_info.value.status_code == 400
-    assert exception_info.value.detail == "Supported planner modes are: rule_based, llm_mock"
+    assert exception_info.value.detail == "Supported planner modes are: rule_based, llm_mock, real_llm"
+
+
+
+def test_plan_command_with_mode_real_llm_metadata(monkeypatch):
+    from app.services import command_planner
+
+    def fake_plan_command_with_real_llm(command):
+        return {
+            "planner_mode": "real_llm",
+            "planner_type": "real_llm",
+            "planner_version": "planner-prompt-v1",
+            "plan": command_planner.plan_command(command),
+        }
+
+    monkeypatch.setattr(
+        command_planner,
+        "plan_command_with_real_llm",
+        fake_plan_command_with_real_llm,
+    )
+
+    result = command_planner.plan_command_with_mode("Blur all people", "real_llm")
+
+    assert result["planner_mode"] == "real_llm"
+    assert result["planner_type"] == "real_llm"
+    assert result["planner_version"] == "planner-prompt-v1"
+    assert result["plan"].target_class == "person"

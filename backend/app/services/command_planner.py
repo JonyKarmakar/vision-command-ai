@@ -2,8 +2,11 @@ import re
 from typing import Optional
 
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from app.schemas import CommandPlan
+from app.services.llm_prompt_builder import build_command_planner_prompt
+from app.services.llm_provider import plan_command_with_provider
 from app.services.model_classes import (
     get_class_aliases,
     get_supported_model_classes,
@@ -12,7 +15,7 @@ from app.services.model_classes import (
 )
 
 
-SUPPORTED_PLANNER_MODES = {"rule_based", "llm_mock"}
+SUPPORTED_PLANNER_MODES = {"rule_based", "llm_mock", "real_llm"}
 
 
 def get_planner_metadata(planner_mode: str):
@@ -30,9 +33,16 @@ def get_planner_metadata(planner_mode: str):
             "planner_version": "mock-v1",
         }
 
+    if planner_mode == "real_llm":
+        return {
+            "planner_mode": "real_llm",
+            "planner_type": "real_llm",
+            "planner_version": "not_configured",
+        }
+
     raise HTTPException(
         status_code=400,
-        detail="Supported planner modes are: rule_based, llm_mock",
+        detail="Supported planner modes are: rule_based, llm_mock, real_llm",
     )
 
 
@@ -208,8 +218,98 @@ def plan_command(command: str) -> CommandPlan:
     )
 
 
+
+def validate_command_plan(plan_data: dict) -> CommandPlan:
+    if not isinstance(plan_data, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="LLM planner output must be a JSON object.",
+        )
+
+    required_fields = {
+        "media_type",
+        "action",
+        "target_class",
+        "target_scope",
+        "requires_detection",
+        "requires_tracking",
+        "parameters",
+        "confidence",
+        "needs_clarification",
+        "clarification_question",
+    }
+    missing_fields = sorted(required_fields.difference(plan_data.keys()))
+
+    if missing_fields:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "LLM planner output did not match the command plan schema: "
+                f"missing required fields: {', '.join(missing_fields)}"
+            ),
+        )
+
+    normalized_plan = dict(plan_data)
+
+    target_class = normalized_plan.get("target_class")
+
+    if target_class:
+        normalized_class = normalize_model_class_name(str(target_class))
+
+        if is_supported_model_class(normalized_class):
+            normalized_plan["target_class"] = normalized_class
+        else:
+            normalized_plan["target_class"] = None
+            normalized_plan["needs_clarification"] = True
+            normalized_plan["clarification_question"] = (
+                "Which supported object class should I use for this command?"
+            )
+
+    if normalized_plan.get("parameters") is None:
+        normalized_plan["parameters"] = {}
+
+    if normalized_plan.get("needs_clarification") is True and not normalized_plan.get(
+        "clarification_question"
+    ):
+        normalized_plan["clarification_question"] = (
+            "What would you like me to do with this image or video?"
+        )
+
+    if normalized_plan.get("needs_clarification") is False:
+        normalized_plan["clarification_question"] = None
+
+    try:
+        return CommandPlan(**normalized_plan)
+    except ValidationError as error:
+        raise HTTPException(
+            status_code=502,
+            detail=f"LLM planner output did not match the command plan schema: {str(error)}",
+        )
+
+
+def plan_command_with_real_llm(command: str):
+    prompt_preview = build_command_planner_prompt(command)
+
+    planned_command = plan_command_with_provider(
+        system_prompt=prompt_preview["system_prompt"],
+        user_prompt=prompt_preview["user_prompt"],
+    )
+
+    validated_plan = validate_command_plan(planned_command)
+
+    return {
+        "planner_mode": "real_llm",
+        "planner_type": "real_llm",
+        "planner_version": prompt_preview["prompt_version"],
+        "plan": validated_plan,
+    }
+
+
 def plan_command_with_mode(command: str, planner_mode: str = "rule_based"):
     planner_metadata = get_planner_metadata(planner_mode)
+
+    if planner_mode == "real_llm":
+        return plan_command_with_real_llm(command)
 
     # For now, llm_mock reuses the deterministic rule-based planner internally.
     # This creates a mode-aware baseline before connecting a real LLM planner.
