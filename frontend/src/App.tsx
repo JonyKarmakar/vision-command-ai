@@ -326,6 +326,14 @@ type CommandPromptPreviewResponse = {
   expected_json_schema: Record<string, unknown>
 }
 
+type CommandPlannerPromptPreviewResponse = {
+  command: string
+  prompt_version: string
+  system_prompt: string
+  user_prompt: string
+  expected_json_schema: Record<string, unknown>
+}
+
 type ParsedCommandValidationResponse = {
   status: string
   validated_command: ParsedCommand
@@ -693,6 +701,7 @@ function App() {
   const [commandPlanResult, setCommandPlanResult] = useState<CommandPlanResponse | null>(null)
   const [parsedCommandValidationResult, setParsedCommandValidationResult] = useState<ParsedCommandValidationResponse | null>(null)
   const [commandPromptPreviewResult, setCommandPromptPreviewResult] = useState<CommandPromptPreviewResponse | null>(null)
+  const [commandPlannerPromptPreviewResult, setCommandPlannerPromptPreviewResult] = useState<CommandPlannerPromptPreviewResponse | null>(null)
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
   const [parserComparisonResult, setParserComparisonResult] = useState<ParserComparisonResponse | null>(null)
   const [plannerComparisonResult, setPlannerComparisonResult] = useState<PlannerComparisonResponse | null>(null)
@@ -759,6 +768,7 @@ function App() {
   const [isParsingCommand, setIsParsingCommand] = useState(false)
   const [isValidatingParsedCommand, setIsValidatingParsedCommand] = useState(false)
   const [isLoadingPromptPreview, setIsLoadingPromptPreview] = useState(false)
+  const [isLoadingPlannerPromptPreview, setIsLoadingPlannerPromptPreview] = useState(false)
   const [isPlanningCommand, setIsPlanningCommand] = useState(false)
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
@@ -779,6 +789,7 @@ function App() {
   const [isLoadingInferenceSummary, setIsLoadingInferenceSummary] = useState(false)
 
   const llmPromptPreviewRef = useRef<HTMLDivElement | null>(null)
+  const plannerPromptPreviewRef = useRef<HTMLDivElement | null>(null)
   const parsedCommandPreviewRef = useRef<HTMLDivElement | null>(null)
   const commandPlanPreviewRef = useRef<HTMLDivElement | null>(null)
   const parsedCommandValidationRef = useRef<HTMLDivElement | null>(null)
@@ -2943,6 +2954,46 @@ function App() {
     }
   }
 
+  const handleLoadPlannerPromptPreview = async () => {
+    if (!commandText.trim()) {
+      setError('Please type a command before previewing the planner prompt.')
+      return
+    }
+
+    try {
+      setIsLoadingPlannerPromptPreview(true)
+      setError(null)
+      setCommandPlannerPromptPreviewResult(null)
+      setStatusMessage(`Generating planner prompt preview for: "${commandText}"...`)
+
+      const response = await fetch('/api/commands/plan/prompt-preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          command: commandText,
+          planner_mode: selectedPlannerMode,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await getBackendErrorMessage(response, 'Planner prompt preview failed'))
+      }
+
+      const data: CommandPlannerPromptPreviewResponse = await response.json()
+      setCommandPlannerPromptPreviewResult(data)
+      scrollToLoadedView(plannerPromptPreviewRef)
+      setStatusMessage(`Loaded planner prompt preview: ${data.prompt_version}.`)
+    } catch (err) {
+      const message = getErrorMessage(err, 'Planner prompt preview failed.')
+      setError(message)
+      setStatusMessage(message)
+    } finally {
+      setIsLoadingPlannerPromptPreview(false)
+    }
+  }
+
   const handlePlanCommand = async () => {
     if (!commandText.trim()) {
       setError('Please type a command to plan.')
@@ -3256,6 +3307,7 @@ function App() {
 
   const loadedObservabilityViewNames = [
     commandPromptPreviewResult ? 'LLM Prompt Preview' : null,
+    commandPlannerPromptPreviewResult ? 'Planner Prompt Preview' : null,
     commandParseResult ? 'Parsed Command Preview' : null,
     commandPlanResult ? 'Command Plan Preview' : null,
     parsedCommandValidationResult ? 'Parsed Command Validation' : null,
@@ -5666,6 +5718,14 @@ function App() {
                 {isPlanningCommand ? 'Planning...' : 'Plan Command'}
               </button>
 
+              <button
+                className="secondary-button"
+                onClick={handleLoadPlannerPromptPreview}
+                disabled={isBusy || !commandText.trim()}
+              >
+                {isLoadingPlannerPromptPreview ? 'Loading planner prompt...' : 'Preview Planner Prompt'}
+              </button>
+
             <button
               className="secondary-button"
               onClick={handleLoadPromptPreview}
@@ -5993,6 +6053,103 @@ function App() {
                   : 'No loaded observability views open.'}
               </p>
           </div>
+
+          {commandPlannerPromptPreviewResult && (
+            <div className="llm-prompt-preview" ref={plannerPromptPreviewRef}>
+              <h3>Planner Prompt Preview</h3>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'planner_prompt_preview',
+                        copied_at: new Date().toISOString(),
+                        command: commandPlannerPromptPreviewResult.command,
+                        planner_mode: selectedPlannerMode,
+                        prompt_version: commandPlannerPromptPreviewResult.prompt_version,
+                        preview: commandPlannerPromptPreviewResult,
+                      },
+                      'planner-prompt-preview-json',
+                      'Copied Planner Prompt Preview JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !commandPlannerPromptPreviewResult}
+                >
+                  {copiedParserLogJsonKey === 'planner-prompt-preview-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'planner-prompt-preview-json'
+                      ? 'Copy failed'
+                      : 'Copy Planner Prompt Preview JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'planner_prompt_preview',
+                        downloaded_at: new Date().toISOString(),
+                        command: commandPlannerPromptPreviewResult.command,
+                        planner_mode: selectedPlannerMode,
+                        prompt_version: commandPlannerPromptPreviewResult.prompt_version,
+                        preview: commandPlannerPromptPreviewResult,
+                      },
+                      `planner_prompt_preview_mode-${selectedPlannerMode}_version-${commandPlannerPromptPreviewResult.prompt_version.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                      'Downloaded Planner Prompt Preview JSON.',
+                      'download-planner-prompt-preview-json',
+                    )
+                  }
+                  disabled={isBusy || !commandPlannerPromptPreviewResult}
+                  data-testid="download-planner-prompt-preview-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-planner-prompt-preview-json'
+                    ? 'Downloaded!'
+                    : 'Download Planner Prompt Preview JSON'}
+                </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setCommandPlannerPromptPreviewResult(null)
+                    setStatusMessage('Planner Prompt Preview view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
+              </div>
+
+              <div className="prompt-metadata-grid">
+                <div>
+                  <span>Planner mode</span>
+                  <strong>{selectedPlannerMode}</strong>
+                </div>
+                <div>
+                  <span>Prompt version</span>
+                  <strong>{commandPlannerPromptPreviewResult.prompt_version}</strong>
+                </div>
+              </div>
+
+              <div className="prompt-preview-grid">
+                <div className="prompt-block">
+                  <h4>System Prompt</h4>
+                  <pre>{commandPlannerPromptPreviewResult.system_prompt}</pre>
+                </div>
+
+                <div className="prompt-block">
+                  <h4>User Prompt</h4>
+                  <pre>{commandPlannerPromptPreviewResult.user_prompt}</pre>
+                </div>
+
+                <div className="prompt-block">
+                  <h4>Expected JSON Schema</h4>
+                  <pre>{JSON.stringify(commandPlannerPromptPreviewResult.expected_json_schema, null, 2)}</pre>
+                </div>
+              </div>
+            </div>
+          )}
 
           {commandPromptPreviewResult && (
             <div className="llm-prompt-preview-panel" ref={llmPromptPreviewRef}>
