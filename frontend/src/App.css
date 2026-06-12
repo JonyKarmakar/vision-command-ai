@@ -76,7 +76,10 @@ h2 {
 
 .file-input {
   display: block;
+  width: 132px;
+  max-width: 100%;
   margin: 16px 0;
+  color: transparent;
 }
 
 .selected-file {
@@ -112,7 +115,8 @@ button {
 }
 
 button:disabled,
-.file-input:disabled {
+.file-input:disabled,
+.file-input:disabled::file-selector-button {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -201,8 +205,7 @@ button:disabled,
 }
 
 .file-input {
-  max-width: 100%;
-  color: #d4d4d8;
+  color: transparent;
 }
 
 input[type="file"]::file-selector-button {
