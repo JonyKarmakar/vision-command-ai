@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import './App.css'
 
 type UploadResponse = {
@@ -822,32 +822,67 @@ function App() {
   }
 
 
-  const workspaceResultNavigatorItems = [
-    uploadResult ? { label: 'Image Upload', targetRef: uploadResultRef } : null,
-    detectionResult ? { label: 'Detection', targetRef: detectionResultRef } : null,
-    cropResult ? { label: 'Crop', targetRef: cropResultRef } : null,
-    blurResult ? { label: 'Blur', targetRef: blurResultRef } : null,
-    videoUploadResult ? { label: 'Video Upload', targetRef: videoUploadResultRef } : null,
-    videoTrimResult ? { label: 'Video Trim', targetRef: videoTrimResultRef } : null,
-    videoFrameResult ? { label: 'Extracted Frame', targetRef: videoFrameResultRef } : null,
-    videoFrameDetectionResult
-      ? { label: 'Frame Detection', targetRef: videoFrameDetectionResultRef }
-      : null,
-    videoMultiFrameResult
-      ? { label: 'Multi-Frame Extraction', targetRef: videoMultiFrameResultRef }
-      : null,
-    videoMultiFrameDetectionResult
-      ? { label: 'Multi-Frame Detection', targetRef: videoMultiFrameDetectionResultRef }
-      : null,
-    videoSampledDetectionResult
-      ? { label: 'Sampled Video Detection', targetRef: videoSampledDetectionResultRef }
-      : null,
-    videoTrackingResult
-      ? { label: 'Video Tracking', targetRef: videoTrackingResultRef }
-      : null,
-  ].filter(
-    (item): item is { label: string; targetRef: { current: HTMLElement | null } } =>
-      item !== null,
+  const getWorkspaceResultTargetRef = useCallback((label: string) => {
+    switch (label) {
+      case 'Image Upload':
+        return uploadResultRef
+      case 'Detection':
+        return detectionResultRef
+      case 'Crop':
+        return cropResultRef
+      case 'Blur':
+        return blurResultRef
+      case 'Video Upload':
+        return videoUploadResultRef
+      case 'Video Trim':
+        return videoTrimResultRef
+      case 'Extracted Frame':
+        return videoFrameResultRef
+      case 'Frame Detection':
+        return videoFrameDetectionResultRef
+      case 'Multi-Frame Extraction':
+        return videoMultiFrameResultRef
+      case 'Multi-Frame Detection':
+        return videoMultiFrameDetectionResultRef
+      case 'Sampled Video Detection':
+        return videoSampledDetectionResultRef
+      case 'Video Tracking':
+        return videoTrackingResultRef
+      default:
+        return null
+    }
+  }, [])
+
+  const workspaceResultNavigatorItems = useMemo(
+    () =>
+      [
+        uploadResult ? 'Image Upload' : null,
+        detectionResult ? 'Detection' : null,
+        cropResult ? 'Crop' : null,
+        blurResult ? 'Blur' : null,
+        videoUploadResult ? 'Video Upload' : null,
+        videoTrimResult ? 'Video Trim' : null,
+        videoFrameResult ? 'Extracted Frame' : null,
+        videoFrameDetectionResult ? 'Frame Detection' : null,
+        videoMultiFrameResult ? 'Multi-Frame Extraction' : null,
+        videoMultiFrameDetectionResult ? 'Multi-Frame Detection' : null,
+        videoSampledDetectionResult ? 'Sampled Video Detection' : null,
+        videoTrackingResult ? 'Video Tracking' : null,
+      ].filter((label): label is string => label !== null),
+    [
+      uploadResult,
+      detectionResult,
+      cropResult,
+      blurResult,
+      videoUploadResult,
+      videoTrimResult,
+      videoFrameResult,
+      videoFrameDetectionResult,
+      videoMultiFrameResult,
+      videoMultiFrameDetectionResult,
+      videoSampledDetectionResult,
+      videoTrackingResult,
+    ],
   )
 
   const workspaceSnapshotResultViews = [
@@ -904,15 +939,17 @@ function App() {
 
   const workspaceLocalBackupStorageKey = 'visioncommand-local-workspace-snapshot'
 
-  const handleWorkspaceResultNavigatorClick = (
-    label: string,
-    targetRef: { current: HTMLElement | null },
-  ) => {
+  const handleWorkspaceResultNavigatorClick = (label: string) => {
+    const targetRef = getWorkspaceResultTargetRef(label)
+
     setActiveWorkspaceResultLabel(label)
-    scrollToLoadedView(targetRef)
+
+    if (targetRef) {
+      scrollToLoadedView(targetRef)
+    }
   }
 
-  const getWorkspaceSnapshotResultLabels = (results: Record<string, unknown>) =>
+  const getWorkspaceSnapshotResultLabels = useCallback((results: Record<string, unknown>) =>
     [
       results.uploadResult ? 'Image Upload' : null,
       results.detectionResult ? 'Detection' : null,
@@ -927,15 +964,15 @@ function App() {
       results.videoSampledDetectionResult ? 'Sampled Video Detection' : null,
       results.videoTrackingResult ? 'Video Tracking' : null,
       results.commandResult ? 'Command Result' : null,
-    ].filter((label): label is string => label !== null)
+    ].filter((label): label is string => label !== null), [])
 
-  const formatWorkspaceSnapshotSize = (snapshotText: string) => {
+  const formatWorkspaceSnapshotSize = useCallback((snapshotText: string) => {
     const sizeBytes = new Blob([snapshotText]).size
 
     return sizeBytes < 1024 ? `${sizeBytes} B` : `${(sizeBytes / 1024).toFixed(1)} KB`
-  }
+  }, [])
 
-  const getWorkspaceLocalBackupPreview = (snapshotText: string) => {
+  const getWorkspaceLocalBackupPreview = useCallback((snapshotText: string) => {
     const parsedSnapshot: unknown = JSON.parse(snapshotText)
 
     if (!isRecord(parsedSnapshot) || !isRecord(parsedSnapshot.results)) {
@@ -966,9 +1003,9 @@ function App() {
       resultViews,
       size: formatWorkspaceSnapshotSize(snapshotText),
     }
-  }
+  }, [formatWorkspaceSnapshotSize, getWorkspaceSnapshotResultLabels])
 
-  const refreshWorkspaceLocalBackupPreview = (snapshotText?: string | null) => {
+  const refreshWorkspaceLocalBackupPreview = useCallback((snapshotText?: string | null) => {
     const savedSnapshot =
       snapshotText ?? window.localStorage.getItem(workspaceLocalBackupStorageKey)
 
@@ -989,7 +1026,7 @@ function App() {
       setWorkspaceLocalBackupPreview(null)
       return null
     }
-  }
+  }, [getWorkspaceLocalBackupPreview, workspaceLocalBackupStorageKey])
 
   const handleWorkspaceSnapshotImportChange = async (
     event: ChangeEvent<HTMLInputElement>,
@@ -1320,8 +1357,14 @@ function App() {
   }
 
   useEffect(() => {
-    refreshWorkspaceLocalBackupPreview()
-  }, [])
+    const previewRefreshTimer = window.setTimeout(() => {
+      refreshWorkspaceLocalBackupPreview()
+    }, 0)
+
+    return () => {
+      window.clearTimeout(previewRefreshTimer)
+    }
+  }, [refreshWorkspaceLocalBackupPreview])
 
   useEffect(() => {
     if (!hasWorkspaceSnapshotResults) {
@@ -1345,26 +1388,20 @@ function App() {
       window.clearTimeout(autoSaveTimer)
     }
   }, [
-    uploadResult,
-    detectionResult,
-    cropResult,
-    blurResult,
-    videoUploadResult,
-    videoTrimResult,
-    videoFrameResult,
-    videoFrameDetectionResult,
-    videoMultiFrameResult,
-    videoMultiFrameDetectionResult,
-    videoSampledDetectionResult,
-    videoTrackingResult,
-    commandResult,
-    activeWorkspaceResultLabel,
+    hasWorkspaceSnapshotResults,
+    refreshWorkspaceLocalBackupPreview,
+    workspaceSnapshotJson,
   ])
 
   useEffect(() => {
     if (workspaceResultNavigatorItems.length === 0) {
-      setActiveWorkspaceResultLabel(null)
-      return
+      const emptyNavigatorFrame = window.requestAnimationFrame(() => {
+        setActiveWorkspaceResultLabel(null)
+      })
+
+      return () => {
+        window.cancelAnimationFrame(emptyNavigatorFrame)
+      }
     }
 
     let animationFrameId: number | null = null
@@ -1374,16 +1411,16 @@ function App() {
 
       const measuredItems = workspaceResultNavigatorItems
         .map((item) => {
-          const targetElement = item.targetRef.current
+          const targetElement = getWorkspaceResultTargetRef(item)?.current
 
           if (!targetElement) {
             return null
           }
 
-          targetElement.setAttribute('data-workspace-result-label', item.label)
+          targetElement.setAttribute('data-workspace-result-label', item)
 
           return {
-            label: item.label,
+            label: item,
             top: targetElement.getBoundingClientRect().top,
           }
         })
@@ -1414,13 +1451,15 @@ function App() {
       animationFrameId = window.requestAnimationFrame(updateActiveWorkspaceResult)
     }
 
-    setActiveWorkspaceResultLabel((currentLabel) =>
-      currentLabel && workspaceResultNavigatorItems.some((item) => item.label === currentLabel)
-        ? currentLabel
-        : workspaceResultNavigatorItems[0].label,
-    )
+    const initialNavigatorFrame = window.requestAnimationFrame(() => {
+      setActiveWorkspaceResultLabel((currentLabel) =>
+        currentLabel && workspaceResultNavigatorItems.includes(currentLabel)
+          ? currentLabel
+          : workspaceResultNavigatorItems[0],
+      )
 
-    scheduleActiveWorkspaceUpdate()
+      updateActiveWorkspaceResult()
+})
 
     window.addEventListener('scroll', scheduleActiveWorkspaceUpdate, { passive: true })
     window.addEventListener('resize', scheduleActiveWorkspaceUpdate)
@@ -1430,23 +1469,12 @@ function App() {
         window.cancelAnimationFrame(animationFrameId)
       }
 
+      window.cancelAnimationFrame(initialNavigatorFrame)
+
       window.removeEventListener('scroll', scheduleActiveWorkspaceUpdate)
       window.removeEventListener('resize', scheduleActiveWorkspaceUpdate)
     }
-  }, [
-    uploadResult,
-    detectionResult,
-    cropResult,
-    blurResult,
-    videoUploadResult,
-    videoTrimResult,
-    videoFrameResult,
-    videoFrameDetectionResult,
-    videoMultiFrameResult,
-    videoMultiFrameDetectionResult,
-    videoSampledDetectionResult,
-    videoTrackingResult,
-  ])
+  }, [getWorkspaceResultTargetRef, workspaceResultNavigatorItems])
 
 
   const hasLoadedDashboardViews = Boolean(
@@ -4535,19 +4563,19 @@ function App() {
             <div className="workspace-result-navigator-buttons">
               {workspaceResultNavigatorItems.map((item) => (
                 <button
-                  key={item.label}
+                  key={item}
                   className={
-                    activeWorkspaceResultLabel === item.label
+                    activeWorkspaceResultLabel === item
                       ? 'workspace-result-navigator-button active'
                       : 'workspace-result-navigator-button'
                   }
-                  onClick={() => handleWorkspaceResultNavigatorClick(item.label, item.targetRef)}
+                  onClick={() => handleWorkspaceResultNavigatorClick(item)}
                   disabled={isBusy}
                   type="button"
-                  aria-current={activeWorkspaceResultLabel === item.label ? 'true' : undefined}
+                  aria-current={activeWorkspaceResultLabel === item ? 'true' : undefined}
                 >
                   <span className="workspace-result-navigator-dot"></span>
-                  {item.label}
+                  {item}
                 </button>
               ))}
             </div>
@@ -4578,8 +4606,8 @@ function App() {
                   <span>Included</span>
                   <div>
                     {workspaceResultNavigatorItems.map((item) => (
-                      <span key={item.label} className="workspace-snapshot-preview-chip">
-                        {item.label}
+                      <span key={item} className="workspace-snapshot-preview-chip">
+                        {item}
                       </span>
                     ))}
                   </div>
