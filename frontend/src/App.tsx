@@ -255,6 +255,41 @@ type ParserComparisonResponse = {
   skipped_evaluations?: SkippedParserEvaluation[]
 }
 
+type PlannerMode = 'rule_based' | 'llm_mock' | 'real_llm'
+
+type CommandPlanResponse = {
+  media_type: 'image' | 'video' | 'unknown'
+  action:
+    | 'detect'
+    | 'annotate'
+    | 'crop_by_class'
+    | 'blur_by_class'
+    | 'blur_all_by_class'
+    | 'zoom'
+    | 'track'
+    | 'extract_frames'
+    | 'summarize'
+    | 'unknown'
+  target_class: string | null
+  target_scope:
+    | 'single'
+    | 'all'
+    | 'largest'
+    | 'smallest'
+    | 'left'
+    | 'right'
+    | 'top'
+    | 'bottom'
+    | 'center'
+    | 'unknown'
+  requires_detection: boolean
+  requires_tracking: boolean
+  parameters: Record<string, unknown>
+  confidence: number
+  needs_clarification: boolean
+  clarification_question: string | null
+}
+
 type CommandPlanEvaluationSummaryEntry = {
   planner_mode: string
   planner_type: string
@@ -651,9 +686,11 @@ function App() {
   const [classOptions, setClassOptions] = useState<string[]>([])
 
   const [commandText, setCommandText] = useState('')
-  const [selectedParserMode, setSelectedParserMode] = useState<'rule_based' | 'llm_mock' | 'real_llm'>('rule_based')
+  const [selectedParserMode, setSelectedParserMode] = useState<PlannerMode>('rule_based')
+  const [selectedPlannerMode, setSelectedPlannerMode] = useState<PlannerMode>('rule_based')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
+  const [commandPlanResult, setCommandPlanResult] = useState<CommandPlanResponse | null>(null)
   const [parsedCommandValidationResult, setParsedCommandValidationResult] = useState<ParsedCommandValidationResponse | null>(null)
   const [commandPromptPreviewResult, setCommandPromptPreviewResult] = useState<CommandPromptPreviewResponse | null>(null)
   const [commandEvaluationResult, setCommandEvaluationResult] = useState<CommandEvaluationResponse | null>(null)
@@ -722,6 +759,7 @@ function App() {
   const [isParsingCommand, setIsParsingCommand] = useState(false)
   const [isValidatingParsedCommand, setIsValidatingParsedCommand] = useState(false)
   const [isLoadingPromptPreview, setIsLoadingPromptPreview] = useState(false)
+  const [isPlanningCommand, setIsPlanningCommand] = useState(false)
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
   const [isLoadingPlannerComparison, setIsLoadingPlannerComparison] = useState(false)
@@ -742,6 +780,7 @@ function App() {
 
   const llmPromptPreviewRef = useRef<HTMLDivElement | null>(null)
   const parsedCommandPreviewRef = useRef<HTMLDivElement | null>(null)
+  const commandPlanPreviewRef = useRef<HTMLDivElement | null>(null)
   const parsedCommandValidationRef = useRef<HTMLDivElement | null>(null)
   const commandResultRef = useRef<HTMLDivElement | null>(null)
   const uploadResultRef = useRef<HTMLElement | null>(null)
@@ -2904,6 +2943,46 @@ function App() {
     }
   }
 
+  const handlePlanCommand = async () => {
+    if (!commandText.trim()) {
+      setError('Please type a command to plan.')
+      return
+    }
+
+    try {
+      setIsPlanningCommand(true)
+      setError(null)
+      setCommandPlanResult(null)
+      setStatusMessage(`Planning command with ${selectedPlannerMode}: "${commandText}"...`)
+
+      const response = await fetch('/api/commands/plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          command: commandText,
+          planner_mode: selectedPlannerMode,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await getBackendErrorMessage(response, 'Command planning failed'))
+      }
+
+      const data: CommandPlanResponse = await response.json()
+      setCommandPlanResult(data)
+      scrollToLoadedView(commandPlanPreviewRef)
+      setStatusMessage(`Command planned as: ${data.action}.`)
+    } catch (err) {
+      const message = getErrorMessage(err, 'Command planning failed.')
+      setError(message)
+      setStatusMessage(message)
+    } finally {
+      setIsPlanningCommand(false)
+    }
+  }
+
   const handleLoadCommandEvaluation = async () => {
     try {
       setIsLoadingCommandEvaluation(true)
@@ -3178,6 +3257,7 @@ function App() {
   const loadedObservabilityViewNames = [
     commandPromptPreviewResult ? 'LLM Prompt Preview' : null,
     commandParseResult ? 'Parsed Command Preview' : null,
+    commandPlanResult ? 'Command Plan Preview' : null,
     parsedCommandValidationResult ? 'Parsed Command Validation' : null,
     commandResult ? 'Command Result' : null,
     databaseParserAttemptLogsResult ? 'DB Parser Logs' : null,
@@ -5526,6 +5606,37 @@ function App() {
             </p>
           </div>
 
+          <div className="parser-mode-selector">
+            <label htmlFor="planner-mode">Planner mode</label>
+
+            <select
+              id="planner-mode"
+              value={selectedPlannerMode}
+              onChange={(event) => {
+                const nextPlannerMode = event.target.value as PlannerMode
+
+                setSelectedPlannerMode(nextPlannerMode)
+
+                if (
+                  nextPlannerMode === 'real_llm' &&
+                  !llmProviderStatusResult &&
+                  !isLoadingLlmProviderStatus
+                ) {
+                  void handleLoadLlmProviderStatus()
+                }
+              }}
+              disabled={isBusy}
+            >
+              <option value="rule_based">rule_based</option>
+              <option value="llm_mock">llm_mock</option>
+              <option value="real_llm">real_llm</option>
+            </select>
+
+            <p className="small-note">
+              Planner mode converts the command into a structured action plan before execution.
+            </p>
+          </div>
+
           <div className="command-row">
             <input
               className="command-input"
@@ -5546,6 +5657,14 @@ function App() {
             >
               {isParsingCommand ? 'Parsing...' : 'Parse Command'}
             </button>
+
+              <button
+                className="secondary-button"
+                onClick={handlePlanCommand}
+                disabled={isBusy || !commandText.trim()}
+              >
+                {isPlanningCommand ? 'Planning...' : 'Plan Command'}
+              </button>
 
             <button
               className="secondary-button"
@@ -5965,6 +6084,97 @@ function App() {
                 <h4>Expected JSON Schema</h4>
                 <pre>{JSON.stringify(commandPromptPreviewResult.expected_json_schema, null, 2)}</pre>
               </div>
+            </div>
+          )}
+
+          {commandPlanResult && (
+            <div className="command-parse-result" ref={commandPlanPreviewRef}>
+              <h3>Command Plan Preview</h3>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'command_plan_preview',
+                        copied_at: new Date().toISOString(),
+                        command: commandText,
+                        planner_mode: selectedPlannerMode,
+                        plan: commandPlanResult,
+                      },
+                      'command-plan-preview-json',
+                      'Copied Command Plan Preview JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !commandPlanResult}
+                >
+                  {copiedParserLogJsonKey === 'command-plan-preview-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'command-plan-preview-json'
+                      ? 'Copy failed'
+                      : 'Copy Command Plan JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'command_plan_preview',
+                        downloaded_at: new Date().toISOString(),
+                        command: commandText,
+                        planner_mode: selectedPlannerMode,
+                        plan: commandPlanResult,
+                      },
+                      `command_plan_preview_mode-${selectedPlannerMode}_action-${commandPlanResult.action}.json`,
+                      'Downloaded Command Plan Preview JSON.',
+                      'download-command-plan-preview-json',
+                    )
+                  }
+                  disabled={isBusy || !commandPlanResult}
+                >
+                  {downloadedParserLogJsonKey === 'download-command-plan-preview-json'
+                    ? 'Downloaded!'
+                    : 'Download Command Plan JSON'}
+                </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setCommandPlanResult(null)
+                    setStatusMessage('Command Plan Preview view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
+              </div>
+
+              <p><strong>Original command:</strong> {commandText}</p>
+              <p><strong>Planner mode:</strong> {selectedPlannerMode}</p>
+
+              <div className="parse-field-list">
+                {Object.entries(commandPlanResult).map(([key, value]) => (
+                  <div className="parse-field" key={key}>
+                    <span>{key}</span>
+                    <strong>
+                      {value === null || value === undefined
+                        ? 'null'
+                        : typeof value === 'object'
+                          ? JSON.stringify(value)
+                          : String(value)}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+
+              {commandPlanResult.needs_clarification && commandPlanResult.clarification_question && (
+                <div className="real-llm-warning">
+                  <strong>Clarification needed</strong>
+                  <p>{commandPlanResult.clarification_question}</p>
+                </div>
+              )}
             </div>
           )}
 
