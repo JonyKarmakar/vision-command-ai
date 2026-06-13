@@ -290,6 +290,13 @@ type CommandPlanResponse = {
   clarification_question: string | null
 }
 
+type CommandPlanExecutionPrepareResponse = {
+  status: 'ready' | 'blocked'
+  executable: boolean
+  prepared_command: Record<string, unknown> | null
+  warnings: string[]
+}
+
 type CommandPlanEvaluationSummaryEntry = {
   planner_mode: string
   planner_type: string
@@ -699,6 +706,7 @@ function App() {
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
   const [commandPlanResult, setCommandPlanResult] = useState<CommandPlanResponse | null>(null)
+  const [commandPlanExecutionPrepareResult, setCommandPlanExecutionPrepareResult] = useState<CommandPlanExecutionPrepareResponse | null>(null)
   const [parsedCommandValidationResult, setParsedCommandValidationResult] = useState<ParsedCommandValidationResponse | null>(null)
   const [commandPromptPreviewResult, setCommandPromptPreviewResult] = useState<CommandPromptPreviewResponse | null>(null)
   const [commandPlannerPromptPreviewResult, setCommandPlannerPromptPreviewResult] = useState<CommandPlannerPromptPreviewResponse | null>(null)
@@ -770,6 +778,7 @@ function App() {
   const [isLoadingPromptPreview, setIsLoadingPromptPreview] = useState(false)
   const [isLoadingPlannerPromptPreview, setIsLoadingPlannerPromptPreview] = useState(false)
   const [isPlanningCommand, setIsPlanningCommand] = useState(false)
+  const [isPreparingCommandPlanExecution, setIsPreparingCommandPlanExecution] = useState(false)
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
   const [isLoadingPlannerComparison, setIsLoadingPlannerComparison] = useState(false)
@@ -792,6 +801,7 @@ function App() {
   const plannerPromptPreviewRef = useRef<HTMLDivElement | null>(null)
   const parsedCommandPreviewRef = useRef<HTMLDivElement | null>(null)
   const commandPlanPreviewRef = useRef<HTMLDivElement | null>(null)
+  const commandPlanExecutionPrepareRef = useRef<HTMLDivElement | null>(null)
   const parsedCommandValidationRef = useRef<HTMLDivElement | null>(null)
   const commandResultRef = useRef<HTMLDivElement | null>(null)
   const uploadResultRef = useRef<HTMLElement | null>(null)
@@ -3034,6 +3044,49 @@ function App() {
     }
   }
 
+  const handlePrepareCommandPlanExecution = async () => {
+    if (!commandPlanResult) {
+      setError('Please create a command plan before preparing execution.')
+      return
+    }
+
+    try {
+      setIsPreparingCommandPlanExecution(true)
+      setError(null)
+      setCommandPlanExecutionPrepareResult(null)
+      setStatusMessage('Preparing command plan for execution...')
+
+      const response = await fetch('/api/commands/plan/prepare-execution', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plan: commandPlanResult,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await getBackendErrorMessage(response, 'Command plan execution preparation failed'))
+      }
+
+      const data: CommandPlanExecutionPrepareResponse = await response.json()
+      setCommandPlanExecutionPrepareResult(data)
+      scrollToLoadedView(commandPlanExecutionPrepareRef)
+      setStatusMessage(
+        data.executable
+          ? 'Command plan is ready for execution.'
+          : 'Command plan is blocked before execution.',
+      )
+    } catch (err) {
+      const message = getErrorMessage(err, 'Command plan execution preparation failed.')
+      setError(message)
+      setStatusMessage(message)
+    } finally {
+      setIsPreparingCommandPlanExecution(false)
+    }
+  }
+
   const handleLoadCommandEvaluation = async () => {
     try {
       setIsLoadingCommandEvaluation(true)
@@ -3310,6 +3363,7 @@ function App() {
     commandPlannerPromptPreviewResult ? 'Planner Prompt Preview' : null,
     commandParseResult ? 'Parsed Command Preview' : null,
     commandPlanResult ? 'Command Plan Preview' : null,
+    commandPlanExecutionPrepareResult ? 'Prepared Execution Preview' : null,
     parsedCommandValidationResult ? 'Parsed Command Validation' : null,
     commandResult ? 'Command Result' : null,
     databaseParserAttemptLogsResult ? 'DB Parser Logs' : null,
@@ -6297,6 +6351,14 @@ function App() {
                 </button>
 
                 <button
+                  className="secondary-button"
+                  onClick={handlePrepareCommandPlanExecution}
+                  disabled={isBusy || !commandPlanResult}
+                >
+                  {isPreparingCommandPlanExecution ? 'Preparing...' : 'Prepare Execution'}
+                </button>
+
+                <button
                   className="secondary-button view-clear-button"
                   onClick={() => {
                     setCommandPlanResult(null)
@@ -6330,6 +6392,105 @@ function App() {
                 <div className="real-llm-warning">
                   <strong>Clarification needed</strong>
                   <p>{commandPlanResult.clarification_question}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {commandPlanExecutionPrepareResult && (
+            <div className="command-parse-result" ref={commandPlanExecutionPrepareRef}>
+              <h3>Prepared Execution Preview</h3>
+
+              <div className="loaded-panel-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    void handleCopyParserLogJson(
+                      {
+                        source: 'prepared_execution_preview',
+                        copied_at: new Date().toISOString(),
+                        command: commandText,
+                        planner_mode: selectedPlannerMode,
+                        plan: commandPlanResult,
+                        preparation: commandPlanExecutionPrepareResult,
+                      },
+                      'prepared-execution-preview-json',
+                      'Copied Prepared Execution Preview JSON to clipboard.',
+                    )
+                  }
+                  disabled={isBusy || !commandPlanExecutionPrepareResult}
+                >
+                  {copiedParserLogJsonKey === 'prepared-execution-preview-json'
+                    ? 'Copied!'
+                    : failedParserLogJsonKey === 'prepared-execution-preview-json'
+                      ? 'Copy failed'
+                      : 'Copy Prepared Execution JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    handleDownloadJsonFile(
+                      {
+                        source: 'prepared_execution_preview',
+                        downloaded_at: new Date().toISOString(),
+                        command: commandText,
+                        planner_mode: selectedPlannerMode,
+                        plan: commandPlanResult,
+                        preparation: commandPlanExecutionPrepareResult,
+                      },
+                      `prepared_execution_preview_status-${commandPlanExecutionPrepareResult.status}.json`,
+                      'Downloaded Prepared Execution Preview JSON.',
+                      'download-prepared-execution-preview-json',
+                    )
+                  }
+                  disabled={isBusy || !commandPlanExecutionPrepareResult}
+                  data-testid="download-prepared-execution-preview-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-prepared-execution-preview-json'
+                    ? 'Downloaded!'
+                    : 'Download Prepared Execution JSON'}
+                </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setCommandPlanExecutionPrepareResult(null)
+                    setStatusMessage('Prepared Execution Preview view cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear View
+                </button>
+              </div>
+
+              <p><strong>Status:</strong> {commandPlanExecutionPrepareResult.status}</p>
+              <p><strong>Executable:</strong> {commandPlanExecutionPrepareResult.executable ? 'yes' : 'no'}</p>
+
+              <div className="parse-field-list">
+                <div className="parse-field">
+                  <span>prepared_command</span>
+                  <strong>
+                    {commandPlanExecutionPrepareResult.prepared_command
+                      ? JSON.stringify(commandPlanExecutionPrepareResult.prepared_command)
+                      : 'null'}
+                  </strong>
+                </div>
+
+                <div className="parse-field">
+                  <span>warnings</span>
+                  <strong>
+                    {commandPlanExecutionPrepareResult.warnings.length > 0
+                      ? commandPlanExecutionPrepareResult.warnings.join(' | ')
+                      : 'none'}
+                  </strong>
+                </div>
+              </div>
+
+              {commandPlanExecutionPrepareResult.warnings.length > 0 && (
+                <div className="real-llm-warning">
+                  <strong>Preparation warning</strong>
+                  <p>{commandPlanExecutionPrepareResult.warnings.join(' ')}</p>
                 </div>
               )}
             </div>
