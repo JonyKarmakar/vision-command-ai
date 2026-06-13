@@ -32,6 +32,13 @@ class CommandRequest(BaseModel):
     parser_mode: str = "rule_based"
 
 
+class PreparedCommandExecutionRequest(BaseModel):
+    filename: str
+    prepared_command: dict[str, Any]
+    confidence_threshold: float = 0.25
+    command: str = "prepared_command"
+
+
 class VideoTrimRequest(BaseModel):
     start_seconds: float
     end_seconds: float
