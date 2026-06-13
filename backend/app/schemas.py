@@ -117,3 +117,14 @@ class CommandPlan(BaseModel):
     confidence: float = 0.0
     needs_clarification: bool = False
     clarification_question: Optional[str] = None
+
+
+class CommandPlanExecutionPrepareRequest(BaseModel):
+    plan: CommandPlan
+
+
+class CommandPlanExecutionPrepareResponse(BaseModel):
+    status: Literal["ready", "blocked"]
+    executable: bool
+    prepared_command: Optional[dict[str, Any]] = None
+    warnings: list[str] = Field(default_factory=list)
