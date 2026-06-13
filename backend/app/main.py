@@ -23,6 +23,7 @@ from app.services.llm_prompt_builder import (
 from app.services.command_validation import validate_parsed_command
 from app.services.command_parser import normalize_requested_class_name, parse_command
 from app.services.command_planner import plan_command_with_mode
+from app.services.command_plan_execution import prepare_command_plan_for_execution
 from app.services.storage_service import storage_service
 from app.services.database_service import (
     get_database_command_logs,
@@ -53,6 +54,8 @@ from app.schemas import (
     CommandRequest,
     CommandParseRequest,
     CommandPlanRequest,
+    CommandPlanExecutionPrepareRequest,
+    CommandPlanExecutionPrepareResponse,
     ParsedCommandValidationRequest,
     CropByClassRequest,
     CropRequest,
@@ -2521,6 +2524,14 @@ def plan_text_command(request: CommandPlanRequest):
     )
 
     return plan_result["plan"]
+
+
+@app.post(
+    "/commands/plan/prepare-execution",
+    response_model=CommandPlanExecutionPrepareResponse,
+)
+def prepare_command_plan_execution(request: CommandPlanExecutionPrepareRequest):
+    return prepare_command_plan_for_execution(request.plan)
 
 
 @app.post("/commands/parse")
