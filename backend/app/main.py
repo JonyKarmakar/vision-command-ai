@@ -52,6 +52,7 @@ from app.schemas import (
     BlurAllByClassRequest,
     BlurByClassRequest,
     CommandRequest,
+    PreparedCommandExecutionRequest,
     CommandParseRequest,
     CommandPlanRequest,
     CommandPlanExecutionPrepareRequest,
@@ -866,20 +867,19 @@ def build_command_execution_response(
     }
 
 
-@app.post("/commands/execute")
-def execute_command(request: CommandRequest):
-    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+def _validate_command_confidence_threshold(confidence_threshold: float):
+    if confidence_threshold < 0 or confidence_threshold > 1:
         raise HTTPException(
             status_code=400,
             detail="confidence_threshold must be between 0 and 1",
         )
 
-    parse_result = parse_command_with_mode(
-        command=request.command,
-        parser_mode=request.parser_mode,
-    )
-    parsed_command = validate_parsed_command(parse_result["parsed_command"])
 
+def execute_validated_parsed_command(
+    request: CommandRequest,
+    parse_result: dict,
+    parsed_command: dict,
+):
     if parsed_command["action"] == "detect":
         result = detect_objects_with_annotation(
             filename=request.filename,
@@ -1088,6 +1088,48 @@ def execute_command(request: CommandRequest):
     raise HTTPException(
         status_code=400,
         detail="Unsupported command action",
+    )
+
+
+@app.post("/commands/execute")
+def execute_command(request: CommandRequest):
+    _validate_command_confidence_threshold(request.confidence_threshold)
+
+    parse_result = parse_command_with_mode(
+        command=request.command,
+        parser_mode=request.parser_mode,
+    )
+    parsed_command = validate_parsed_command(parse_result["parsed_command"])
+
+    return execute_validated_parsed_command(
+        request=request,
+        parse_result=parse_result,
+        parsed_command=parsed_command,
+    )
+
+
+@app.post("/commands/execute-prepared")
+def execute_prepared_command(request: PreparedCommandExecutionRequest):
+    _validate_command_confidence_threshold(request.confidence_threshold)
+
+    parsed_command = validate_parsed_command(request.prepared_command)
+
+    command_request = CommandRequest(
+        filename=request.filename,
+        command=request.command,
+        confidence_threshold=request.confidence_threshold,
+        parser_mode="prepared",
+    )
+
+    parse_result = {
+        "parser_type": "prepared_command",
+        "parser_version": "prepared-command-v1",
+    }
+
+    return execute_validated_parsed_command(
+        request=command_request,
+        parse_result=parse_result,
+        parsed_command=parsed_command,
     )
 
 
