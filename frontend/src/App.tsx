@@ -137,6 +137,26 @@ type CropResponse = {
   }
 }
 
+type ZoomResponse = {
+  filename: string
+  class_name: string
+  confidence_threshold: number
+  padding_ratio: number
+  selected_detection: Detection
+  zoomed_filename: string
+  zoomed_file_url: string
+  zoom_box: {
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+  }
+  output_size: {
+    width: number
+    height: number
+  }
+}
+
 type BlurResponse = {
   filename: string
   blurred_filename: string
@@ -457,8 +477,8 @@ type CommandResponse = {
     action: string
     class_name: string | null
   }
-  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'extract_frame' | 'extract_frames' | 'trim_video' | 'detect_frames' | 'track_video'
-  result: DetectionResponse | CropResponse | BlurResponse | VideoFrameExtractResponse | VideoMultiFrameExtractResponse | VideoTrimResponse | VideoDetectFramesCommandResponse | VideoTrackingResponse
+  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'zoom_by_class' | 'extract_frame' | 'extract_frames' | 'trim_video' | 'detect_frames' | 'track_video'
+  result: DetectionResponse | CropResponse | BlurResponse | ZoomResponse | VideoFrameExtractResponse | VideoMultiFrameExtractResponse | VideoTrimResponse | VideoDetectFramesCommandResponse | VideoTrackingResponse
 }
 
 type CommandLog = {
@@ -870,6 +890,7 @@ function App() {
     const resultViewByType: Record<string, { current: HTMLElement | null }> = {
       annotated_detection: detectionResultRef,
       crop_by_class: cropResultRef,
+      zoom_by_class: commandResultRef,
       blur_by_class: blurResultRef,
       blur_all_by_class: blurResultRef,
       trim_video: videoTrimResultRef,
@@ -3867,6 +3888,11 @@ function App() {
         setCropResult(null)
       }
 
+      if (data.result_type === 'zoom_by_class') {
+        setCropResult(null)
+        setBlurResult(null)
+      }
+
       if (data.result_type === 'extract_frame') {
         const result = data.result as VideoFrameExtractResponse
         setVideoFrameResult(result)
@@ -5939,6 +5965,7 @@ function App() {
                 <option value="crop_by_class">crop_by_class</option>
                 <option value="blur_by_class">blur_by_class</option>
                 <option value="blur_all_by_class">blur_all_by_class</option>
+                <option value="zoom_by_class">zoom_by_class</option>
                 <option value="extract_frame">extract_frame</option>
                 <option value="extract_frames">extract_frames</option>
                 <option value="detect_frames">detect_frames</option>
@@ -6850,6 +6877,55 @@ function App() {
                 <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
               )}
               <p><strong>Result type:</strong> {commandResult.result_type}</p>
+
+              {commandResult.result_type === 'zoom_by_class' && (
+                <div className="command-result-output">
+                  {(() => {
+                    const result = commandResult.result as ZoomResponse
+
+                    return (
+                      <>
+                        <p><strong>Zoomed file:</strong> {result.zoomed_filename}</p>
+                        <p>
+                          <strong>Zoom box:</strong>{' '}
+                          x1={Math.round(result.zoom_box.x1)}, y1={Math.round(result.zoom_box.y1)},{' '}
+                          x2={Math.round(result.zoom_box.x2)}, y2={Math.round(result.zoom_box.y2)}
+                        </p>
+                        <p>
+                          <strong>Output size:</strong>{' '}
+                          {result.output_size.width} × {result.output_size.height}
+                        </p>
+
+                        <div className="loaded-panel-actions">
+                          <a
+                            className="secondary-button zoom-image-action-link"
+                            href={result.zoomed_file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Open Zoomed Image
+                          </a>
+
+                          <a
+                            className="secondary-button zoom-image-action-link"
+                            href={result.zoomed_file_url}
+                            download={result.zoomed_filename}
+                          >
+                            Download Zoomed Image
+                          </a>
+                        </div>
+
+                        <div className="image-preview-card">
+                          <img
+                            src={result.zoomed_file_url}
+                            alt={`Zoomed ${result.class_name}`}
+                          />
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              )}
             </div>
           )}
 
