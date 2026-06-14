@@ -59,6 +59,7 @@ from app.schemas import (
     CommandPlanExecutionPrepareResponse,
     ParsedCommandValidationRequest,
     CropByClassRequest,
+    ZoomByClassRequest,
     CropRequest,
     VideoTrimRequest,
     VideoFrameExtractRequest,
@@ -942,6 +943,28 @@ def execute_validated_parsed_command(
             result=result,
         )
 
+    if parsed_command["action"] == "zoom_by_class":
+        class_name = parsed_command["class_name"]
+
+        result = zoom_best_object_by_class(
+            filename=request.filename,
+            request=ZoomByClassRequest(
+                class_name=class_name,
+                confidence_threshold=request.confidence_threshold,
+            ),
+        )
+
+        result_type = "zoom_by_class"
+        log_command_execution(request, parsed_command, result_type, parse_result)
+
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result=result,
+        )
+
     if parsed_command["action"] == "blur_all_by_class":
         class_name = parsed_command["class_name"]
 
@@ -1223,6 +1246,110 @@ def blur_uploaded_image_object(filename: str, crop: CropRequest):
 
 
 
+
+@app.post("/vision/zoom-by-class/{filename}")
+def zoom_best_object_by_class(filename: str, request: ZoomByClassRequest):
+    image_path = UPLOAD_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded image not found",
+        )
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    if request.padding_ratio < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="padding_ratio must be greater than or equal to 0",
+        )
+
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=request.confidence_threshold,
+        class_filter=request.class_name,
+    )
+
+    if not detections:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No object found for class '{request.class_name}'",
+        )
+
+    best_detection = max(
+        detections,
+        key=lambda detection: detection["confidence"],
+    )
+
+    bbox = best_detection["bbox"]
+
+    with Image.open(image_path) as image:
+        image = image.convert("RGB")
+        width, height = image.size
+
+        x1 = float(bbox["x1"])
+        y1 = float(bbox["y1"])
+        x2 = float(bbox["x2"])
+        y2 = float(bbox["y2"])
+
+        box_width = x2 - x1
+        box_height = y2 - y1
+
+        if box_width <= 0 or box_height <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Detected object bounding box is invalid",
+            )
+
+        padding_x = box_width * request.padding_ratio
+        padding_y = box_height * request.padding_ratio
+
+        left = max(0, int(x1 - padding_x))
+        top = max(0, int(y1 - padding_y))
+        right = min(width, int(x2 + padding_x))
+        bottom = min(height, int(y2 + padding_y))
+
+        if right <= left or bottom <= top:
+            raise HTTPException(
+                status_code=400,
+                detail="Zoom crop box is invalid",
+            )
+
+        zoomed_region = image.crop((left, top, right, bottom))
+        zoomed_image = zoomed_region.resize((width, height), Image.Resampling.LANCZOS)
+
+        file_extension = image_path.suffix or ".png"
+        zoomed_filename = f"zoom_{request.class_name}_{image_path.stem}_{uuid4().hex}{file_extension}"
+        zoomed_path = OUTPUT_DIR / zoomed_filename
+
+        zoomed_image.save(zoomed_path)
+
+    return {
+        "filename": filename,
+        "class_name": request.class_name,
+        "confidence_threshold": request.confidence_threshold,
+        "padding_ratio": request.padding_ratio,
+        "selected_detection": best_detection,
+        "zoomed_filename": zoomed_filename,
+        "zoomed_file_url": f"/media/outputs/{zoomed_filename}",
+        "zoom_box": {
+            "x1": left,
+            "y1": top,
+            "x2": right,
+            "y2": bottom,
+        },
+        "output_size": {
+            "width": width,
+            "height": height,
+        },
+    }
+
+
 @app.post("/vision/blur-by-class/{filename}")
 def blur_best_object_by_class(filename: str, request: BlurByClassRequest):
     image_path = UPLOAD_DIR / filename
@@ -1395,6 +1522,7 @@ SUPPORTED_COMMAND_RESULT_TYPES = {
     "crop_by_class",
     "blur_by_class",
     "blur_all_by_class",
+    "zoom_by_class",
     "extract_frame",
     "extract_frames",
     "detect_frames",
@@ -1421,7 +1549,7 @@ def normalize_command_log_filters(parser_mode=None, result_type=None):
     if result_type and result_type not in SUPPORTED_COMMAND_RESULT_TYPES:
         raise HTTPException(
             status_code=400,
-            detail="Supported result types are: annotated_detection, crop_by_class, blur_by_class, blur_all_by_class, extract_frame, extract_frames, detect_frames, track_video, trim_video",
+            detail="Supported result types are: annotated_detection, crop_by_class, blur_by_class, blur_all_by_class, zoom_by_class, extract_frame, extract_frames, detect_frames, track_video, trim_video",
         )
 
     return parser_mode, result_type

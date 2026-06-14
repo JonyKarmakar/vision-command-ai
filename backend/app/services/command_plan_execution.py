@@ -82,6 +82,15 @@ def prepare_command_plan_for_execution(plan: CommandPlan):
             "class_name": plan.target_class,
         })
 
+    if plan.action == "zoom":
+        if not plan.target_class:
+            return _blocked(["zoom requires target_class before execution."])
+
+        return _ready({
+            "action": "zoom_by_class",
+            "class_name": plan.target_class,
+        })
+
     if plan.action in {"detect", "annotate"}:
         prepared_command = {"action": "detect"}
 

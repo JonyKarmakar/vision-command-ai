@@ -12,6 +12,7 @@ SUPPORTED_ACTIONS = {
     "crop_by_class",
     "blur_by_class",
     "blur_all_by_class",
+    "zoom_by_class",
     "extract_frame",
     "extract_frames",
     "detect_frames",
@@ -83,7 +84,7 @@ def validate_parsed_command(parsed_command: dict):
             detail=f"Unsupported parsed action: {action}",
         )
 
-    if action in {"crop_by_class", "blur_by_class", "blur_all_by_class"}:
+    if action in {"crop_by_class", "blur_by_class", "blur_all_by_class", "zoom_by_class"}:
         _require_key(parsed_command, "class_name")
 
     if parsed_command.get("class_name") is not None:
