@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from PIL import Image
 
 import app.main as main
 from app.main import app
@@ -153,3 +154,60 @@ def test_execute_prepared_zoom_by_class_success(monkeypatch):
     }
     assert data["result_type"] == "zoom_by_class"
     assert data["result"]["zoomed_file_url"] == "/media/outputs/zoom_person_sample.jpg"
+
+
+def test_zoom_by_class_preserves_output_aspect_ratio(monkeypatch):
+    filename = "zoom_quality_test.jpg"
+    image_path = main.UPLOAD_DIR / filename
+
+    Image.new("RGB", (400, 300), color="white").save(image_path)
+
+    def fake_run_yolo_detection(image_path, confidence_threshold, class_filter):
+        assert confidence_threshold == 0.25
+        assert class_filter == "person"
+
+        return [
+            {
+                "class_id": 0,
+                "class_name": "person",
+                "confidence": 0.95,
+                "bbox": {
+                    "x1": 150,
+                    "y1": 50,
+                    "x2": 230,
+                    "y2": 250,
+                },
+            }
+        ]
+
+    monkeypatch.setattr(main, "run_yolo_detection", fake_run_yolo_detection)
+
+    response = client.post(
+        f"/vision/zoom-by-class/{filename}",
+        json={
+            "class_name": "person",
+            "confidence_threshold": 0.25,
+            "padding_ratio": 0.1,
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["output_size"] == {
+        "width": 400,
+        "height": 300,
+    }
+
+    zoom_box = data["zoom_box"]
+    zoom_width = zoom_box["x2"] - zoom_box["x1"]
+    zoom_height = zoom_box["y2"] - zoom_box["y1"]
+
+    assert round(zoom_width / zoom_height, 2) == round(400 / 300, 2)
+
+    zoomed_path = main.OUTPUT_DIR / data["zoomed_filename"]
+    with Image.open(zoomed_path) as zoomed_image:
+        assert zoomed_image.size == (400, 300)
+
+    image_path.unlink(missing_ok=True)
+    zoomed_path.unlink(missing_ok=True)

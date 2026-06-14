@@ -1306,13 +1306,48 @@ def zoom_best_object_by_class(filename: str, request: ZoomByClassRequest):
                 detail="Detected object bounding box is invalid",
             )
 
-        padding_x = box_width * request.padding_ratio
-        padding_y = box_height * request.padding_ratio
+        padded_width = box_width * (1 + request.padding_ratio * 2)
+        padded_height = box_height * (1 + request.padding_ratio * 2)
 
-        left = max(0, int(x1 - padding_x))
-        top = max(0, int(y1 - padding_y))
-        right = min(width, int(x2 + padding_x))
-        bottom = min(height, int(y2 + padding_y))
+        target_aspect_ratio = width / height
+        crop_aspect_ratio = padded_width / padded_height
+
+        if crop_aspect_ratio < target_aspect_ratio:
+            padded_width = padded_height * target_aspect_ratio
+        elif crop_aspect_ratio > target_aspect_ratio:
+            padded_height = padded_width / target_aspect_ratio
+
+        crop_width = min(padded_width, width)
+        crop_height = min(padded_height, height)
+
+        center_x = (x1 + x2) / 2
+        center_y = (y1 + y2) / 2
+
+        left = int(round(center_x - crop_width / 2))
+        top = int(round(center_y - crop_height / 2))
+        right = int(round(left + crop_width))
+        bottom = int(round(top + crop_height))
+
+        if left < 0:
+            right -= left
+            left = 0
+
+        if top < 0:
+            bottom -= top
+            top = 0
+
+        if right > width:
+            left -= right - width
+            right = width
+
+        if bottom > height:
+            top -= bottom - height
+            bottom = height
+
+        left = max(0, left)
+        top = max(0, top)
+        right = min(width, right)
+        bottom = min(height, bottom)
 
         if right <= left or bottom <= top:
             raise HTTPException(
