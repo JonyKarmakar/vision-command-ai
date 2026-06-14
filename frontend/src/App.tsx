@@ -779,6 +779,7 @@ function App() {
   const [isLoadingPlannerPromptPreview, setIsLoadingPlannerPromptPreview] = useState(false)
   const [isPlanningCommand, setIsPlanningCommand] = useState(false)
   const [isPreparingCommandPlanExecution, setIsPreparingCommandPlanExecution] = useState(false)
+  const [isExecutingPreparedCommand, setIsExecutingPreparedCommand] = useState(false)
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
   const [isLoadingPlannerComparison, setIsLoadingPlannerComparison] = useState(false)
@@ -3084,6 +3085,81 @@ function App() {
       setStatusMessage(message)
     } finally {
       setIsPreparingCommandPlanExecution(false)
+    }
+  }
+
+  const handleExecutePreparedCommand = async () => {
+    if (!commandPlanExecutionPrepareResult) {
+      setError('Please prepare a command plan before executing it.')
+      return
+    }
+
+    if (
+      !commandPlanExecutionPrepareResult.executable ||
+      !commandPlanExecutionPrepareResult.prepared_command
+    ) {
+      setError('Prepared command is not executable.')
+      setStatusMessage('Prepared command is blocked before execution.')
+      return
+    }
+
+    const preparedCommand = commandPlanExecutionPrepareResult.prepared_command
+    const preparedAction =
+      typeof preparedCommand.action === 'string' ? preparedCommand.action : 'unknown'
+
+    const videoPreparedActions = new Set([
+      'detect_frames',
+      'extract_frame',
+      'extract_frames',
+      'track_video',
+      'trim_video',
+    ])
+
+    const activeFilename = videoPreparedActions.has(preparedAction)
+      ? videoUploadResult?.stored_filename
+      : uploadResult?.stored_filename
+
+    if (!activeFilename) {
+      setError(
+        videoPreparedActions.has(preparedAction)
+          ? 'Please upload a video before executing this prepared command.'
+          : 'Please upload an image before executing this prepared command.',
+      )
+      return
+    }
+
+    try {
+      setIsExecutingPreparedCommand(true)
+      setError(null)
+      setStatusMessage(`Executing prepared command: ${preparedAction}...`)
+
+      const response = await fetch('/api/commands/execute-prepared', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: activeFilename,
+          command: commandText.trim() || 'prepared_command',
+          confidence_threshold: confidenceThreshold / 100,
+          prepared_command: preparedCommand,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await getBackendErrorMessage(response, 'Prepared command execution failed'))
+      }
+
+      const data: CommandResponse = await response.json()
+      setCommandResult(data)
+      scrollToLoadedView(commandResultRef)
+      setStatusMessage(`Executed prepared command as: ${data.result_type}.`)
+    } catch (err) {
+      const message = getErrorMessage(err, 'Prepared command execution failed.')
+      setError(message)
+      setStatusMessage(message)
+    } finally {
+      setIsExecutingPreparedCommand(false)
     }
   }
 
@@ -6450,6 +6526,19 @@ function App() {
                   {downloadedParserLogJsonKey === 'download-prepared-execution-preview-json'
                     ? 'Downloaded!'
                     : 'Download Prepared Execution JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={handleExecutePreparedCommand}
+                  disabled={
+                    isBusy ||
+                    isExecutingPreparedCommand ||
+                    !commandPlanExecutionPrepareResult.executable ||
+                    !commandPlanExecutionPrepareResult.prepared_command
+                  }
+                >
+                  {isExecutingPreparedCommand ? 'Executing...' : 'Execute Prepared Command'}
                 </button>
 
                 <button
