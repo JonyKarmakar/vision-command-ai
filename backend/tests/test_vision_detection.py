@@ -152,3 +152,91 @@ def test_detect_objects_with_annotation_file_not_found():
     assert response.json() == {
         "detail": "Uploaded image not found"
     }
+
+
+
+def test_detect_generated_output_success(tmp_path, monkeypatch):
+    test_output_dir = tmp_path / "outputs"
+    test_output_dir.mkdir(parents=True, exist_ok=True)
+
+    received_filters = {}
+
+    def fake_detection(image_path, confidence_threshold=0.25, class_filter=None):
+        received_filters["image_path"] = image_path
+        received_filters["confidence_threshold"] = confidence_threshold
+        received_filters["class_filter"] = class_filter
+        return FAKE_DETECTIONS
+
+    monkeypatch.setattr(main, "OUTPUT_DIR", test_output_dir)
+    monkeypatch.setattr(main, "run_yolo_detection", fake_detection)
+
+    image_path = test_output_dir / "zoom_result.png"
+    image_path.write_bytes(b"fake image content")
+
+    response = client.post(
+        "/vision/detect-output/zoom_result.png?confidence_threshold=0.7&class_filter=person"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["filename"] == "zoom_result.png"
+    assert data["source"] == "outputs"
+    assert data["confidence_threshold"] == 0.7
+    assert data["class_filter"] == "person"
+    assert data["detection_count"] == 1
+    assert data["detections"] == FAKE_DETECTIONS
+    assert received_filters["image_path"] == image_path
+    assert received_filters["confidence_threshold"] == 0.7
+    assert received_filters["class_filter"] == "person"
+
+
+def test_detect_generated_output_file_not_found():
+    response = client.post("/vision/detect-output/missing-output.png")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": "Generated output image not found"
+    }
+
+
+def test_detect_generated_output_with_annotation_success(tmp_path, monkeypatch):
+    test_output_dir = tmp_path / "outputs"
+    test_output_dir.mkdir(parents=True, exist_ok=True)
+
+    received_filters = {}
+
+    def fake_detection(image_path, confidence_threshold=0.25, class_filter=None):
+        received_filters["image_path"] = image_path
+        received_filters["confidence_threshold"] = confidence_threshold
+        received_filters["class_filter"] = class_filter
+        return FAKE_DETECTIONS
+
+    monkeypatch.setattr(main, "OUTPUT_DIR", test_output_dir)
+    monkeypatch.setattr(main, "run_yolo_detection", fake_detection)
+
+    image_bytes = create_test_image_bytes()
+    image_path = test_output_dir / "zoom_result.png"
+
+    with image_path.open("wb") as file:
+        file.write(image_bytes.getvalue())
+
+    response = client.post(
+        "/vision/detect-output/zoom_result.png/annotated?confidence_threshold=0.6"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["filename"] == "zoom_result.png"
+    assert data["source"] == "outputs"
+    assert data["confidence_threshold"] == 0.6
+    assert data["class_filter"] is None
+    assert data["detection_count"] == 1
+    assert data["detections"] == FAKE_DETECTIONS
+    assert data["annotated_filename"].startswith("annotated_output_zoom_result_")
+    assert data["annotated_file_url"] == f"/media/outputs/{data['annotated_filename']}"
+    assert received_filters["image_path"] == image_path
+
+    annotated_path = test_output_dir / data["annotated_filename"]
+    assert annotated_path.exists()
