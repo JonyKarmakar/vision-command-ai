@@ -142,6 +142,8 @@ type ZoomResponse = {
   class_name: string
   confidence_threshold: number
   padding_ratio: number
+  zoom_factor?: number
+  target_scope?: string
   selected_detection: Detection
   zoomed_filename: string
   zoomed_file_url: string
@@ -6878,54 +6880,149 @@ function App() {
               )}
               <p><strong>Result type:</strong> {commandResult.result_type}</p>
 
-              {commandResult.result_type === 'zoom_by_class' && (
-                <div className="command-result-output">
-                  {(() => {
-                    const result = commandResult.result as ZoomResponse
+                {commandResult.result_type === 'zoom_by_class' && (
+                  <div className="command-result-output">
+                    {(() => {
+                      const result = commandResult.result as ZoomResponse
 
-                    return (
-                      <>
-                        <p><strong>Zoomed file:</strong> {result.zoomed_filename}</p>
-                        <p>
-                          <strong>Zoom box:</strong>{' '}
-                          x1={Math.round(result.zoom_box.x1)}, y1={Math.round(result.zoom_box.y1)},{' '}
-                          x2={Math.round(result.zoom_box.x2)}, y2={Math.round(result.zoom_box.y2)}
-                        </p>
-                        <p>
-                          <strong>Output size:</strong>{' '}
-                          {result.output_size.width} × {result.output_size.height}
-                        </p>
+                      const handleDetectZoomedImage = async () => {
+                        try {
+                          setStatusMessage('Running YOLO on zoomed image...')
 
-                        <div className="loaded-panel-actions">
-                          <a
-                            className="secondary-button zoom-image-action-link"
-                            href={result.zoomed_file_url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open Zoomed Image
-                          </a>
+                          const normalizedDetectionThreshold =
+                            confidenceThreshold > 1 ? confidenceThreshold / 100 : confidenceThreshold
 
-                          <a
-                            className="secondary-button zoom-image-action-link"
-                            href={result.zoomed_file_url}
-                            download={result.zoomed_filename}
-                          >
-                            Download Zoomed Image
-                          </a>
-                        </div>
+                          const response = await fetch(
+                            `/api/vision/detect-output/${encodeURIComponent(result.zoomed_filename)}/annotated?confidence_threshold=${normalizedDetectionThreshold}`,
+                            {
+                              method: 'POST',
+                            },
+                          )
 
-                        <div className="image-preview-card">
-                          <img
-                            src={result.zoomed_file_url}
-                            alt={`Zoomed ${result.class_name}`}
-                          />
-                        </div>
-                      </>
-                    )
-                  })()}
-                </div>
-              )}
+                          if (!response.ok) {
+                            const errorData = await response.json().catch(() => null)
+                            throw new Error(errorData?.detail ?? 'Failed to run YOLO on zoomed image.')
+                          }
+
+                          const detectionData = await response.json() as DetectionResponse
+
+                          setDetectionResult(detectionData)
+                          setSelectedClass('all')
+                          setLastDetectionThreshold(normalizedDetectionThreshold)
+                          setLastDetectionClass('all')
+
+                          window.setTimeout(() => {
+                            detectionResultRef.current?.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'start',
+                            })
+                          }, 100)
+
+                          setClassOptions((previousClasses) =>
+                            Array.from(
+                              new Set([
+                                ...previousClasses,
+                                ...detectionData.detections.map((detection) => detection.class_name),
+                              ]),
+                            ).sort(),
+                          )
+
+                          setStatusMessage('YOLO detection completed on zoomed image.')
+                        } catch (error) {
+                          setStatusMessage(
+                            error instanceof Error
+                              ? error.message
+                              : 'Failed to run YOLO on zoomed image.',
+                          )
+                        }
+                      }
+
+                      return (
+                        <>
+                          <p><strong>Zoomed file:</strong> {result.zoomed_filename}</p>
+                          <p>
+                            <strong>Zoom box:</strong>{' '}
+                            x1={Math.round(result.zoom_box.x1)}, y1={Math.round(result.zoom_box.y1)},{' '}
+                            x2={Math.round(result.zoom_box.x2)}, y2={Math.round(result.zoom_box.y2)}
+                          </p>
+                          <p>
+                            <strong>Output size:</strong>{' '}
+                            {result.output_size.width} × {result.output_size.height}
+                          </p>
+                          {result.target_scope && (
+                            <p><strong>Target scope:</strong> {result.target_scope}</p>
+                          )}
+
+                          <div className="loaded-panel-actions">
+                            <a
+                              className="secondary-button zoom-image-action-link"
+                              href={result.zoomed_file_url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Open Zoomed Image
+                            </a>
+
+                            <a
+                              className="secondary-button zoom-image-action-link"
+                              href={result.zoomed_file_url}
+                              download={result.zoomed_filename}
+                            >
+                              Download Zoomed Image
+                            </a>
+
+                            <button
+                              type="button"
+                              className="secondary-button zoom-image-action-link"
+                              onClick={handleDetectZoomedImage}
+                            >
+                              Run YOLO on Zoomed Image
+                            </button>
+                          </div>
+
+                          <div className="zoom-comparison-grid">
+                            <div className="zoom-original-card">
+                              <div className="zoom-card-header">
+                                <span>Original</span>
+                                <strong>Zoom region</strong>
+                              </div>
+
+                              <div className="zoom-original-frame">
+                                <img
+                                  src={`/media/uploads/${encodeURIComponent(result.filename)}`}
+                                  alt={`Original ${result.class_name}`}
+                                />
+                                <span
+                                  className="zoom-region-box"
+                                  style={{
+                                    left: `${(result.zoom_box.x1 / result.output_size.width) * 100}%`,
+                                    top: `${(result.zoom_box.y1 / result.output_size.height) * 100}%`,
+                                    width: `${((result.zoom_box.x2 - result.zoom_box.x1) / result.output_size.width) * 100}%`,
+                                    height: `${((result.zoom_box.y2 - result.zoom_box.y1) / result.output_size.height) * 100}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="zoomed-image-card">
+                              <div className="zoom-card-header">
+                                <span>Zoomed output</span>
+                                <strong>{result.class_name}</strong>
+                              </div>
+
+                              <div className="zoomed-image-frame">
+                                <img
+                                  src={result.zoomed_file_url}
+                                  alt={`Zoomed ${result.class_name}`}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )
+                    })()}
+                  </div>
+                )}
             </div>
           )}
 
