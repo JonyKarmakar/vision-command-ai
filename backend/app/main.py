@@ -371,6 +371,128 @@ def detect_objects_with_annotation(
     }
 
 
+
+@app.post("/vision/detect-output/{filename}")
+def detect_generated_output(
+    filename: str,
+    confidence_threshold: float = Query(0.25, ge=0.0, le=1.0),
+    class_filter: Optional[str] = Query(None),
+):
+    image_path = OUTPUT_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Generated output image not found",
+        )
+
+    detections = run_yolo_detection_with_inference_logging(
+        filename=filename,
+        image_path=image_path,
+        confidence_threshold=confidence_threshold,
+        class_filter=class_filter,
+        source_endpoint="output_detection",
+    )
+
+    try:
+        save_detections_to_database(
+            filename=filename,
+            detections=detections,
+            confidence_threshold=confidence_threshold,
+            class_filter=class_filter,
+            source_endpoint="output_detection",
+        )
+    except Exception:
+        pass
+
+    return {
+        "filename": filename,
+        "source": "outputs",
+        "confidence_threshold": confidence_threshold,
+        "class_filter": class_filter,
+        "detections": detections,
+        "detection_count": len(detections),
+    }
+
+
+@app.post("/vision/detect-output/{filename}/annotated")
+def detect_generated_output_with_annotation(
+    filename: str,
+    confidence_threshold: float = Query(0.25, ge=0.0, le=1.0),
+    class_filter: Optional[str] = Query(None),
+):
+    image_path = OUTPUT_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Generated output image not found",
+        )
+
+    detections = run_yolo_detection_with_inference_logging(
+        filename=filename,
+        image_path=image_path,
+        confidence_threshold=confidence_threshold,
+        class_filter=class_filter,
+        source_endpoint="output_annotated_detection",
+    )
+
+    try:
+        save_detections_to_database(
+            filename=filename,
+            detections=detections,
+            confidence_threshold=confidence_threshold,
+            class_filter=class_filter,
+            source_endpoint="output_annotated_detection",
+        )
+    except Exception:
+        pass
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    file_extension = image_path.suffix or ".png"
+    annotated_filename = f"annotated_output_{image_path.stem}_{uuid4().hex}{file_extension}"
+    annotated_path = OUTPUT_DIR / annotated_filename
+
+    with Image.open(image_path).convert("RGB") as image:
+        draw = ImageDraw.Draw(image)
+
+        for detection in detections:
+            bbox = detection["bbox"]
+            x1 = bbox["x1"]
+            y1 = bbox["y1"]
+            x2 = bbox["x2"]
+            y2 = bbox["y2"]
+
+            label = f"{detection['class_name']} {detection['confidence']:.2f}"
+
+            draw.rectangle(
+                [(x1, y1), (x2, y2)],
+                outline="red",
+                width=3,
+            )
+
+            text_y = y1 - 12 if y1 >= 12 else y1 + 4
+            draw.text(
+                (x1, text_y),
+                label,
+                fill="red",
+            )
+
+        image.save(annotated_path)
+
+    return {
+        "filename": filename,
+        "source": "outputs",
+        "confidence_threshold": confidence_threshold,
+        "class_filter": class_filter,
+        "detections": detections,
+        "detection_count": len(detections),
+        "annotated_filename": annotated_filename,
+        "annotated_file_url": f"/media/outputs/{annotated_filename}",
+    }
+
+
 @app.post("/vision/crop/{filename}")
 def crop_uploaded_image(filename: str, crop: CropRequest):
     image_path = UPLOAD_DIR / filename
