@@ -20,6 +20,7 @@ class ZoomByClassRequest(BaseModel):
     confidence_threshold: float = 0.25
     padding_ratio: float = 0.25
     zoom_factor: float = 2.0
+    target_scope: Literal["best", "largest", "left", "right", "center", "single"] = "best"
 
 
 class BlurByClassRequest(BaseModel):

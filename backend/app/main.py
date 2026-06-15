@@ -951,6 +951,7 @@ def execute_validated_parsed_command(
             request=ZoomByClassRequest(
                 class_name=class_name,
                 confidence_threshold=request.confidence_threshold,
+                target_scope=parsed_command.get("target_scope", "best"),
             ),
         )
 
@@ -1247,6 +1248,39 @@ def blur_uploaded_image_object(filename: str, crop: CropRequest):
 
 
 
+
+def _detection_center_x(detection: dict) -> float:
+    bbox = detection["bbox"]
+    return (float(bbox["x1"]) + float(bbox["x2"])) / 2
+
+
+def _detection_area(detection: dict) -> float:
+    bbox = detection["bbox"]
+    width = float(bbox["x2"]) - float(bbox["x1"])
+    height = float(bbox["y2"]) - float(bbox["y1"])
+    return width * height
+
+
+def _select_zoom_detection(detections: list[dict], target_scope: str, image_width: int) -> dict:
+    if target_scope == "largest":
+        return max(detections, key=_detection_area)
+
+    if target_scope == "left":
+        return min(detections, key=_detection_center_x)
+
+    if target_scope == "right":
+        return max(detections, key=_detection_center_x)
+
+    if target_scope == "center":
+        image_center_x = image_width / 2
+        return min(
+            detections,
+            key=lambda detection: abs(_detection_center_x(detection) - image_center_x),
+        )
+
+    return max(detections, key=lambda detection: detection["confidence"])
+
+
 @app.post("/vision/zoom-by-class/{filename}")
 def zoom_best_object_by_class(filename: str, request: ZoomByClassRequest):
     image_path = UPLOAD_DIR / filename
@@ -1287,16 +1321,16 @@ def zoom_best_object_by_class(filename: str, request: ZoomByClassRequest):
             detail=f"No object found for class '{request.class_name}'",
         )
 
-    best_detection = max(
-        detections,
-        key=lambda detection: detection["confidence"],
-    )
-
-    bbox = best_detection["bbox"]
-
     with Image.open(image_path) as image:
         image = image.convert("RGB")
         width, height = image.size
+
+        best_detection = _select_zoom_detection(
+            detections=detections,
+            target_scope=request.target_scope,
+            image_width=width,
+        )
+        bbox = best_detection["bbox"]
 
         x1 = float(bbox["x1"])
         y1 = float(bbox["y1"])
@@ -1386,6 +1420,7 @@ def zoom_best_object_by_class(filename: str, request: ZoomByClassRequest):
         "confidence_threshold": request.confidence_threshold,
         "padding_ratio": request.padding_ratio,
         "zoom_factor": request.zoom_factor,
+        "target_scope": request.target_scope,
         "selected_detection": best_detection,
         "zoomed_filename": zoomed_filename,
         "zoomed_file_url": f"/media/outputs/{zoomed_filename}",
