@@ -19,6 +19,7 @@ class ZoomByClassRequest(BaseModel):
     class_name: str
     confidence_threshold: float = 0.25
     padding_ratio: float = 0.25
+    zoom_factor: float = 2.0
 
 
 class BlurByClassRequest(BaseModel):

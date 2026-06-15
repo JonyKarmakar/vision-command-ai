@@ -101,6 +101,7 @@ def test_execute_prepared_zoom_by_class_success(monkeypatch):
             "class_name": request.class_name,
             "confidence_threshold": request.confidence_threshold,
             "padding_ratio": request.padding_ratio,
+            "zoom_factor": request.zoom_factor,
             "selected_detection": {
                 "class_name": request.class_name,
                 "confidence": 0.91,
@@ -211,3 +212,81 @@ def test_zoom_by_class_preserves_output_aspect_ratio(monkeypatch):
 
     image_path.unlink(missing_ok=True)
     zoomed_path.unlink(missing_ok=True)
+
+
+def test_zoom_by_class_uses_zoom_factor_for_stronger_crop(monkeypatch):
+    filename = "zoom_strength_test.jpg"
+    image_path = main.UPLOAD_DIR / filename
+
+    Image.new("RGB", (400, 300), color="white").save(image_path)
+
+    def fake_run_yolo_detection(image_path, confidence_threshold, class_filter):
+        return [
+            {
+                "class_id": 0,
+                "class_name": "person",
+                "confidence": 0.95,
+                "bbox": {
+                    "x1": 120,
+                    "y1": 80,
+                    "x2": 220,
+                    "y2": 180,
+                },
+            }
+        ]
+
+    monkeypatch.setattr(main, "run_yolo_detection", fake_run_yolo_detection)
+
+    response = client.post(
+        f"/vision/zoom-by-class/{filename}",
+        json={
+            "class_name": "person",
+            "confidence_threshold": 0.25,
+            "padding_ratio": 0.1,
+            "zoom_factor": 2.0,
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["zoom_factor"] == 2.0
+
+    zoom_box = data["zoom_box"]
+    zoom_width = zoom_box["x2"] - zoom_box["x1"]
+    zoom_height = zoom_box["y2"] - zoom_box["y1"]
+
+    assert zoom_width < 400
+    assert zoom_height < 300
+    assert round(zoom_width / zoom_height, 2) == round(400 / 300, 2)
+
+    zoomed_path = main.OUTPUT_DIR / data["zoomed_filename"]
+    with Image.open(zoomed_path) as zoomed_image:
+        assert zoomed_image.size == (400, 300)
+
+    image_path.unlink(missing_ok=True)
+    zoomed_path.unlink(missing_ok=True)
+
+
+def test_zoom_by_class_rejects_invalid_zoom_factor():
+    filename = "zoom_invalid_factor_test.jpg"
+    image_path = main.UPLOAD_DIR / filename
+
+    Image.new("RGB", (400, 300), color="white").save(image_path)
+
+    response = client.post(
+        f"/vision/zoom-by-class/{filename}",
+        json={
+            "class_name": "person",
+            "confidence_threshold": 0.25,
+            "padding_ratio": 0.1,
+            "zoom_factor": 0.5,
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "zoom_factor must be greater than or equal to 1"
+    }
+
+    image_path.unlink(missing_ok=True)
