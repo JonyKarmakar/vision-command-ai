@@ -90,6 +90,21 @@ def validate_parsed_command(parsed_command: dict):
     if parsed_command.get("class_name") is not None:
         parsed_command = _normalize_and_validate_class_name(parsed_command)
 
+    if action == "zoom_by_class" and parsed_command.get("target_scope") is not None:
+        target_scope = str(parsed_command["target_scope"]).lower()
+        allowed_target_scopes = {"best", "largest", "left", "right", "center", "single"}
+
+        if target_scope not in allowed_target_scopes:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "zoom_by_class target_scope must be one of: "
+                    "best, largest, left, right, center, single"
+                ),
+            )
+
+        parsed_command["target_scope"] = target_scope
+
     if action == "extract_frame":
         _require_number(parsed_command, "timestamp_seconds")
 
