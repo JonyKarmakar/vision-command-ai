@@ -1269,6 +1269,12 @@ def zoom_best_object_by_class(filename: str, request: ZoomByClassRequest):
             detail="padding_ratio must be greater than or equal to 0",
         )
 
+    if request.zoom_factor < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="zoom_factor must be greater than or equal to 1",
+        )
+
     detections = run_yolo_detection(
         image_path=image_path,
         confidence_threshold=request.confidence_threshold,
@@ -1306,19 +1312,29 @@ def zoom_best_object_by_class(filename: str, request: ZoomByClassRequest):
                 detail="Detected object bounding box is invalid",
             )
 
+        target_aspect_ratio = width / height
+
+        crop_width = width / request.zoom_factor
+        crop_height = crop_width / target_aspect_ratio
+
+        if crop_height > height:
+            crop_height = height / request.zoom_factor
+            crop_width = crop_height * target_aspect_ratio
+
         padded_width = box_width * (1 + request.padding_ratio * 2)
         padded_height = box_height * (1 + request.padding_ratio * 2)
 
-        target_aspect_ratio = width / height
-        crop_aspect_ratio = padded_width / padded_height
+        crop_width = max(crop_width, min(padded_width, width / request.zoom_factor))
+        crop_height = max(crop_height, min(padded_height, height / request.zoom_factor))
 
+        crop_aspect_ratio = crop_width / crop_height
         if crop_aspect_ratio < target_aspect_ratio:
-            padded_width = padded_height * target_aspect_ratio
+            crop_width = crop_height * target_aspect_ratio
         elif crop_aspect_ratio > target_aspect_ratio:
-            padded_height = padded_width / target_aspect_ratio
+            crop_height = crop_width / target_aspect_ratio
 
-        crop_width = min(padded_width, width)
-        crop_height = min(padded_height, height)
+        crop_width = min(crop_width, width)
+        crop_height = min(crop_height, height)
 
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
@@ -1369,6 +1385,7 @@ def zoom_best_object_by_class(filename: str, request: ZoomByClassRequest):
         "class_name": request.class_name,
         "confidence_threshold": request.confidence_threshold,
         "padding_ratio": request.padding_ratio,
+        "zoom_factor": request.zoom_factor,
         "selected_detection": best_detection,
         "zoomed_filename": zoomed_filename,
         "zoomed_file_url": f"/media/outputs/{zoomed_filename}",
