@@ -493,6 +493,88 @@ def detect_generated_output_with_annotation(
     }
 
 
+
+@app.post("/vision/crop-output/{filename}")
+def crop_generated_output_image(filename: str, crop: CropRequest):
+    image_path = OUTPUT_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Generated output image not found")
+
+    with Image.open(image_path) as image:
+        image = image.convert("RGB")
+        width, height = image.size
+
+        left = max(0, int(crop.x1))
+        top = max(0, int(crop.y1))
+        right = min(width, int(crop.x2))
+        bottom = min(height, int(crop.y2))
+
+        if right <= left or bottom <= top:
+            raise HTTPException(status_code=400, detail="Crop box is invalid")
+
+        cropped_image = image.crop((left, top, right, bottom))
+        cropped_filename = f"crop_output_{image_path.stem}_{uuid4().hex}{image_path.suffix or '.png'}"
+        cropped_path = OUTPUT_DIR / cropped_filename
+        cropped_image.save(cropped_path)
+
+    return {
+        "filename": filename,
+        "source": "outputs",
+        "cropped_filename": cropped_filename,
+        "cropped_file_url": f"/media/outputs/{cropped_filename}",
+        "crop_box": {
+            "x1": left,
+            "y1": top,
+            "x2": right,
+            "y2": bottom,
+        },
+    }
+
+
+@app.post("/vision/blur-output/{filename}")
+def blur_generated_output_image(filename: str, blur: CropRequest):
+    image_path = OUTPUT_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Generated output image not found")
+
+    with Image.open(image_path) as image:
+        image = image.convert("RGB")
+        width, height = image.size
+
+        left = max(0, int(blur.x1))
+        top = max(0, int(blur.y1))
+        right = min(width, int(blur.x2))
+        bottom = min(height, int(blur.y2))
+
+        if right <= left or bottom <= top:
+            raise HTTPException(status_code=400, detail="Blur box is invalid")
+
+        blurred_image = image.copy()
+        region = blurred_image.crop((left, top, right, bottom))
+        region = region.resize((max(1, region.width // 12), max(1, region.height // 12)))
+        region = region.resize((right - left, bottom - top))
+        blurred_image.paste(region, (left, top))
+
+        blurred_filename = f"blur_output_{image_path.stem}_{uuid4().hex}{image_path.suffix or '.png'}"
+        blurred_path = OUTPUT_DIR / blurred_filename
+        blurred_image.save(blurred_path)
+
+    return {
+        "filename": filename,
+        "source": "outputs",
+        "blurred_filename": blurred_filename,
+        "blurred_file_url": f"/media/outputs/{blurred_filename}",
+        "blur_box": {
+            "x1": left,
+            "y1": top,
+            "x2": right,
+            "y2": bottom,
+        },
+    }
+
+
 @app.post("/vision/crop/{filename}")
 def crop_uploaded_image(filename: str, crop: CropRequest):
     image_path = UPLOAD_DIR / filename

@@ -240,3 +240,69 @@ def test_detect_generated_output_with_annotation_success(tmp_path, monkeypatch):
 
     annotated_path = test_output_dir / data["annotated_filename"]
     assert annotated_path.exists()
+
+
+def test_crop_generated_output_image_success(tmp_path, monkeypatch):
+    test_output_dir = tmp_path / "outputs"
+    test_output_dir.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr(main, "OUTPUT_DIR", test_output_dir)
+
+    image_bytes = create_test_image_bytes(width=120, height=80)
+    image_path = test_output_dir / "zoom_result.png"
+
+    with image_path.open("wb") as file:
+        file.write(image_bytes.getvalue())
+
+    response = client.post(
+        "/vision/crop-output/zoom_result.png",
+        json={"x1": 10, "y1": 20, "x2": 80, "y2": 70},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["filename"] == "zoom_result.png"
+    assert data["source"] == "outputs"
+    assert data["cropped_filename"].startswith("crop_output_zoom_result_")
+    assert data["cropped_file_url"] == f"/media/outputs/{data['cropped_filename']}"
+    assert data["crop_box"] == {"x1": 10, "y1": 20, "x2": 80, "y2": 70}
+    assert (test_output_dir / data["cropped_filename"]).exists()
+
+
+def test_blur_generated_output_image_success(tmp_path, monkeypatch):
+    test_output_dir = tmp_path / "outputs"
+    test_output_dir.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr(main, "OUTPUT_DIR", test_output_dir)
+
+    image_bytes = create_test_image_bytes(width=120, height=80)
+    image_path = test_output_dir / "zoom_result.png"
+
+    with image_path.open("wb") as file:
+        file.write(image_bytes.getvalue())
+
+    response = client.post(
+        "/vision/blur-output/zoom_result.png",
+        json={"x1": 10, "y1": 20, "x2": 80, "y2": 70},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["filename"] == "zoom_result.png"
+    assert data["source"] == "outputs"
+    assert data["blurred_filename"].startswith("blur_output_zoom_result_")
+    assert data["blurred_file_url"] == f"/media/outputs/{data['blurred_filename']}"
+    assert data["blur_box"] == {"x1": 10, "y1": 20, "x2": 80, "y2": 70}
+    assert (test_output_dir / data["blurred_filename"]).exists()
+
+
+def test_crop_generated_output_image_not_found():
+    response = client.post(
+        "/vision/crop-output/missing-output.png",
+        json={"x1": 10, "y1": 20, "x2": 80, "y2": 70},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Generated output image not found"}
