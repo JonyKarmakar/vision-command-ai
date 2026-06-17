@@ -174,6 +174,17 @@ type BlurResponse = {
   }
 }
 
+type GeneratedOutputHistoryItem = {
+  id: string
+  action: 'annotated_detection' | 'zoom' | 'crop' | 'blur'
+  label: string
+  filename: string
+  file_url: string
+  source?: 'uploads' | 'outputs'
+  source_filename?: string | null
+  created_at: string
+}
+
 type VideoDetectFramesCommandResponse = {
   extracted_frames: VideoMultiFrameExtractResponse
   detection: VideoMultiFrameDetectionResponse
@@ -720,6 +731,7 @@ function App() {
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
+  const [generatedOutputHistory, setGeneratedOutputHistory] = useState<GeneratedOutputHistoryItem[]>([])
 
   const [confidenceThreshold, setConfidenceThreshold] = useState(30)
   const [selectedClass, setSelectedClass] = useState('all')
@@ -835,6 +847,7 @@ function App() {
   const detectionResultRef = useRef<HTMLHeadingElement | null>(null)
   const cropResultRef = useRef<HTMLElement | null>(null)
   const blurResultRef = useRef<HTMLElement | null>(null)
+  const generatedOutputHistoryRef = useRef<HTMLElement | null>(null)
   const videoTrimResultRef = useRef<HTMLElement | null>(null)
   const videoFrameResultRef = useRef<HTMLElement | null>(null)
   const videoFrameDetectionResultRef = useRef<HTMLElement | null>(null)
@@ -891,6 +904,21 @@ function App() {
     }, 180)
   }
 
+  const addGeneratedOutputHistoryItem = (
+    item: Omit<GeneratedOutputHistoryItem, 'id' | 'created_at'>,
+  ) => {
+    const createdAt = new Date().toISOString()
+
+    setGeneratedOutputHistory((previousItems) => [
+      {
+        ...item,
+        id: `${item.action}-${item.filename}-${createdAt}`,
+        created_at: createdAt,
+      },
+      ...previousItems,
+    ])
+  }
+
   const scrollToCommandOutputView = (resultType: string) => {
     const resultViewByType: Record<string, { current: HTMLElement | null }> = {
       annotated_detection: detectionResultRef,
@@ -919,6 +947,8 @@ function App() {
         return cropResultRef
       case 'Blur':
         return blurResultRef
+      case 'Generated Outputs':
+        return generatedOutputHistoryRef
       case 'Video Upload':
         return videoUploadResultRef
       case 'Video Trim':
@@ -1001,6 +1031,7 @@ function App() {
       ...(detectionResult ? { detectionResult } : {}),
       ...(cropResult ? { cropResult } : {}),
       ...(blurResult ? { blurResult } : {}),
+      ...(generatedOutputHistory.length > 0 ? { generatedOutputHistory } : {}),
       ...(videoUploadResult ? { videoUploadResult } : {}),
       ...(videoTrimResult ? { videoTrimResult } : {}),
       ...(videoFrameResult ? { videoFrameResult } : {}),
@@ -2103,6 +2134,14 @@ function App() {
 
       const data: DetectionResponse = await response.json()
       setDetectionResult(data)
+      addGeneratedOutputHistoryItem({
+        action: 'annotated_detection',
+        label: 'Annotated detection output',
+        filename: data.annotated_filename,
+        file_url: data.annotated_file_url,
+        source: data.source ?? 'uploads',
+        source_filename: data.filename,
+      })
       setActiveWorkspaceResultLabel('Detection')
       scrollToLoadedView(detectionResultRef)
       setLastDetectionThreshold(confidenceThreshold)
@@ -2165,6 +2204,14 @@ function App() {
 
       const data: CropResponse = await response.json()
       setCropResult(data)
+      addGeneratedOutputHistoryItem({
+        action: 'crop',
+        label: 'Cropped object output',
+        filename: data.cropped_filename,
+        file_url: data.cropped_file_url,
+        source: data.source ?? 'uploads',
+        source_filename: data.filename,
+      })
       scrollToLoadedView(cropResultRef)
       setStatusMessage('Crop complete. Cropped output is ready.')
     } catch (err) {
@@ -2216,6 +2263,14 @@ function App() {
 
       const data: BlurResponse = await response.json()
       setBlurResult(data)
+      addGeneratedOutputHistoryItem({
+        action: 'blur',
+        label: 'Blurred object output',
+        filename: data.blurred_filename,
+        file_url: data.blurred_file_url,
+        source: data.source ?? 'uploads',
+        source_filename: data.filename,
+      })
       scrollToLoadedView(blurResultRef)
       setStatusMessage('Blur complete. Blurred output is ready.')
     } catch (err) {
@@ -3916,6 +3971,15 @@ function App() {
       }
 
       if (data.result_type === 'zoom_by_class') {
+        const result = data.result as ZoomResponse
+        addGeneratedOutputHistoryItem({
+          action: 'zoom',
+          label: 'Zoomed output',
+          filename: result.zoomed_filename,
+          file_url: result.zoomed_file_url,
+          source: 'outputs',
+          source_filename: result.filename,
+        })
         setCropResult(null)
         setBlurResult(null)
       }
@@ -6932,6 +6996,16 @@ function App() {
                           const detectionData = await response.json() as DetectionResponse
 
                           setDetectionResult(detectionData)
+                          addGeneratedOutputHistoryItem({
+                            action: 'annotated_detection',
+                            label: detectionData.source === 'outputs'
+                              ? 'YOLO on generated output'
+                              : 'Annotated detection output',
+                            filename: detectionData.annotated_filename,
+                            file_url: detectionData.annotated_file_url,
+                            source: detectionData.source ?? 'uploads',
+                            source_filename: detectionData.filename,
+                          })
                           setSelectedClass('all')
                           setLastDetectionThreshold(normalizedDetectionThreshold)
                           setLastDetectionClass('all')
@@ -9476,6 +9550,63 @@ uvicorn app.main:app --reload`}</pre>
           </div>
         </section>
       )}
+
+        {generatedOutputHistory.length > 0 && (
+          <section className="card generated-output-history-card" ref={generatedOutputHistoryRef}>
+            <div className="generated-output-history-header">
+              <div>
+                <p className="section-eyebrow">Generated Outputs</p>
+                <h2>Output History</h2>
+                <p className="small-note">
+                  Session trace of generated images from detection, zoom, crop, and blur actions.
+                  Clearing this history does not remove active result panels.
+                </p>
+              </div>
+
+              <button
+                className="secondary-button view-clear-button"
+                onClick={() => {
+                  setGeneratedOutputHistory([])
+                  setStatusMessage('Generated Output History cleared.')
+                }}
+                disabled={isBusy}
+              >
+                Clear Output History
+              </button>
+            </div>
+
+            <div className="generated-output-list">
+              {generatedOutputHistory.map((item) => {
+                const outputUrl = `/api${item.file_url}`
+
+                return (
+                  <div className="generated-output-item" key={item.id}>
+                    <div>
+                      <span className="generated-output-action">
+                        {item.action.replace(/_/g, ' ')}
+                      </span>
+                      <strong>{item.label}</strong>
+                      <p>{item.filename}</p>
+                      <p className="small-note">
+                        Source: {item.source ?? 'unknown'}
+                        {item.source_filename ? ` · ${item.source_filename}` : ''}
+                      </p>
+                    </div>
+
+                    <div className="output-actions">
+                      <a href={outputUrl} target="_blank" rel="noreferrer">
+                        Open
+                      </a>
+                      <a href={outputUrl} download={item.filename}>
+                        Download
+                      </a>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
       {detectionResult && (
         <section className="result-grid">
