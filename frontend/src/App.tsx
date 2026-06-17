@@ -3255,6 +3255,18 @@ function App() {
 
       const data: CommandResponse = await response.json()
       setCommandResult(data)
+
+      if (data.result_type === 'zoom_by_class') {
+        const result = data.result as ZoomResponse
+        addGeneratedOutputHistoryItem({
+          action: 'zoom',
+          label: 'Zoomed output',
+          filename: result.zoomed_filename,
+          file_url: result.zoomed_file_url,
+          source: 'outputs',
+          source_filename: result.filename,
+        })
+      }
       scrollToLoadedView(commandResultRef)
       setStatusMessage(`Executed prepared command as: ${data.result_type}.`)
     } catch (err) {
@@ -9581,7 +9593,17 @@ uvicorn app.main:app --reload`}</pre>
 
                 return (
                   <div className="generated-output-item" key={item.id}>
-                    <div>
+                    <a
+                      className="generated-output-thumbnail"
+                      href={outputUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Open ${item.label}`}
+                    >
+                      <img src={outputUrl} alt={item.label} loading="lazy" />
+                    </a>
+
+                    <div className="generated-output-details">
                       <span className="generated-output-action">
                         {item.action.replace(/_/g, ' ')}
                       </span>
@@ -9593,7 +9615,7 @@ uvicorn app.main:app --reload`}</pre>
                       </p>
                     </div>
 
-                    <div className="output-actions">
+                    <div className="output-actions generated-output-actions">
                       <a href={outputUrl} target="_blank" rel="noreferrer">
                         Open
                       </a>
