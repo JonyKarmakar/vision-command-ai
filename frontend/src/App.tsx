@@ -99,6 +99,7 @@ type Detection = {
 
 type DetectionResponse = {
   filename: string
+  source?: 'uploads' | 'outputs'
   confidence_threshold: number
   class_filter: string | null
   detections: Detection[]
@@ -124,6 +125,7 @@ type VideoMultiFrameDetectionResponse = {
 
 type CropResponse = {
   filename: string
+  source?: 'uploads' | 'outputs'
   class_name?: string
   confidence_threshold?: number
   selected_detection?: Detection
@@ -161,6 +163,7 @@ type ZoomResponse = {
 
 type BlurResponse = {
   filename: string
+  source?: 'uploads' | 'outputs'
   blurred_filename: string
   blurred_file_url: string
   blur_box: {
@@ -2122,10 +2125,16 @@ function App() {
   }
 
   const handleCrop = async (detection: Detection) => {
-    if (!uploadResult) {
-      setError('Please upload an image first.')
-      return
-    }
+      const detectionSource = detectionResult?.source ?? 'uploads'
+      const sourceFilename =
+        detectionSource === 'outputs'
+          ? detectionResult?.filename
+          : uploadResult?.stored_filename
+
+      if (!sourceFilename) {
+        setError('No source image is available for cropping.')
+        return
+      }
 
     try {
       setIsCropping(true)
@@ -2133,8 +2142,13 @@ function App() {
       setCommandResult(null)
       setStatusMessage(`Cropping selected ${detection.class_name}...`)
 
+        const cropEndpoint =
+          detectionSource === 'outputs'
+            ? `/api/vision/crop-output/${encodeURIComponent(sourceFilename)}`
+            : `/api/vision/crop/${encodeURIComponent(sourceFilename)}`
+
       const response = await fetch(
-        `/api/vision/crop/${uploadResult.stored_filename}`,
+        cropEndpoint,
         {
           method: 'POST',
           headers: {
@@ -2162,10 +2176,16 @@ function App() {
   }
 
   const handleBlur = async (detection: Detection) => {
-    if (!uploadResult) {
-      setError('Please upload an image first.')
-      return
-    }
+      const detectionSource = detectionResult?.source ?? 'uploads'
+      const sourceFilename =
+        detectionSource === 'outputs'
+          ? detectionResult?.filename
+          : uploadResult?.stored_filename
+
+      if (!sourceFilename) {
+        setError('No source image is available for blurring.')
+        return
+      }
 
     try {
       setIsBlurring(true)
@@ -2173,8 +2193,13 @@ function App() {
       setCommandResult(null)
       setStatusMessage(`Blurring selected ${detection.class_name}...`)
 
+        const blurEndpoint =
+          detectionSource === 'outputs'
+            ? `/api/vision/blur-output/${encodeURIComponent(sourceFilename)}`
+            : `/api/vision/blur/${encodeURIComponent(sourceFilename)}`
+
       const response = await fetch(
-        `/api/vision/blur/${uploadResult.stored_filename}`,
+        blurEndpoint,
         {
           method: 'POST',
           headers: {
