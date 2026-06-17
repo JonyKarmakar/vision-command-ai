@@ -4164,3 +4164,47 @@ input[type="file"]::file-selector-button:hover {
     flex-direction: column;
   }
 }
+
+.generated-output-thumbnail {
+  display: block;
+  width: 160px;
+  height: 110px;
+  overflow: hidden;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  background: #020617;
+}
+
+.generated-output-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.generated-output-details {
+  min-width: 0;
+}
+
+.generated-output-actions {
+  align-self: center;
+}
+
+@media (min-width: 761px) {
+  .generated-output-item {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+@media (max-width: 760px) {
+  .generated-output-thumbnail {
+    width: 100%;
+    height: 180px;
+  }
+
+  .generated-output-actions {
+    align-self: flex-start;
+  }
+}
