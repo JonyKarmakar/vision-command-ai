@@ -575,6 +575,87 @@ def blur_generated_output_image(filename: str, blur: CropRequest):
     }
 
 
+
+def crop_best_generated_output_object_by_class(filename: str, request: CropByClassRequest):
+    image_path = OUTPUT_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Generated output image not found")
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=request.confidence_threshold,
+        class_filter=request.class_name,
+    )
+
+    if not detections:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No object found for class '{request.class_name}'",
+        )
+
+    best_detection = max(detections, key=lambda detection: detection["confidence"])
+    crop_response = crop_generated_output_image(
+        filename,
+        CropRequest(**best_detection["bbox"]),
+    )
+
+    return {
+        "filename": filename,
+        "source": "outputs",
+        "class_name": request.class_name,
+        "confidence_threshold": request.confidence_threshold,
+        "selected_detection": best_detection,
+        **crop_response,
+    }
+
+
+def blur_best_generated_output_object_by_class(filename: str, request: BlurByClassRequest):
+    image_path = OUTPUT_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Generated output image not found")
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=request.confidence_threshold,
+        class_filter=request.class_name,
+    )
+
+    if not detections:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No object found for class '{request.class_name}'",
+        )
+
+    best_detection = max(detections, key=lambda detection: detection["confidence"])
+    blur_response = blur_generated_output_image(
+        filename,
+        CropRequest(**best_detection["bbox"]),
+    )
+
+    return {
+        "filename": filename,
+        "source": "outputs",
+        "class_name": request.class_name,
+        "confidence_threshold": request.confidence_threshold,
+        "selected_detection": best_detection,
+        **blur_response,
+    }
+
+
 @app.post("/vision/crop/{filename}")
 def crop_uploaded_image(filename: str, crop: CropRequest):
     image_path = UPLOAD_DIR / filename
@@ -1080,16 +1161,28 @@ def _validate_command_confidence_threshold(confidence_threshold: float):
         )
 
 
+def _is_generated_output_command(request: CommandRequest) -> bool:
+    return getattr(request, "media_source", "uploads") == "outputs"
+
+
 def execute_validated_parsed_command(
     request: CommandRequest,
     parse_result: dict,
     parsed_command: dict,
 ):
     if parsed_command["action"] == "detect":
-        result = detect_objects_with_annotation(
-            filename=request.filename,
-            confidence_threshold=request.confidence_threshold,
-            class_filter=None,
+        result = (
+            detect_generated_output_with_annotation(
+                filename=request.filename,
+                confidence_threshold=request.confidence_threshold,
+                class_filter=None,
+            )
+            if _is_generated_output_command(request)
+            else detect_objects_with_annotation(
+                filename=request.filename,
+                confidence_threshold=request.confidence_threshold,
+                class_filter=None,
+            )
         )
 
         result_type = "annotated_detection"
@@ -1106,12 +1199,22 @@ def execute_validated_parsed_command(
     if parsed_command["action"] == "crop_by_class":
         class_name = parsed_command["class_name"]
 
-        result = crop_best_object_by_class(
-            filename=request.filename,
-            request=CropByClassRequest(
-                class_name=class_name,
-                confidence_threshold=request.confidence_threshold,
-            ),
+        result = (
+            crop_best_generated_output_object_by_class(
+                filename=request.filename,
+                request=CropByClassRequest(
+                    class_name=class_name,
+                    confidence_threshold=request.confidence_threshold,
+                ),
+            )
+            if _is_generated_output_command(request)
+            else crop_best_object_by_class(
+                filename=request.filename,
+                request=CropByClassRequest(
+                    class_name=class_name,
+                    confidence_threshold=request.confidence_threshold,
+                ),
+            )
         )
 
         result_type = "crop_by_class"
@@ -1128,12 +1231,22 @@ def execute_validated_parsed_command(
     if parsed_command["action"] == "blur_by_class":
         class_name = parsed_command["class_name"]
 
-        result = blur_best_object_by_class(
-            filename=request.filename,
-            request=BlurByClassRequest(
-                class_name=class_name,
-                confidence_threshold=request.confidence_threshold,
-            ),
+        result = (
+            blur_best_generated_output_object_by_class(
+                filename=request.filename,
+                request=BlurByClassRequest(
+                    class_name=class_name,
+                    confidence_threshold=request.confidence_threshold,
+                ),
+            )
+            if _is_generated_output_command(request)
+            else blur_best_object_by_class(
+                filename=request.filename,
+                request=BlurByClassRequest(
+                    class_name=class_name,
+                    confidence_threshold=request.confidence_threshold,
+                ),
+            )
         )
 
         result_type = "blur_by_class"
@@ -1150,13 +1263,24 @@ def execute_validated_parsed_command(
     if parsed_command["action"] == "zoom_by_class":
         class_name = parsed_command["class_name"]
 
-        result = zoom_best_object_by_class(
-            filename=request.filename,
-            request=ZoomByClassRequest(
-                class_name=class_name,
-                confidence_threshold=request.confidence_threshold,
-                target_scope=parsed_command.get("target_scope", "best"),
-            ),
+        result = (
+            zoom_best_generated_output_object_by_class(
+                filename=request.filename,
+                request=ZoomByClassRequest(
+                    class_name=class_name,
+                    confidence_threshold=request.confidence_threshold,
+                    target_scope=parsed_command.get("target_scope", "best"),
+                ),
+            )
+            if _is_generated_output_command(request)
+            else zoom_best_object_by_class(
+                filename=request.filename,
+                request=ZoomByClassRequest(
+                    class_name=class_name,
+                    confidence_threshold=request.confidence_threshold,
+                    target_scope=parsed_command.get("target_scope", "best"),
+                ),
+            )
         )
 
         result_type = "zoom_by_class"
@@ -1173,12 +1297,22 @@ def execute_validated_parsed_command(
     if parsed_command["action"] == "blur_all_by_class":
         class_name = parsed_command["class_name"]
 
-        result = blur_all_objects_by_class(
-            filename=request.filename,
-            request=BlurAllByClassRequest(
-                class_name=class_name,
-                confidence_threshold=request.confidence_threshold,
-            ),
+        result = (
+            blur_all_generated_output_objects_by_class(
+                filename=request.filename,
+                request=BlurAllByClassRequest(
+                    class_name=class_name,
+                    confidence_threshold=request.confidence_threshold,
+                ),
+            )
+            if _is_generated_output_command(request)
+            else blur_all_objects_by_class(
+                filename=request.filename,
+                request=BlurAllByClassRequest(
+                    class_name=class_name,
+                    confidence_threshold=request.confidence_threshold,
+                ),
+            )
         )
 
         result_type = "blur_all_by_class"
@@ -1347,6 +1481,7 @@ def execute_prepared_command(request: PreparedCommandExecutionRequest):
         command=request.command,
         confidence_threshold=request.confidence_threshold,
         parser_mode="prepared",
+        media_source=request.media_source,
     )
 
     parse_result = {
@@ -1620,6 +1755,232 @@ def zoom_best_object_by_class(filename: str, request: ZoomByClassRequest):
 
     return {
         "filename": filename,
+        "class_name": request.class_name,
+        "confidence_threshold": request.confidence_threshold,
+        "padding_ratio": request.padding_ratio,
+        "zoom_factor": request.zoom_factor,
+        "target_scope": request.target_scope,
+        "selected_detection": best_detection,
+        "zoomed_filename": zoomed_filename,
+        "zoomed_file_url": f"/media/outputs/{zoomed_filename}",
+        "zoom_box": {
+            "x1": left,
+            "y1": top,
+            "x2": right,
+            "y2": bottom,
+        },
+        "output_size": {
+            "width": width,
+            "height": height,
+        },
+    }
+
+
+
+def blur_all_generated_output_objects_by_class(filename: str, request: BlurAllByClassRequest):
+    image_path = OUTPUT_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Generated output image not found")
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    class_name = normalize_requested_class_name(request.class_name)
+
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=request.confidence_threshold,
+        class_filter=class_name,
+    )
+
+    if not detections:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No object found for class '{class_name}'",
+        )
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    from PIL import ImageFilter
+
+    with Image.open(image_path).convert("RGB") as image:
+        width, height = image.size
+        union_left = width
+        union_top = height
+        union_right = 0
+        union_bottom = 0
+
+        for detection in detections:
+            bbox = detection["bbox"]
+            left = max(0, min(int(bbox["x1"]), width))
+            top = max(0, min(int(bbox["y1"]), height))
+            right = max(0, min(int(bbox["x2"]), width))
+            bottom = max(0, min(int(bbox["y2"]), height))
+
+            if right <= left or bottom <= top:
+                continue
+
+            object_region = image.crop((left, top, right, bottom))
+            blurred_region = object_region.filter(ImageFilter.GaussianBlur(radius=18))
+            image.paste(blurred_region, (left, top))
+
+            union_left = min(union_left, left)
+            union_top = min(union_top, top)
+            union_right = max(union_right, right)
+            union_bottom = max(union_bottom, bottom)
+
+        file_extension = image_path.suffix or ".png"
+        blurred_filename = f"blur_all_output_{class_name}_{image_path.stem}_{uuid4().hex}{file_extension}"
+        blurred_path = OUTPUT_DIR / blurred_filename
+        image.save(blurred_path)
+
+    return {
+        "filename": filename,
+        "source": "outputs",
+        "class_name": class_name,
+        "confidence_threshold": request.confidence_threshold,
+        "detection_count": len(detections),
+        "blurred_detections": detections,
+        "blurred_filename": blurred_filename,
+        "blurred_file_url": f"/media/outputs/{blurred_filename}",
+        "blur_box": {
+            "x1": union_left,
+            "y1": union_top,
+            "x2": union_right,
+            "y2": union_bottom,
+        },
+    }
+
+
+
+def zoom_best_generated_output_object_by_class(filename: str, request: ZoomByClassRequest):
+    image_path = OUTPUT_DIR / filename
+
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Generated output image not found")
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    if request.padding_ratio < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="padding_ratio must be greater than or equal to 0",
+        )
+
+    if request.zoom_factor < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="zoom_factor must be greater than or equal to 1",
+        )
+
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=request.confidence_threshold,
+        class_filter=request.class_name,
+    )
+
+    if not detections:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No object found for class '{request.class_name}'",
+        )
+
+    with Image.open(image_path) as image:
+        image = image.convert("RGB")
+        width, height = image.size
+        best_detection = _select_zoom_detection(
+            detections=detections,
+            target_scope=request.target_scope,
+            image_width=width,
+        )
+        bbox = best_detection["bbox"]
+
+        x1 = float(bbox["x1"])
+        y1 = float(bbox["y1"])
+        x2 = float(bbox["x2"])
+        y2 = float(bbox["y2"])
+
+        box_width = x2 - x1
+        box_height = y2 - y1
+
+        if box_width <= 0 or box_height <= 0:
+            raise HTTPException(status_code=400, detail="Detected object bounding box is invalid")
+
+        target_aspect_ratio = width / height
+        crop_width = width / request.zoom_factor
+        crop_height = crop_width / target_aspect_ratio
+
+        if crop_height > height:
+            crop_height = height / request.zoom_factor
+            crop_width = crop_height * target_aspect_ratio
+
+        padded_width = box_width * (1 + request.padding_ratio * 2)
+        padded_height = box_height * (1 + request.padding_ratio * 2)
+
+        crop_width = max(crop_width, min(padded_width, width / request.zoom_factor))
+        crop_height = max(crop_height, min(padded_height, height / request.zoom_factor))
+
+        crop_aspect_ratio = crop_width / crop_height
+
+        if crop_aspect_ratio < target_aspect_ratio:
+            crop_width = crop_height * target_aspect_ratio
+        elif crop_aspect_ratio > target_aspect_ratio:
+            crop_height = crop_width / target_aspect_ratio
+
+        crop_width = min(crop_width, width)
+        crop_height = min(crop_height, height)
+
+        center_x = (x1 + x2) / 2
+        center_y = (y1 + y2) / 2
+
+        left = int(round(center_x - crop_width / 2))
+        top = int(round(center_y - crop_height / 2))
+        right = int(round(left + crop_width))
+        bottom = int(round(top + crop_height))
+
+        if left < 0:
+            right -= left
+            left = 0
+
+        if top < 0:
+            bottom -= top
+            top = 0
+
+        if right > width:
+            left -= right - width
+            right = width
+
+        if bottom > height:
+            top -= bottom - height
+            bottom = height
+
+        left = max(0, left)
+        top = max(0, top)
+        right = min(width, right)
+        bottom = min(height, bottom)
+
+        if right <= left or bottom <= top:
+            raise HTTPException(status_code=400, detail="Zoom crop box is invalid")
+
+        zoomed_region = image.crop((left, top, right, bottom))
+        zoomed_image = zoomed_region.resize((width, height), Image.Resampling.LANCZOS)
+
+        file_extension = image_path.suffix or ".png"
+        zoomed_filename = f"zoom_output_{request.class_name}_{image_path.stem}_{uuid4().hex}{file_extension}"
+        zoomed_path = OUTPUT_DIR / zoomed_filename
+        zoomed_image.save(zoomed_path)
+
+    return {
+        "filename": filename,
+        "source": "outputs",
         "class_name": request.class_name,
         "confidence_threshold": request.confidence_threshold,
         "padding_ratio": request.padding_ratio,
