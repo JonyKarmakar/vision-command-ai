@@ -928,6 +928,65 @@ function App() {
     ])
   }
 
+  const addNonZoomCommandGeneratedOutputToHistory = (data: CommandResponse) => {
+    if (data.result_type === 'annotated_detection') {
+      const result = data.result as DetectionResponse
+
+      if (!result.annotated_filename || !result.annotated_file_url) {
+        return
+      }
+
+      addGeneratedOutputHistoryItem({
+        action: 'annotated_detection',
+        label:
+          result.source === 'outputs'
+            ? 'YOLO on generated output'
+            : 'Annotated detection output',
+        filename: result.annotated_filename,
+        file_url: result.annotated_file_url,
+        source: result.source ?? 'uploads',
+        source_filename: result.filename,
+      })
+    }
+
+    if (data.result_type === 'crop_by_class') {
+      const result = data.result as CropResponse
+
+      if (!result.cropped_filename || !result.cropped_file_url) {
+        return
+      }
+
+      addGeneratedOutputHistoryItem({
+        action: 'crop',
+        label: 'Cropped output',
+        filename: result.cropped_filename,
+        file_url: result.cropped_file_url,
+        source: result.source ?? 'uploads',
+        source_filename: result.filename,
+      })
+    }
+
+    if (data.result_type === 'blur_by_class' || data.result_type === 'blur_all_by_class') {
+      const result = data.result as BlurResponse
+
+      if (!result.blurred_filename || !result.blurred_file_url) {
+        return
+      }
+
+      addGeneratedOutputHistoryItem({
+        action: 'blur',
+        label:
+          data.result_type === 'blur_all_by_class'
+            ? 'Blurred all output'
+            : 'Blurred output',
+        filename: result.blurred_filename,
+        file_url: result.blurred_file_url,
+        source: result.source ?? 'uploads',
+        source_filename: result.filename,
+      })
+    }
+  }
+
   const scrollToCommandOutputView = (resultType: string) => {
     const resultViewByType: Record<string, { current: HTMLElement | null }> = {
       annotated_detection: detectionResultRef,
@@ -3394,6 +3453,8 @@ function App() {
         setBlurResult(null)
       }
 
+        addNonZoomCommandGeneratedOutputToHistory(data)
+
       setStatusMessage(`Executed prepared command as: ${data.result_type}.`)
     } catch (err) {
       const message = getErrorMessage(err, 'Prepared command execution failed.')
@@ -4158,6 +4219,8 @@ function App() {
         const result = data.result as VideoTrimResponse
         setVideoTrimResult(result)
       }
+
+        addNonZoomCommandGeneratedOutputToHistory(data)
 
       setStatusMessage(`Command complete: "${commandText}".`)
     } catch (err) {
