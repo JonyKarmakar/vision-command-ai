@@ -146,6 +146,7 @@ type ZoomResponse = {
   padding_ratio: number
   zoom_factor?: number
   target_scope?: string
+  source?: 'uploads' | 'outputs'
   selected_detection: Detection
   zoomed_filename: string
   zoomed_file_url: string
@@ -3347,6 +3348,37 @@ function App() {
 
       const data: CommandResponse = await response.json()
       setCommandResult(data)
+      scrollToCommandOutputView(data.result_type)
+
+      if (data.result_type === 'annotated_detection') {
+        const result = data.result as DetectionResponse
+        setDetectionResult(result)
+        setCropResult(null)
+        setBlurResult(null)
+        setSelectedClass('all')
+        setLastDetectionThreshold(confidenceThreshold)
+        setLastDetectionClass('all')
+        setClassOptions((previousClasses) =>
+          Array.from(
+            new Set([
+              ...previousClasses,
+              ...result.detections.map((detection) => detection.class_name),
+            ]),
+          ).sort(),
+        )
+      }
+
+      if (data.result_type === 'crop_by_class') {
+        const result = data.result as CropResponse
+        setCropResult(result)
+        setBlurResult(null)
+      }
+
+      if (data.result_type === 'blur_by_class' || data.result_type === 'blur_all_by_class') {
+        const result = data.result as BlurResponse
+        setBlurResult(result)
+        setCropResult(null)
+      }
 
       if (data.result_type === 'zoom_by_class') {
         const result = data.result as ZoomResponse
@@ -3358,8 +3390,10 @@ function App() {
           source: 'outputs',
           source_filename: result.filename,
         })
+        setCropResult(null)
+        setBlurResult(null)
       }
-      scrollToLoadedView(commandResultRef)
+
       setStatusMessage(`Executed prepared command as: ${data.result_type}.`)
     } catch (err) {
       const message = getErrorMessage(err, 'Prepared command execution failed.')
@@ -7083,6 +7117,13 @@ function App() {
                   <div className="command-result-output">
                     {(() => {
                       const result = commandResult.result as ZoomResponse
+                      const zoomOriginalSource =
+                        result.source ??
+                        (activeGeneratedImageSource?.filename === result.filename ? 'outputs' : 'uploads')
+                      const zoomOriginalFileUrl =
+                        zoomOriginalSource === 'outputs'
+                          ? `/media/outputs/${encodeURIComponent(result.filename)}`
+                          : `/media/uploads/${encodeURIComponent(result.filename)}`
 
                       const handleDetectZoomedImage = async () => {
                         try {
@@ -7198,7 +7239,7 @@ function App() {
 
                               <div className="zoom-original-frame">
                                 <img
-                                  src={`/media/uploads/${encodeURIComponent(result.filename)}`}
+                                  src={zoomOriginalFileUrl}
                                   alt={`Original ${result.class_name}`}
                                 />
                                 <span
