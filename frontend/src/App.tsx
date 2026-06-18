@@ -733,6 +733,10 @@ function App() {
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
   const [generatedOutputHistory, setGeneratedOutputHistory] = useState<GeneratedOutputHistoryItem[]>([])
   const [
+    activeGeneratedImageSource,
+    setActiveGeneratedImageSource,
+  ] = useState<GeneratedOutputHistoryItem | null>(null)
+  const [
     isGeneratedOutputHistoryDetecting,
     setIsGeneratedOutputHistoryDetecting,
   ] = useState(false)
@@ -3299,15 +3303,21 @@ function App() {
       'trim_video',
     ])
 
+    const activeImageFilename =
+      activeGeneratedImageSource?.filename ?? uploadResult?.stored_filename
+    const activeImageMediaSource = activeGeneratedImageSource ? 'outputs' : 'uploads'
     const activeFilename = videoPreparedActions.has(preparedAction)
       ? videoUploadResult?.stored_filename
-      : uploadResult?.stored_filename
+      : activeImageFilename
+    const activeMediaSource = videoPreparedActions.has(preparedAction)
+      ? 'uploads'
+      : activeImageMediaSource
 
     if (!activeFilename) {
       setError(
         videoPreparedActions.has(preparedAction)
           ? 'Please upload a video before executing this prepared command.'
-          : 'Please upload an image before executing this prepared command.',
+          : 'Please upload an image or choose a generated output as the active image before executing this prepared command.',
       )
       return
     }
@@ -3327,6 +3337,7 @@ function App() {
           command: commandText.trim() || 'prepared_command',
           confidence_threshold: confidenceThreshold / 100,
           prepared_command: preparedCommand,
+            media_source: activeMediaSource,
         }),
       })
 
@@ -3989,15 +4000,19 @@ function App() {
       normalizedCommandText.includes('frame') ||
       normalizedCommandText.includes('track')
 
+    const activeImageFilename =
+      activeGeneratedImageSource?.filename ?? uploadResult?.stored_filename
+    const activeImageMediaSource = activeGeneratedImageSource ? 'outputs' : 'uploads'
     const activeFilename = isVideoCommand
       ? videoUploadResult?.stored_filename
-      : uploadResult?.stored_filename
+      : activeImageFilename
+    const activeMediaSource = isVideoCommand ? 'uploads' : activeImageMediaSource
 
     if (!activeFilename) {
       setError(
         isVideoCommand
           ? 'Please upload a video before running this command.'
-          : 'Please upload an image before running this command.',
+          : 'Please upload an image or choose a generated output as the active image before running this command.',
       )
       return
     }
@@ -4022,6 +4037,7 @@ function App() {
           command: commandText,
           confidence_threshold: confidenceThreshold / 100,
           parser_mode: selectedParserMode,
+            media_source: activeMediaSource,
         }),
       })
 
@@ -9655,12 +9671,18 @@ uvicorn app.main:app --reload`}</pre>
                   Session trace of generated images from detection, zoom, crop, and blur actions.
                   Clearing this history does not remove active result panels.
                 </p>
+                  {activeGeneratedImageSource && (
+                    <p className="small-note">
+                      Active image source: {activeGeneratedImageSource.label} · {activeGeneratedImageSource.filename}
+                    </p>
+                  )}
               </div>
 
               <button
                 className="secondary-button view-clear-button"
                 onClick={() => {
                   setGeneratedOutputHistory([])
+                  setActiveGeneratedImageSource(null)
                   setStatusMessage('Generated Output History cleared.')
                 }}
                 disabled={isBusy}
@@ -9695,6 +9717,9 @@ uvicorn app.main:app --reload`}</pre>
                         Source: {item.source ?? 'unknown'}
                         {item.source_filename ? ` · ${item.source_filename}` : ''}
                       </p>
+                        {activeGeneratedImageSource?.id === item.id && (
+                          <p className="small-note">Active image source for commands</p>
+                        )}
                     </div>
 
                     <div className="output-actions generated-output-actions">
@@ -9703,7 +9728,19 @@ uvicorn app.main:app --reload`}</pre>
                       </a>
                       <a href={outputUrl} download={item.filename}>
                         Download
-                      </a>
+                      </a>                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => {
+                            setActiveGeneratedImageSource(item)
+                            setStatusMessage(`Using generated output as active image: ${item.label}.`)
+                          }}
+                          disabled={isBusy}
+                        >
+                          Use as Active Image
+                        </button>
+
+
 
                       <button
                         type="button"
@@ -9721,6 +9758,9 @@ uvicorn app.main:app --reload`}</pre>
                           setGeneratedOutputHistory((previousItems) =>
                             previousItems.filter((historyItem) => historyItem.id !== item.id),
                           )
+                          if (activeGeneratedImageSource?.id === item.id) {
+                            setActiveGeneratedImageSource(null)
+                          }
                           setStatusMessage(`Removed output history item: ${item.label}.`)
                         }}
                         disabled={isBusy}

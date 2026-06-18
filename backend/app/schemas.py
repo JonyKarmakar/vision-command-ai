@@ -38,6 +38,7 @@ class CommandRequest(BaseModel):
     command: str
     confidence_threshold: float = 0.25
     parser_mode: str = "rule_based"
+    media_source: Literal["uploads", "outputs"] = "uploads"
 
 
 class PreparedCommandExecutionRequest(BaseModel):
@@ -45,6 +46,7 @@ class PreparedCommandExecutionRequest(BaseModel):
     prepared_command: dict[str, Any]
     confidence_threshold: float = 0.25
     command: str = "prepared_command"
+    media_source: Literal["uploads", "outputs"] = "uploads"
 
 
 class VideoTrimRequest(BaseModel):
