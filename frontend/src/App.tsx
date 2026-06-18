@@ -1007,6 +1007,7 @@ function App() {
     detectionResult ? 'Detection' : null,
     cropResult ? 'Crop' : null,
     blurResult ? 'Blur' : null,
+    generatedOutputHistory.length > 0 ? 'Generated Outputs' : null,
     videoUploadResult ? 'Video Upload' : null,
     videoTrimResult ? 'Video Trim' : null,
     videoFrameResult ? 'Extracted Frame' : null,
@@ -1073,6 +1074,7 @@ function App() {
       results.detectionResult ? 'Detection' : null,
       results.cropResult ? 'Crop' : null,
       results.blurResult ? 'Blur' : null,
+      results.generatedOutputHistory ? 'Generated Outputs' : null,
       results.videoUploadResult ? 'Video Upload' : null,
       results.videoTrimResult ? 'Video Trim' : null,
       results.videoFrameResult ? 'Extracted Frame' : null,
@@ -1228,6 +1230,9 @@ function App() {
       (results.detectionResult as DetectionResponse | undefined) ?? null
     const restoredCropResult = (results.cropResult as CropResponse | undefined) ?? null
     const restoredBlurResult = (results.blurResult as BlurResponse | undefined) ?? null
+    const restoredGeneratedOutputHistory = Array.isArray(results.generatedOutputHistory)
+      ? (results.generatedOutputHistory as GeneratedOutputHistoryItem[])
+      : []
     const restoredVideoUploadResult =
       (results.videoUploadResult as VideoUploadResponse | undefined) ?? null
     const restoredVideoTrimResult =
@@ -1251,6 +1256,7 @@ function App() {
     setDetectionResult(restoredDetectionResult)
     setCropResult(restoredCropResult)
     setBlurResult(restoredBlurResult)
+    setGeneratedOutputHistory(restoredGeneratedOutputHistory)
     setVideoUploadResult(restoredVideoUploadResult)
     setVideoTrimResult(restoredVideoTrimResult)
     setVideoFrameResult(restoredVideoFrameResult)
@@ -9622,6 +9628,20 @@ uvicorn app.main:app --reload`}</pre>
                       <a href={outputUrl} download={item.filename}>
                         Download
                       </a>
+
+                      <button
+                        type="button"
+                        className="secondary-button view-clear-button"
+                        onClick={() => {
+                          setGeneratedOutputHistory((previousItems) =>
+                            previousItems.filter((historyItem) => historyItem.id !== item.id),
+                          )
+                          setStatusMessage(`Removed output history item: ${item.label}.`)
+                        }}
+                        disabled={isBusy}
+                      >
+                        Remove
+                      </button>
                     </div>
                   </div>
                 )
