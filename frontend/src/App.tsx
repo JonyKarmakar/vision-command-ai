@@ -732,6 +732,10 @@ function App() {
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
   const [generatedOutputHistory, setGeneratedOutputHistory] = useState<GeneratedOutputHistoryItem[]>([])
+  const [
+    isGeneratedOutputHistoryDetecting,
+    setIsGeneratedOutputHistoryDetecting,
+  ] = useState(false)
 
   const [confidenceThreshold, setConfidenceThreshold] = useState(30)
   const [selectedClass, setSelectedClass] = useState('all')
@@ -1001,6 +1005,77 @@ function App() {
       videoTrackingResult,
     ],
   )
+
+  const handleDetectGeneratedOutputHistoryItem = async (
+    item: GeneratedOutputHistoryItem,
+  ) => {
+    try {
+      setIsGeneratedOutputHistoryDetecting(true)
+      setError(null)
+      setStatusMessage(`Running YOLO on generated output: ${item.label}...`)
+
+      const normalizedDetectionThreshold =
+        confidenceThreshold > 1 ? confidenceThreshold / 100 : confidenceThreshold
+
+      const response = await fetch(
+        `/api/vision/detect-output/${encodeURIComponent(item.filename)}/annotated?confidence_threshold=${normalizedDetectionThreshold}`,
+        {
+          method: 'POST',
+        },
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          await getBackendErrorMessage(
+            response,
+            `Failed to run YOLO on generated output: ${item.label}.`,
+          ),
+        )
+      }
+
+      const detectionData = await response.json() as DetectionResponse
+
+      setDetectionResult(detectionData)
+      addGeneratedOutputHistoryItem({
+        action: 'annotated_detection',
+        label: 'YOLO on generated output',
+        filename: detectionData.annotated_filename,
+        file_url: detectionData.annotated_file_url,
+        source: detectionData.source ?? 'outputs',
+        source_filename: detectionData.filename,
+      })
+      setSelectedClass('all')
+      setLastDetectionThreshold(normalizedDetectionThreshold)
+      setLastDetectionClass('all')
+      setClassOptions((previousClasses) =>
+        Array.from(
+          new Set([
+            ...previousClasses,
+            ...detectionData.detections.map((detection) => detection.class_name),
+          ]),
+        ).sort(),
+      )
+
+      window.setTimeout(() => {
+        detectionResultRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        })
+      }, 100)
+
+      setStatusMessage(`YOLO detection completed for generated output: ${item.label}.`)
+    } catch (err) {
+      const message = getErrorMessage(
+        err,
+        `Failed to run YOLO on generated output: ${item.label}.`,
+      )
+
+      setError(message)
+      setStatusMessage(message)
+    } finally {
+      setIsGeneratedOutputHistoryDetecting(false)
+    }
+  }
 
   const workspaceSnapshotResultViews = [
     uploadResult ? 'Image Upload' : null,
@@ -4576,6 +4651,7 @@ function App() {
     : []
 
   const isBusy =
+    isGeneratedOutputHistoryDetecting ||
     isUploading ||
     isUploadingVideo ||
     isTrimmingVideo ||
@@ -9628,6 +9704,15 @@ uvicorn app.main:app --reload`}</pre>
                       <a href={outputUrl} download={item.filename}>
                         Download
                       </a>
+
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => void handleDetectGeneratedOutputHistoryItem(item)}
+                        disabled={isBusy}
+                      >
+                        Run YOLO
+                      </button>
 
                       <button
                         type="button"
