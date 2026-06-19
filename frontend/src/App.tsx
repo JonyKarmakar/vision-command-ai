@@ -738,6 +738,10 @@ function App() {
     setActiveGeneratedImageSource,
   ] = useState<GeneratedOutputHistoryItem | null>(null)
   const [
+    autoUseLatestGeneratedOutputAsActive,
+    setAutoUseLatestGeneratedOutputAsActive,
+  ] = useState(false)
+  const [
     isGeneratedOutputHistoryDetecting,
     setIsGeneratedOutputHistoryDetecting,
   ] = useState(false)
@@ -917,15 +921,20 @@ function App() {
     item: Omit<GeneratedOutputHistoryItem, 'id' | 'created_at'>,
   ) => {
     const createdAt = new Date().toISOString()
+    const historyItem: GeneratedOutputHistoryItem = {
+      ...item,
+      id: `${item.action}-${item.filename}-${createdAt}`,
+      created_at: createdAt,
+    }
 
     setGeneratedOutputHistory((previousItems) => [
-      {
-        ...item,
-        id: `${item.action}-${item.filename}-${createdAt}`,
-        created_at: createdAt,
-      },
+      historyItem,
       ...previousItems,
     ])
+
+    if (autoUseLatestGeneratedOutputAsActive) {
+      setActiveGeneratedImageSource(historyItem)
+    }
   }
 
   const addNonZoomCommandGeneratedOutputToHistory = (data: CommandResponse) => {
@@ -9780,6 +9789,34 @@ uvicorn app.main:app --reload`}</pre>
                       Active image source: {activeGeneratedImageSource.label} · {activeGeneratedImageSource.filename}
                     </p>
                   )}
+
+                  <label className="generated-output-auto-active-toggle">
+                    <input
+                      type="checkbox"
+                      checked={autoUseLatestGeneratedOutputAsActive}
+                      onChange={(event) => {
+                        const nextChecked = event.target.checked
+
+                        setAutoUseLatestGeneratedOutputAsActive(nextChecked)
+
+                        if (nextChecked && generatedOutputHistory.length > 0) {
+                          setActiveGeneratedImageSource(generatedOutputHistory[0])
+                        }
+
+                        if (!nextChecked) {
+                          setActiveGeneratedImageSource(null)
+                        }
+
+                        setStatusMessage(
+                          nextChecked
+                            ? 'Auto-use latest generated output as active image enabled.'
+                            : 'Auto-use latest generated output as active image disabled.',
+                        )
+                      }}
+                      disabled={isBusy}
+                    />
+                    <span>Auto-use latest generated output as active image</span>
+                  </label>
               </div>
 
               <button
