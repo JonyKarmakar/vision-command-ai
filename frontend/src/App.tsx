@@ -9795,101 +9795,128 @@ uvicorn app.main:app --reload`}</pre>
               </button>
             </div>
 
-            <div className="generated-output-list">
-              {generatedOutputHistory.map((item) => {
-                const outputUrl = `/api${item.file_url}`
+              <div className="generated-output-list">
+                {Object.entries(
+                  generatedOutputHistory.reduce<Record<string, GeneratedOutputHistoryItem[]>>(
+                    (groups, item) => {
+                      const groupKey = item.source_filename ?? item.filename
+                      const currentGroup = groups[groupKey] ?? []
 
-                return (
-                  <div className="generated-output-item" key={item.id}>
-                    <a
-                      className="generated-output-thumbnail"
-                      href={outputUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={`Open ${item.label}`}
-                    >
-                      <img src={outputUrl} alt={item.label} loading="lazy" />
-                    </a>
-
-                    <div className="generated-output-details">
-                      <span className="generated-output-action">
-                        {item.action.replace(/_/g, ' ')}
-                      </span>
-                      <strong>{item.label}</strong>
-                      <p>{item.filename}</p>
-                      <p className="small-note">
-                        Source: {item.source ?? 'unknown'}
-                        {item.source_filename ? ` · ${item.source_filename}` : ''}
-                      </p>
-
-                        <div className="generated-output-lineage">
-                          <span className="generated-output-lineage-title">Lineage</span>
-                          <p>
-                            {(item.source ?? 'unknown') === 'outputs'
-                              ? 'Generated output'
-                              : 'Uploaded image'}
-                            {item.source_filename ? ` → ${item.source_filename}` : ''}
-                          </p>
-                          <p>
-                            {item.action.replace(/_/g, ' ')} → {item.filename}
-                          </p>
-                        </div>
-
-                        {activeGeneratedImageSource?.id === item.id && (
-                          <p className="small-note">Active image source for commands</p>
-                        )}
+                      return {
+                        ...groups,
+                        [groupKey]: [...currentGroup, item],
+                      }
+                    },
+                    {},
+                  ),
+                ).map(([groupKey, groupItems]) => (
+                  <div className="generated-output-group" key={groupKey}>
+                    <div className="generated-output-group-header">
+                      <span>Workflow source</span>
+                      <strong>{groupKey}</strong>
+                      <small>
+                        {groupItems.length} generated output
+                        {groupItems.length === 1 ? '' : 's'}
+                      </small>
                     </div>
 
-                    <div className="output-actions generated-output-actions">
-                      <a href={outputUrl} target="_blank" rel="noreferrer">
-                        Open
-                      </a>
-                      <a href={outputUrl} download={item.filename}>
-                        Download
-                      </a>                        <button
-                          type="button"
-                          className="secondary-button"
-                          onClick={() => {
-                            setActiveGeneratedImageSource(item)
-                            setStatusMessage(`Using generated output as active image: ${item.label}.`)
-                          }}
-                          disabled={isBusy}
-                        >
-                          Use as Active Image
-                        </button>
+                    <div className="generated-output-group-items">
+                      {groupItems.map((item) => {
+                        const outputUrl = `/api${item.file_url}`
 
+                        return (
+                          <div className="generated-output-item" key={item.id}>
+                            <a
+                              className="generated-output-thumbnail"
+                              href={outputUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              aria-label={`Open ${item.label}`}
+                            >
+                              <img src={outputUrl} alt={item.label} loading="lazy" />
+                            </a>
 
+                            <div className="generated-output-details">
+                              <span className="generated-output-action">
+                                {item.action.replace(/_/g, ' ')}
+                              </span>
+                              <strong>{item.label}</strong>
+                              <p>{item.filename}</p>
+                              <p className="small-note">
+                                Source: {item.source ?? 'unknown'}
+                                {item.source_filename ? ` · ${item.source_filename}` : ''}
+                              </p>
 
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => void handleDetectGeneratedOutputHistoryItem(item)}
-                        disabled={isBusy}
-                      >
-                        Run YOLO
-                      </button>
+                              <div className="generated-output-lineage">
+                                <span className="generated-output-lineage-title">Lineage</span>
+                                <p>
+                                  {(item.source ?? 'unknown') === 'outputs'
+                                    ? 'Generated output'
+                                    : 'Uploaded image'}
+                                  {item.source_filename ? ` → ${item.source_filename}` : ''}
+                                </p>
+                                <p>
+                                  {item.action.replace(/_/g, ' ')} → {item.filename}
+                                </p>
+                              </div>
 
-                      <button
-                        type="button"
-                        className="secondary-button view-clear-button"
-                        onClick={() => {
-                          setGeneratedOutputHistory((previousItems) =>
-                            previousItems.filter((historyItem) => historyItem.id !== item.id),
-                          )
-                          if (activeGeneratedImageSource?.id === item.id) {
-                            setActiveGeneratedImageSource(null)
-                          }
-                          setStatusMessage(`Removed output history item: ${item.label}.`)
-                        }}
-                        disabled={isBusy}
-                      >
-                        Remove
-                      </button>
+                              {activeGeneratedImageSource?.id === item.id && (
+                                <p className="small-note">Active image source for commands</p>
+                              )}
+                            </div>
+
+                            <div className="output-actions generated-output-actions">
+                              <a href={outputUrl} target="_blank" rel="noreferrer">
+                                Open
+                              </a>
+                              <a href={outputUrl} download={item.filename}>
+                                Download
+                              </a>
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={() => {
+                                  setActiveGeneratedImageSource(item)
+                                  setStatusMessage(`Using generated output as active image: ${item.label}.`)
+                                }}
+                                disabled={isBusy}
+                              >
+                                Use as Active Image
+                              </button>
+
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={() => void handleDetectGeneratedOutputHistoryItem(item)}
+                                disabled={isBusy}
+                              >
+                                Run YOLO
+                              </button>
+
+                              <button
+                                type="button"
+                                className="secondary-button view-clear-button"
+                                onClick={() => {
+                                  setGeneratedOutputHistory((previousItems) =>
+                                    previousItems.filter((historyItem) => historyItem.id !== item.id),
+                                  )
+                                  if (activeGeneratedImageSource?.id === item.id) {
+                                    setActiveGeneratedImageSource(null)
+                                  }
+                                  setStatusMessage(`Removed output history item: ${item.label}.`)
+                                }}
+                                disabled={isBusy}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
-                )
-              })}
-            </div>
+                ))}
+              </div>
           </section>
         )}
 
