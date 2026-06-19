@@ -9821,6 +9821,20 @@ uvicorn app.main:app --reload`}</pre>
                         Source: {item.source ?? 'unknown'}
                         {item.source_filename ? ` · ${item.source_filename}` : ''}
                       </p>
+
+                        <div className="generated-output-lineage">
+                          <span className="generated-output-lineage-title">Lineage</span>
+                          <p>
+                            {(item.source ?? 'unknown') === 'outputs'
+                              ? 'Generated output'
+                              : 'Uploaded image'}
+                            {item.source_filename ? ` → ${item.source_filename}` : ''}
+                          </p>
+                          <p>
+                            {item.action.replace(/_/g, ' ')} → {item.filename}
+                          </p>
+                        </div>
+
                         {activeGeneratedImageSource?.id === item.id && (
                           <p className="small-note">Active image source for commands</p>
                         )}
