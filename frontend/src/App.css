@@ -4284,3 +4284,32 @@ input[type="file"]::file-selector-button:hover {
 .generated-output-auto-active-toggle span {
   line-height: 1.35;
 }
+
+.generated-output-metadata {
+  background: rgba(15, 23, 42, 0.28);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 0.75rem;
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.generated-output-metadata p {
+  color: #dbeafe;
+  font-size: 0.8rem;
+  margin: 0;
+  word-break: break-word;
+}
+
+.generated-output-metadata strong {
+  color: #bfdbfe;
+}
+
+.generated-output-metadata-title {
+  color: #bfdbfe;
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
