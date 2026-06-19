@@ -183,6 +183,13 @@ type GeneratedOutputHistoryItem = {
   file_url: string
   source?: 'uploads' | 'outputs'
   source_filename?: string | null
+  created_by?: string | null
+  command_text?: string | null
+  result_type?: string | null
+  execution_mode?: string | null
+  parser_mode?: string | null
+  parser_type?: string | null
+  planner_mode?: string | null
   created_at: string
 }
 
@@ -924,6 +931,13 @@ function App() {
     const historyItem: GeneratedOutputHistoryItem = {
       ...item,
       id: `${item.action}-${item.filename}-${createdAt}`,
+      created_by: item.created_by ?? (commandText.trim() ? 'Run Command' : 'Generated output'),
+      command_text: item.command_text ?? (commandText.trim() || null),
+      result_type: item.result_type ?? item.action,
+      execution_mode: item.execution_mode ?? (commandText.trim() ? 'run_command' : 'generated_output'),
+      parser_mode: item.parser_mode ?? selectedParserMode,
+      parser_type: item.parser_type ?? null,
+      planner_mode: item.planner_mode ?? selectedPlannerMode,
       created_at: createdAt,
     }
 
@@ -9883,6 +9897,27 @@ uvicorn app.main:app --reload`}</pre>
                                 Source: {item.source ?? 'unknown'}
                                 {item.source_filename ? ` · ${item.source_filename}` : ''}
                               </p>
+
+                              <div className="generated-output-metadata">
+                                <span className="generated-output-metadata-title">Metadata</span>
+                                <p><strong>Created by:</strong> {item.created_by ?? 'Unknown'}</p>
+                                {item.command_text && (
+                                  <p><strong>Command:</strong> {item.command_text}</p>
+                                )}
+                                {item.result_type && (
+                                  <p><strong>Result type:</strong> {item.result_type}</p>
+                                )}
+                                {item.execution_mode && (
+                                  <p><strong>Mode:</strong> {item.execution_mode}</p>
+                                )}
+                                {item.parser_mode && (
+                                  <p><strong>Parser:</strong> {item.parser_mode}</p>
+                                )}
+                                {item.planner_mode && (
+                                  <p><strong>Planner:</strong> {item.planner_mode}</p>
+                                )}
+                                <p><strong>Created:</strong> {new Date(item.created_at).toLocaleString()}</p>
+                              </div>
 
                               <div className="generated-output-lineage">
                                 <span className="generated-output-lineage-title">Lineage</span>
