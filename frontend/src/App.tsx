@@ -907,6 +907,7 @@ function App() {
   const plannerComparisonRef = useRef<HTMLDivElement | null>(null)
   const commandHistoryRef = useRef<HTMLDivElement | null>(null)
   const [activeWorkspaceResultLabel, setActiveWorkspaceResultLabel] = useState<string | null>(null)
+  const [isWorkspaceQuickJumpOpen, setIsWorkspaceQuickJumpOpen] = useState(false)
   const [workspaceSnapshotImportData, setWorkspaceSnapshotImportData] = useState<{
     active_result_view?: string | null
     loaded_result_views?: string[]
@@ -5393,38 +5394,74 @@ function App() {
 
       {workspaceResultNavigatorItems.length > 0 && (
         <>
-          <section className="workspace-result-navigator" aria-label="Loaded result views">
-            <div className="workspace-result-navigator-header">
-              <div>
-                <span className="workspace-result-navigator-eyebrow">Workspace quick jump</span>
-                <h2>Loaded views</h2>
-              </div>
+            <div
+              className={
+                isWorkspaceQuickJumpOpen
+                  ? 'workspace-result-navigator-shell open'
+                  : 'workspace-result-navigator-shell'
+              }
+            >
+              <button
+                className="workspace-result-navigator-fab"
+                onClick={() => setIsWorkspaceQuickJumpOpen((isOpen) => !isOpen)}
+                disabled={isBusy}
+                type="button"
+                aria-expanded={isWorkspaceQuickJumpOpen}
+                aria-label="Toggle workspace quick jump"
+              >
+                <span className="workspace-result-navigator-fab-icon">↕</span>
+                <span>{workspaceResultNavigatorItems.length} open</span>
+              </button>
 
-              <span className="workspace-result-navigator-count">
-                {workspaceResultNavigatorItems.length} open
-              </span>
-            </div>
+              {isWorkspaceQuickJumpOpen && (
+                <section className="workspace-result-navigator" aria-label="Loaded result views">
+                  <div className="workspace-result-navigator-header">
+                    <div>
+                      <span className="workspace-result-navigator-eyebrow">Workspace quick jump</span>
+                      <h2>Loaded views</h2>
+                    </div>
 
-            <div className="workspace-result-navigator-buttons">
-              {workspaceResultNavigatorItems.map((item) => (
-                <button
-                  key={item}
-                  className={
-                    activeWorkspaceResultLabel === item
-                      ? 'workspace-result-navigator-button active'
-                      : 'workspace-result-navigator-button'
-                  }
-                  onClick={() => handleWorkspaceResultNavigatorClick(item)}
-                  disabled={isBusy}
-                  type="button"
-                  aria-current={activeWorkspaceResultLabel === item ? 'true' : undefined}
-                >
-                  <span className="workspace-result-navigator-dot"></span>
-                  {item}
-                </button>
-              ))}
+                    <div className="workspace-result-navigator-header-actions">
+                      <span className="workspace-result-navigator-count">
+                        {workspaceResultNavigatorItems.length} open
+                      </span>
+
+                      <button
+                        className="workspace-result-navigator-collapse-button"
+                        onClick={() => setIsWorkspaceQuickJumpOpen(false)}
+                        disabled={isBusy}
+                        type="button"
+                      >
+                        Collapse
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="workspace-result-navigator-buttons">
+                    {workspaceResultNavigatorItems.map((item) => (
+                      <button
+                        key={item}
+                        className={
+                          activeWorkspaceResultLabel === item
+                            ? 'workspace-result-navigator-button active'
+                            : 'workspace-result-navigator-button'
+                        }
+                        onClick={() => {
+                          handleWorkspaceResultNavigatorClick(item)
+                          setIsWorkspaceQuickJumpOpen(false)
+                        }}
+                        disabled={isBusy}
+                        type="button"
+                        aria-current={activeWorkspaceResultLabel === item ? 'true' : undefined}
+                      >
+                        <span className="workspace-result-navigator-dot"></span>
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
-          </section>
 
           <section className="workspace-snapshot-panel" aria-label="Workspace snapshot export">
             <div className="workspace-snapshot-compact" aria-label="Workspace snapshot summary">
