@@ -749,6 +749,10 @@ function App() {
     setAutoUseLatestGeneratedOutputAsActive,
   ] = useState(false)
   const [
+    expandedGeneratedOutputDetails,
+    setExpandedGeneratedOutputDetails,
+  ] = useState<Set<string>>(new Set())
+  const [
     isGeneratedOutputHistoryDetecting,
     setIsGeneratedOutputHistoryDetecting,
   ] = useState(false)
@@ -9874,6 +9878,7 @@ uvicorn app.main:app --reload`}</pre>
                     <div className="generated-output-group-items">
                       {groupItems.map((item) => {
                         const outputUrl = `/api${item.file_url}`
+                        const isDetailsExpanded = expandedGeneratedOutputDetails.has(item.id)
 
                         return (
                           <div className="generated-output-item" key={item.id}>
@@ -9892,13 +9897,26 @@ uvicorn app.main:app --reload`}</pre>
                                 {item.action.replace(/_/g, ' ')}
                               </span>
                               <strong>{item.label}</strong>
-                              <p>{item.filename}</p>
-                              <p className="small-note">
-                                Source: {item.source ?? 'unknown'}
-                                {item.source_filename ? ` · ${item.source_filename}` : ''}
+                              <p className="generated-output-filename">{item.filename}</p>
+                              <p className="generated-output-summary">
+                                {item.created_by ?? 'Unknown'}
+                                {item.command_text ? ` · ${item.command_text}` : ''}
+                                {' · '}
+                                {new Date(item.created_at).toLocaleTimeString()}
                               </p>
 
-                              <div className="generated-output-metadata">
+                              {activeGeneratedImageSource?.id === item.id && (
+                                <p className="generated-output-active-note">Active image source for commands</p>
+                              )}
+
+                              {isDetailsExpanded && (
+                                <div className="generated-output-extra-details">
+                                  <p className="small-note">
+                                    Source: {item.source ?? 'unknown'}
+                                    {item.source_filename ? ` · ${item.source_filename}` : ''}
+                                  </p>
+
+                                  <div className="generated-output-metadata">
                                 <span className="generated-output-metadata-title">Metadata</span>
                                 <p><strong>Created by:</strong> {item.created_by ?? 'Unknown'}</p>
                                 {item.command_text && (
@@ -9917,9 +9935,9 @@ uvicorn app.main:app --reload`}</pre>
                                   <p><strong>Planner:</strong> {item.planner_mode}</p>
                                 )}
                                 <p><strong>Created:</strong> {new Date(item.created_at).toLocaleString()}</p>
-                              </div>
+                                  </div>
 
-                              <div className="generated-output-lineage">
+                                  <div className="generated-output-lineage">
                                 <span className="generated-output-lineage-title">Lineage</span>
                                 <p>
                                   {(item.source ?? 'unknown') === 'outputs'
@@ -9930,10 +9948,8 @@ uvicorn app.main:app --reload`}</pre>
                                 <p>
                                   {item.action.replace(/_/g, ' ')} → {item.filename}
                                 </p>
-                              </div>
-
-                              {activeGeneratedImageSource?.id === item.id && (
-                                <p className="small-note">Active image source for commands</p>
+                                  </div>
+                                </div>
                               )}
                             </div>
 
@@ -9967,11 +9983,38 @@ uvicorn app.main:app --reload`}</pre>
 
                               <button
                                 type="button"
+                                className="secondary-button"
+                                onClick={() => {
+                                  setExpandedGeneratedOutputDetails((previousIds) => {
+                                    const nextIds = new Set(previousIds)
+
+                                    if (nextIds.has(item.id)) {
+                                      nextIds.delete(item.id)
+                                    } else {
+                                      nextIds.add(item.id)
+                                    }
+
+                                    return nextIds
+                                  })
+                                }}
+                                disabled={isBusy}
+                              >
+                                {isDetailsExpanded ? 'Hide details' : 'Details'}
+                              </button>
+
+                              <button
+                                type="button"
                                 className="secondary-button view-clear-button"
                                 onClick={() => {
                                   setGeneratedOutputHistory((previousItems) =>
                                     previousItems.filter((historyItem) => historyItem.id !== item.id),
                                   )
+                                  setExpandedGeneratedOutputDetails((previousIds) => {
+                                    const nextIds = new Set(previousIds)
+                                    nextIds.delete(item.id)
+
+                                    return nextIds
+                                  })
                                   if (activeGeneratedImageSource?.id === item.id) {
                                     setActiveGeneratedImageSource(null)
                                   }
