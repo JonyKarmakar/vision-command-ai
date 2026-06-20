@@ -4448,3 +4448,17 @@ input[type="file"]::file-selector-button:hover {
   color: #e5e7eb;
   font-size: 1rem;
 }
+
+.generated-output-history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .generated-output-history-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
