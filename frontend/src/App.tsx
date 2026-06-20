@@ -2887,6 +2887,97 @@ function App() {
     }
   }
 
+  const buildGeneratedOutputWorkflowExport = (exportedAt: string) => {
+    const groups = generatedOutputHistory.reduce<Record<string, GeneratedOutputHistoryItem[]>>(
+      (groupedItems, item) => {
+        const groupKey = item.source_filename ?? item.filename
+        const currentGroup = groupedItems[groupKey] ?? []
+
+        return {
+          ...groupedItems,
+          [groupKey]: [...currentGroup, item],
+        }
+      },
+      {},
+    )
+
+    return {
+      source: 'generated_output_workflow_export',
+      workflow_version: 'generated-output-workflow-v1',
+      exported_at: exportedAt,
+      downloaded_at: exportedAt,
+      summary: {
+        output_count: generatedOutputHistory.length,
+        workflow_source_count: Object.keys(groups).length,
+        auto_use_latest_generated_output_as_active: autoUseLatestGeneratedOutputAsActive,
+      },
+      active_generated_image_source: activeGeneratedImageSource
+        ? {
+            id: activeGeneratedImageSource.id,
+            action: activeGeneratedImageSource.action,
+            label: activeGeneratedImageSource.label,
+            filename: activeGeneratedImageSource.filename,
+            file_url: activeGeneratedImageSource.file_url,
+            source: activeGeneratedImageSource.source ?? null,
+            source_filename: activeGeneratedImageSource.source_filename ?? null,
+            created_by: activeGeneratedImageSource.created_by ?? null,
+            command_text: activeGeneratedImageSource.command_text ?? null,
+            result_type: activeGeneratedImageSource.result_type ?? null,
+            execution_mode: activeGeneratedImageSource.execution_mode ?? null,
+            parser_mode: activeGeneratedImageSource.parser_mode ?? null,
+            parser_type: activeGeneratedImageSource.parser_type ?? null,
+            planner_mode: activeGeneratedImageSource.planner_mode ?? null,
+            created_at: activeGeneratedImageSource.created_at,
+          }
+        : null,
+      workflow_groups: Object.entries(groups).map(([workflowSourceFilename, items]) => ({
+        workflow_source_filename: workflowSourceFilename,
+        output_count: items.length,
+        outputs: items.map((item, index) => ({
+          step: index + 1,
+          id: item.id,
+          action: item.action,
+          label: item.label,
+          filename: item.filename,
+          file_url: item.file_url,
+          api_file_url: `/api${item.file_url}`,
+          source: item.source ?? null,
+          source_filename: item.source_filename ?? null,
+          metadata: {
+            created_by: item.created_by ?? null,
+            command_text: item.command_text ?? null,
+            result_type: item.result_type ?? null,
+            execution_mode: item.execution_mode ?? null,
+            parser_mode: item.parser_mode ?? null,
+            parser_type: item.parser_type ?? null,
+            planner_mode: item.planner_mode ?? null,
+            created_at: item.created_at,
+          },
+          lineage: {
+            input_source_type: item.source ?? 'unknown',
+            input_source_filename: item.source_filename ?? null,
+            output_action: item.action,
+            output_filename: item.filename,
+          },
+        })),
+      })),
+      flat_outputs: generatedOutputHistory,
+    }
+  }
+
+  const handleDownloadGeneratedOutputWorkflowJson = () => {
+    const exportedAt = new Date().toISOString()
+    const fileTimestamp = exportedAt.replace(/[:.]/g, '-')
+    const workflowExport = buildGeneratedOutputWorkflowExport(exportedAt)
+
+    handleDownloadJsonFile(
+      workflowExport,
+      `visioncommand-generated-output-workflow-${fileTimestamp}.json`,
+      'Generated Output workflow JSON downloaded.',
+      'download-generated-output-workflow-json',
+    )
+  }
+
   const handleVoiceCommand = () => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition
@@ -9837,17 +9928,31 @@ uvicorn app.main:app --reload`}</pre>
                   </label>
               </div>
 
-              <button
-                className="secondary-button view-clear-button"
-                onClick={() => {
-                  setGeneratedOutputHistory([])
-                  setActiveGeneratedImageSource(null)
-                  setStatusMessage('Generated Output History cleared.')
-                }}
-                disabled={isBusy}
-              >
-                Clear Output History
-              </button>
+              <div className="generated-output-history-actions">
+                <button
+                  className="secondary-button"
+                  onClick={handleDownloadGeneratedOutputWorkflowJson}
+                  disabled={isBusy}
+                  data-testid="download-generated-output-workflow-json"
+                >
+                  {downloadedParserLogJsonKey === 'download-generated-output-workflow-json'
+                    ? 'Downloaded'
+                    : 'Export Workflow JSON'}
+                </button>
+
+                <button
+                  className="secondary-button view-clear-button"
+                  onClick={() => {
+                    setGeneratedOutputHistory([])
+                    setActiveGeneratedImageSource(null)
+                    setExpandedGeneratedOutputDetails(new Set())
+                    setStatusMessage('Generated Output History cleared.')
+                  }}
+                  disabled={isBusy}
+                >
+                  Clear Output History
+                </button>
+              </div>
             </div>
 
               <div className="generated-output-list">
