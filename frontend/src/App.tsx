@@ -753,6 +753,30 @@ function App() {
     setExpandedGeneratedOutputDetails,
   ] = useState<Set<string>>(new Set())
   const [
+    generatedOutputHistorySearch,
+    setGeneratedOutputHistorySearch,
+  ] = useState('')
+  const [
+    generatedOutputHistoryActionFilter,
+    setGeneratedOutputHistoryActionFilter,
+  ] = useState<'all' | GeneratedOutputHistoryItem['action']>('all')
+  const [
+    generatedOutputHistorySourceFilter,
+    setGeneratedOutputHistorySourceFilter,
+  ] = useState<'all' | 'uploads' | 'outputs'>('all')
+  const [
+    generatedOutputHistoryCreatedByFilter,
+    setGeneratedOutputHistoryCreatedByFilter,
+  ] = useState<'all' | 'run_command' | 'generated_output' | 'unknown'>('all')
+  const [
+    generatedOutputHistoryParserFilter,
+    setGeneratedOutputHistoryParserFilter,
+  ] = useState('all')
+  const [
+    generatedOutputHistoryPlannerFilter,
+    setGeneratedOutputHistoryPlannerFilter,
+  ] = useState('all')
+  const [
     isGeneratedOutputHistoryDetecting,
     setIsGeneratedOutputHistoryDetecting,
   ] = useState(false)
@@ -2885,6 +2909,123 @@ function App() {
         setDownloadedParserLogJsonKey((currentKey) => (currentKey === downloadKey ? '' : currentKey))
       }, 2000)
     }
+  }
+
+  const generatedOutputHistoryParserModes = Array.from(
+    new Set(
+      generatedOutputHistory
+        .map((item) => item.parser_mode)
+        .filter((mode): mode is string => Boolean(mode)),
+    ),
+  ).sort()
+
+  const generatedOutputHistoryPlannerModes = Array.from(
+    new Set(
+      generatedOutputHistory
+        .map((item) => item.planner_mode)
+        .filter((mode): mode is string => Boolean(mode)),
+    ),
+  ).sort()
+
+  const generatedOutputHistorySearchValue = generatedOutputHistorySearch.trim().toLowerCase()
+
+  const getGeneratedOutputCreatedByCategory = (item: GeneratedOutputHistoryItem) => {
+    const createdBy = item.created_by?.toLowerCase() ?? ''
+
+    if (createdBy.includes('run command')) {
+      return 'run_command'
+    }
+
+    if (createdBy.includes('generated output')) {
+      return 'generated_output'
+    }
+
+    return 'unknown'
+  }
+
+  const filteredGeneratedOutputHistory = generatedOutputHistory.filter((item) => {
+    const searchableText = [
+      item.action,
+      item.label,
+      item.filename,
+      item.file_url,
+      item.source ?? '',
+      item.source_filename ?? '',
+      item.created_by ?? '',
+      item.command_text ?? '',
+      item.result_type ?? '',
+      item.execution_mode ?? '',
+      item.parser_mode ?? '',
+      item.parser_type ?? '',
+      item.planner_mode ?? '',
+    ]
+      .join(' ')
+      .toLowerCase()
+
+    const matchesSearch =
+      generatedOutputHistorySearchValue.length === 0 ||
+      searchableText.includes(generatedOutputHistorySearchValue)
+
+    const matchesAction =
+      generatedOutputHistoryActionFilter === 'all' ||
+      item.action === generatedOutputHistoryActionFilter
+
+    const matchesSource =
+      generatedOutputHistorySourceFilter === 'all' ||
+      item.source === generatedOutputHistorySourceFilter
+
+    const matchesCreatedBy =
+      generatedOutputHistoryCreatedByFilter === 'all' ||
+      getGeneratedOutputCreatedByCategory(item) === generatedOutputHistoryCreatedByFilter
+
+    const matchesParser =
+      generatedOutputHistoryParserFilter === 'all' ||
+      item.parser_mode === generatedOutputHistoryParserFilter
+
+    const matchesPlanner =
+      generatedOutputHistoryPlannerFilter === 'all' ||
+      item.planner_mode === generatedOutputHistoryPlannerFilter
+
+    return (
+      matchesSearch &&
+      matchesAction &&
+      matchesSource &&
+      matchesCreatedBy &&
+      matchesParser &&
+      matchesPlanner
+    )
+  })
+
+  const generatedOutputHistoryFilteredGroups =
+    filteredGeneratedOutputHistory.reduce<Record<string, GeneratedOutputHistoryItem[]>>(
+      (groups, item) => {
+        const groupKey = item.source_filename ?? item.filename
+        const currentGroup = groups[groupKey] ?? []
+
+        return {
+          ...groups,
+          [groupKey]: [...currentGroup, item],
+        }
+      },
+      {},
+    )
+
+  const hasGeneratedOutputHistoryFilters =
+    generatedOutputHistorySearch.trim().length > 0 ||
+    generatedOutputHistoryActionFilter !== 'all' ||
+    generatedOutputHistorySourceFilter !== 'all' ||
+    generatedOutputHistoryCreatedByFilter !== 'all' ||
+    generatedOutputHistoryParserFilter !== 'all' ||
+    generatedOutputHistoryPlannerFilter !== 'all'
+
+  const handleClearGeneratedOutputHistoryFilters = () => {
+    setGeneratedOutputHistorySearch('')
+    setGeneratedOutputHistoryActionFilter('all')
+    setGeneratedOutputHistorySourceFilter('all')
+    setGeneratedOutputHistoryCreatedByFilter('all')
+    setGeneratedOutputHistoryParserFilter('all')
+    setGeneratedOutputHistoryPlannerFilter('all')
+    setStatusMessage('Generated Output History filters cleared.')
   }
 
   const buildGeneratedOutputWorkflowExport = (exportedAt: string) => {
@@ -9955,21 +10096,127 @@ uvicorn app.main:app --reload`}</pre>
               </div>
             </div>
 
-              <div className="generated-output-list">
-                {Object.entries(
-                  generatedOutputHistory.reduce<Record<string, GeneratedOutputHistoryItem[]>>(
-                    (groups, item) => {
-                      const groupKey = item.source_filename ?? item.filename
-                      const currentGroup = groups[groupKey] ?? []
+              <div className="generated-output-history-filters">
+                <label className="generated-output-history-filter-field">
+                  <span>Search</span>
+                  <input
+                    type="search"
+                    value={generatedOutputHistorySearch}
+                    onChange={(event) => setGeneratedOutputHistorySearch(event.target.value)}
+                    placeholder="Search filename, command, label, or source"
+                    disabled={isBusy}
+                  />
+                </label>
 
-                      return {
-                        ...groups,
-                        [groupKey]: [...currentGroup, item],
-                      }
-                    },
-                    {},
-                  ),
-                ).map(([groupKey, groupItems]) => (
+                <label className="generated-output-history-filter-field">
+                  <span>Action</span>
+                  <select
+                    value={generatedOutputHistoryActionFilter}
+                    onChange={(event) =>
+                      setGeneratedOutputHistoryActionFilter(
+                        event.target.value as 'all' | GeneratedOutputHistoryItem['action'],
+                      )
+                    }
+                    disabled={isBusy}
+                  >
+                    <option value="all">All actions</option>
+                    <option value="annotated_detection">Detection</option>
+                    <option value="zoom">Zoom</option>
+                    <option value="crop">Crop</option>
+                    <option value="blur">Blur</option>
+                  </select>
+                </label>
+
+                <label className="generated-output-history-filter-field">
+                  <span>Source</span>
+                  <select
+                    value={generatedOutputHistorySourceFilter}
+                    onChange={(event) =>
+                      setGeneratedOutputHistorySourceFilter(event.target.value as 'all' | 'uploads' | 'outputs')
+                    }
+                    disabled={isBusy}
+                  >
+                    <option value="all">All sources</option>
+                    <option value="uploads">Uploaded image</option>
+                    <option value="outputs">Generated output</option>
+                  </select>
+                </label>
+
+                <label className="generated-output-history-filter-field">
+                  <span>Created by</span>
+                  <select
+                    value={generatedOutputHistoryCreatedByFilter}
+                    onChange={(event) =>
+                      setGeneratedOutputHistoryCreatedByFilter(
+                        event.target.value as 'all' | 'run_command' | 'generated_output' | 'unknown',
+                      )
+                    }
+                    disabled={isBusy}
+                  >
+                    <option value="all">All creators</option>
+                    <option value="run_command">Run Command</option>
+                    <option value="generated_output">Generated Output</option>
+                    <option value="unknown">Unknown</option>
+                  </select>
+                </label>
+
+                <label className="generated-output-history-filter-field">
+                  <span>Parser</span>
+                  <select
+                    value={generatedOutputHistoryParserFilter}
+                    onChange={(event) => setGeneratedOutputHistoryParserFilter(event.target.value)}
+                    disabled={isBusy}
+                  >
+                    <option value="all">All parsers</option>
+                    {generatedOutputHistoryParserModes.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {mode}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="generated-output-history-filter-field">
+                  <span>Planner</span>
+                  <select
+                    value={generatedOutputHistoryPlannerFilter}
+                    onChange={(event) => setGeneratedOutputHistoryPlannerFilter(event.target.value)}
+                    disabled={isBusy}
+                  >
+                    <option value="all">All planners</option>
+                    {generatedOutputHistoryPlannerModes.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {mode}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="generated-output-history-filter-summary">
+                  <span>
+                    Showing {filteredGeneratedOutputHistory.length} of {generatedOutputHistory.length} output
+                    {generatedOutputHistory.length === 1 ? '' : 's'}
+                  </span>
+
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={handleClearGeneratedOutputHistoryFilters}
+                    disabled={isBusy || !hasGeneratedOutputHistoryFilters}
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              </div>
+
+              {filteredGeneratedOutputHistory.length === 0 && (
+                <div className="generated-output-empty-filter-state">
+                  No generated outputs match the current filters.
+                </div>
+              )}
+
+              <div className="generated-output-list">
+                {Object.entries(generatedOutputHistoryFilteredGroups).map(([groupKey, groupItems]) => (
                   <div className="generated-output-group" key={groupKey}>
                     <div className="generated-output-group-header">
                       <span>Workflow source</span>
