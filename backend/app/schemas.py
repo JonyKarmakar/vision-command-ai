@@ -49,6 +49,24 @@ class PreparedCommandExecutionRequest(BaseModel):
     media_source: Literal["uploads", "outputs"] = "uploads"
 
 
+class GeneratedOutputHistoryItemRequest(BaseModel):
+    id: str
+    action: Literal["annotated_detection", "zoom", "crop", "blur"]
+    label: str
+    filename: str
+    file_url: str
+    source: Optional[Literal["uploads", "outputs"]] = None
+    source_filename: Optional[str] = None
+    created_by: Optional[str] = None
+    command_text: Optional[str] = None
+    result_type: Optional[str] = None
+    execution_mode: Optional[str] = None
+    parser_mode: Optional[str] = None
+    parser_type: Optional[str] = None
+    planner_mode: Optional[str] = None
+    created_at: str
+
+
 class VideoTrimRequest(BaseModel):
     start_seconds: float
     end_seconds: float

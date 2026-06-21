@@ -26,6 +26,9 @@ from app.services.command_planner import plan_command_with_mode
 from app.services.command_plan_execution import prepare_command_plan_for_execution
 from app.services.storage_service import storage_service
 from app.services.database_service import (
+    clear_database_generated_outputs,
+    delete_database_generated_output,
+    get_database_generated_outputs,
     get_database_command_logs,
     get_database_command_log_summary,
     get_database_detection_results,
@@ -40,6 +43,7 @@ from app.services.database_service import (
     initialize_media_files_table,
     initialize_model_inference_logs_table,
     save_command_log_to_database,
+    save_generated_output_to_database,
     save_detections_to_database,
     save_inference_log_to_database,
     save_media_file_to_database,
@@ -52,6 +56,7 @@ from app.schemas import (
     BlurAllByClassRequest,
     BlurByClassRequest,
     CommandRequest,
+    GeneratedOutputHistoryItemRequest,
     PreparedCommandExecutionRequest,
     CommandParseRequest,
     CommandPlanRequest,
@@ -2314,6 +2319,27 @@ def export_postgres_command_logs(
 @app.get("/db/media-files")
 def get_postgres_media_files(limit: int = Query(20, ge=1, le=100)):
     return get_database_media_files(limit)
+
+
+@app.get("/db/generated-outputs")
+def get_postgres_generated_outputs(limit: int = Query(100, ge=1, le=500)):
+    return get_database_generated_outputs(limit)
+
+
+@app.post("/db/generated-outputs")
+def save_postgres_generated_output(item: GeneratedOutputHistoryItemRequest):
+    item_data = item.model_dump() if hasattr(item, "model_dump") else item.dict()
+    return save_generated_output_to_database(item_data)
+
+
+@app.delete("/db/generated-outputs")
+def clear_postgres_generated_outputs():
+    return clear_database_generated_outputs()
+
+
+@app.delete("/db/generated-outputs/{output_id}")
+def delete_postgres_generated_output(output_id: str):
+    return delete_database_generated_output(output_id)
 
 
 
