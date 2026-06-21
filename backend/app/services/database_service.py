@@ -825,6 +825,280 @@ def get_database_inference_summary():
     }
 
 
+
+def initialize_generated_outputs_table():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return False
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS generated_outputs (
+                    id TEXT PRIMARY KEY,
+                    action TEXT NOT NULL,
+                    label TEXT,
+                    filename TEXT NOT NULL,
+                    file_url TEXT NOT NULL,
+                    source TEXT,
+                    source_filename TEXT,
+                    created_by TEXT,
+                    command_text TEXT,
+                    result_type TEXT,
+                    execution_mode TEXT,
+                    parser_mode TEXT,
+                    parser_type TEXT,
+                    planner_mode TEXT,
+                    created_at TEXT NOT NULL
+                );
+                """
+            )
+
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS id TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS action TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS label TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS filename TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS file_url TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS source TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS source_filename TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS created_by TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS command_text TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS result_type TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS execution_mode TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS parser_mode TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS parser_type TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS planner_mode TEXT;")
+            cursor.execute("ALTER TABLE generated_outputs ADD COLUMN IF NOT EXISTS created_at TEXT;")
+
+        connection.commit()
+
+    return True
+
+
+def save_generated_output_to_database(output_item: dict):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "saved": False,
+            "generated_output": output_item,
+        }
+
+    initialize_generated_outputs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO generated_outputs (
+                    id,
+                    action,
+                    label,
+                    filename,
+                    file_url,
+                    source,
+                    source_filename,
+                    created_by,
+                    command_text,
+                    result_type,
+                    execution_mode,
+                    parser_mode,
+                    parser_type,
+                    planner_mode,
+                    created_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO UPDATE SET
+                    action = EXCLUDED.action,
+                    label = EXCLUDED.label,
+                    filename = EXCLUDED.filename,
+                    file_url = EXCLUDED.file_url,
+                    source = EXCLUDED.source,
+                    source_filename = EXCLUDED.source_filename,
+                    created_by =                    created_by,
+                    command_text,
+                    result_type,
+                    execution_mode,
+                    parser_mode,
+                    parser_type,
+                    planner_mode,
+                    created_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO UPDATE SET
+                    action = EXCLUDED.action,
+                    label = EXCLUDED.label,
+                    filename = EXCLUDED.created_by,
+                    command_text = EXCLUDED.command_text,
+                    result_type = EXCLUDED.result_type,
+                    execution_mode = EXCLUDED.execution_mode,
+                    parser_mode = EXCLUDED.parser_mode,
+                    parser_type = EXCLUDED.parser_type,
+                    planner_mode = EXCLUDED.planner_mode,
+                    created_at = EXCLUDED.created_at;
+                """,
+                (
+                    output_item["id"],
+                    output_item["action"],
+                    output_item.get("label"),
+                    output_item["filename"],
+                    output_item["file_url"],
+                    output_item.get("source"),
+                    output_item.get("source_filename"),
+                    output_item.get("created_by"),
+                    output_item.get("command_text"),
+                    output_item.get("result_type"),
+                    output_item.get("execution_mode"),
+                    output_item.get("parser_mode"),
+                    output_item.get("parser_type"),
+                    output_item.get("planner_mode"),
+                    output_item["created_at"],
+                ),
+            )
+
+        connection.commit()
+
+    return {
+        "status": "healthy",
+        "saved": True,
+        "generated_output": output_item,
+    }
+
+
+def get_database_generated_outputs(limit: int = 100):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "count": 0,
+            "generated_outputs": [],
+        }
+
+    initialize_generated_outputs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    action,
+                    COALESCE(label, '') AS label,
+                    filename,
+                    file_url,
+                    source,
+                    source_filename,
+                    created_by,
+                    command_text,
+                    result_type,
+                    execution_mode,
+                    parser_mode,
+                    parser_type,
+                    planner_mode,
+                    created_at
+                FROM generated_outputs
+                ORDER BY created_at DESC NULLS LAST
+                LIMIT %s;
+                """,
+                (limit,),
+            )
+            rows = cursor.fetchall()
+
+    generated_outputs = [
+        {
+            "id": row[0],
+            "action": row[1],
+            "label": row[2],
+            "filename": row[3],
+            "file_url": row[4],
+            "source": row[5],
+            "source_filename": row[6],
+            "created_by": row[7],
+            "command_text": row[8],
+            "result_type": row[9],
+            "execution_mode": row[10],
+            "parser_mode": row[11],
+            "parser_type": row[12],
+            "planner_mode": row[13],
+            "created_at": row[14],
+        }
+        for row in rows
+    ]
+
+    return {
+        "status": "healthy",
+        "count": len(generated_outputs),
+        "generated_outputs": generated_outputs,
+    }
+
+
+def delete_database_generated_output(output_id: str):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "deleted": False,
+            "id": output_id,
+        }
+
+    initialize_generated_outputs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "DELETE FROM generated_outputs WHERE id = %s;",
+                (output_id,),
+            )
+            deleted = cursor.rowcount > 0
+
+        connection.commit()
+
+    return {
+        "status": "healthy",
+        "deleted": deleted,
+        "id": output_id,
+    }
+
+
+def clear_database_generated_outputs():
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "deleted_count": 0,
+        }
+
+    initialize_generated_outputs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM generated_outputs;")
+            deleted_count = cursor.rowcount
+
+        connection.commit()
+
+    return {
+        "status": "healthy",
+        "deleted_count": deleted_count,
+    }
+
+
 def get_database_stats():
     import psycopg
 

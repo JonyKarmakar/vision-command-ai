@@ -740,6 +740,11 @@ function App() {
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
   const [generatedOutputHistory, setGeneratedOutputHistory] = useState<GeneratedOutputHistoryItem[]>([])
+  const [isLoadingGeneratedOutputHistory, setIsLoadingGeneratedOutputHistory] = useState(false)
+  const [
+    isGeneratedOutputHistoryPanelVisible,
+    setIsGeneratedOutputHistoryPanelVisible,
+  ] = useState(false)
   const [
     activeGeneratedImageSource,
     setActiveGeneratedImageSource,
@@ -953,10 +958,120 @@ function App() {
     }, 180)
   }
 
+  const persistGeneratedOutputHistoryItem = async (historyItem: GeneratedOutputHistoryItem) => {
+    try {
+      const response = await fetch('/api/db/generated-outputs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(historyItem),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to persist generated output history: ${response.status}`)
+      }
+    } catch (error) {
+      console.warn('Generated output history persistence failed:', error)
+    }
+  }
+
+  const loadPersistedGeneratedOutputHistory = async () => {
+    try {
+      setIsLoadingGeneratedOutputHistory(true)
+      setIsGeneratedOutputHistoryPanelVisible(true)
+      setError(null)
+
+      const response = await fetch('/api/db/generated-outputs?limit=500')
+
+      if (!response.ok) {
+        throw new Error(`Failed to load generated output history: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const persistedOutputs = Array.isArray(data.generated_outputs)
+        ? (data.generated_outputs as GeneratedOutputHistoryItem[])
+        : []
+
+      if (persistedOutputs.length === 0) {
+        setStatusMessage('No persisted generated output history found.')
+        return
+      }
+
+      setGeneratedOutputHistory((previousItems) => {
+        const existingIds = new Set(previousItems.map((item) => item.id))
+        const newItems = persistedOutputs.filter((item) => !existingIds.has(item.id))
+
+        return [...newItems, ...previousItems].sort(
+          (firstItem, secondItem) =>
+            Date.parse(secondItem.created_at) - Date.parse(firstItem.created_at),
+        )
+      })
+
+      setStatusMessage(`Loaded ${persistedOutputs.length} persisted generated output item(s).`)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to load generated output history.')
+    } finally {
+      setIsLoadingGeneratedOutputHistory(false)
+    }
+  }
+
+  const clearPersistedGeneratedOutputHistory = async () => {
+    try {
+      await fetch('/api/db/generated-outputs', {
+        method: 'DELETE',
+      })
+    } catch (error) {
+      console.warn('Clearing persisted generated output history failed:', error)
+    }
+  }
+
+  const deletePersistedGeneratedOutputHistoryItem = async (itemId: string) => {
+    try {
+      await fetch(`/api/db/generated-outputs/${encodeURIComponent(itemId)}`, {
+        method: 'DELETE',
+      })
+    } catch (error) {
+      console.warn('Deleting persisted generated output history item failed:', error)
+    }
+  }
+
+  const handleClearGeneratedOutputHistory = async () => {
+    setGeneratedOutputHistory([])
+    setIsGeneratedOutputHistoryPanelVisible(true)
+    setActiveGeneratedImageSource(null)
+    setExpandedGeneratedOutputDetails(new Set())
+    setStatusMessage('Generated Output History cleared.')
+
+    await clearPersistedGeneratedOutputHistory()
+  }
+
+  const handleRemoveGeneratedOutputHistoryItem = async (item: GeneratedOutputHistoryItem) => {
+    setGeneratedOutputHistory((previousItems) =>
+      previousItems.filter((historyItem) => historyItem.id !== item.id),
+    )
+    setExpandedGeneratedOutputDetails((previousIds) => {
+      const nextIds = new Set(previousIds)
+      nextIds.delete(item.id)
+
+      return nextIds
+    })
+
+    if (activeGeneratedImageSource?.id === item.id) {
+      setActiveGeneratedImageSource(null)
+    }
+
+    setStatusMessage(`Removed output history item: ${item.label}.`)
+
+    await deletePersistedGeneratedOutputHistoryItem(item.id)
+  }
+
   const addGeneratedOutputHistoryItem = (
     item: Omit<GeneratedOutputHistoryItem, 'id' | 'created_at'>,
   ) => {
     const createdAt = new Date().toISOString()
+    setIsGeneratedOutputHistoryPanelVisible(true)
+
     const historyItem: GeneratedOutputHistoryItem = {
       ...item,
       id: `${item.action}-${item.filename}-${createdAt}`,
@@ -974,6 +1089,8 @@ function App() {
       historyItem,
       ...previousItems,
     ])
+
+    void persistGeneratedOutputHistoryItem(historyItem)
 
     if (autoUseLatestGeneratedOutputAsActive) {
       setActiveGeneratedImageSource(historyItem)
@@ -10061,7 +10178,7 @@ uvicorn app.main:app --reload`}</pre>
         </section>
       )}
 
-        {generatedOutputHistory.length > 0 && (
+        {(generatedOutputHistory.length > 0 || isGeneratedOutputHistoryPanelVisible) && (
           <section className="card generated-output-history-card" ref={generatedOutputHistoryRef}>
             <div className="generated-output-history-header">
               <div>
@@ -10107,6 +10224,14 @@ uvicorn app.main:app --reload`}</pre>
               </div>
 
               <div className="generated-output-history-actions">
+                  <button
+                    className="secondary-button"
+                    onClick={() => void loadPersistedGeneratedOutputHistory()}
+                    disabled={isBusy || isLoadingGeneratedOutputHistory}
+                  >
+                    {isLoadingGeneratedOutputHistory ? 'Loading Saved History...' : 'Load Saved History'}
+                  </button>
+
                 <button
                   className="secondary-button"
                   onClick={handleDownloadGeneratedOutputWorkflowJson}
@@ -10120,13 +10245,8 @@ uvicorn app.main:app --reload`}</pre>
 
                 <button
                   className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setGeneratedOutputHistory([])
-                    setActiveGeneratedImageSource(null)
-                    setExpandedGeneratedOutputDetails(new Set())
-                    setStatusMessage('Generated Output History cleared.')
-                  }}
-                  disabled={isBusy}
+                    onClick={() => void handleClearGeneratedOutputHistory()}
+                    disabled={isBusy || isLoadingGeneratedOutputHistory}
                 >
                   Clear Output History
                 </button>
@@ -10394,22 +10514,8 @@ uvicorn app.main:app --reload`}</pre>
                               <button
                                 type="button"
                                 className="secondary-button view-clear-button"
-                                onClick={() => {
-                                  setGeneratedOutputHistory((previousItems) =>
-                                    previousItems.filter((historyItem) => historyItem.id !== item.id),
-                                  )
-                                  setExpandedGeneratedOutputDetails((previousIds) => {
-                                    const nextIds = new Set(previousIds)
-                                    nextIds.delete(item.id)
-
-                                    return nextIds
-                                  })
-                                  if (activeGeneratedImageSource?.id === item.id) {
-                                    setActiveGeneratedImageSource(null)
-                                  }
-                                  setStatusMessage(`Removed output history item: ${item.label}.`)
-                                }}
-                                disabled={isBusy}
+                                  onClick={() => void handleRemoveGeneratedOutputHistoryItem(item)}
+                                  disabled={isBusy || isLoadingGeneratedOutputHistory}
                               >
                                 Remove
                               </button>
