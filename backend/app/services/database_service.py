@@ -1109,10 +1109,12 @@ def get_database_stats():
             "status": "not_configured",
             "media_files_count": 0,
             "command_logs_count": 0,
+            "generated_outputs_count": 0,
         }
 
     initialize_media_files_table()
     initialize_command_logs_table()
+    initialize_generated_outputs_table()
 
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
@@ -1122,10 +1124,14 @@ def get_database_stats():
             cursor.execute("SELECT COUNT(*) FROM command_logs;")
             command_logs_count = cursor.fetchone()[0]
 
+            cursor.execute("SELECT COUNT(*) FROM generated_outputs;")
+            generated_outputs_count = cursor.fetchone()[0]
+
     return {
         "status": "healthy",
         "media_files_count": media_files_count,
         "command_logs_count": command_logs_count,
+        "generated_outputs_count": generated_outputs_count,
     }
 
 

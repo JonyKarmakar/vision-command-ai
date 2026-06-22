@@ -547,6 +547,7 @@ type DatabaseStats = {
   status: string
   media_files_count: number
   command_logs_count: number
+  generated_outputs_count: number
 }
 
 type DetectionSummaryClass = {
@@ -5890,6 +5891,7 @@ function App() {
                       status: databaseStats.status,
                       media_files_count: databaseStats.media_files_count,
                       command_logs_count: databaseStats.command_logs_count,
+                      generated_outputs_count: databaseStats.generated_outputs_count,
                       result: databaseStats,
                     },
                     'database-stats-json',
@@ -5915,9 +5917,10 @@ function App() {
                       status: databaseStats.status,
                       media_files_count: databaseStats.media_files_count,
                       command_logs_count: databaseStats.command_logs_count,
+                      generated_outputs_count: databaseStats.generated_outputs_count,
                       result: databaseStats,
                     },
-                    `database_stats_media-${databaseStats.media_files_count}_commands-${databaseStats.command_logs_count}.json`,
+                    `database_stats_media-${databaseStats.media_files_count}_commands-${databaseStats.command_logs_count}_outputs-${databaseStats.generated_outputs_count}.json`,
                     'Downloaded Database Stats JSON.',
                     'download-database-stats-json',
                   )
@@ -5956,6 +5959,11 @@ function App() {
               <div className="stat-item">
                 <span>Command logs</span>
                 <strong>{databaseStats.command_logs_count}</strong>
+              </div>
+
+              <div className="stat-row">
+                <span>Generated outputs</span>
+                <strong>{databaseStats.generated_outputs_count}</strong>
               </div>
             </div>
           </>
