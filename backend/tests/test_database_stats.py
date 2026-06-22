@@ -16,4 +16,5 @@ def test_database_stats_not_configured(monkeypatch):
         "status": "not_configured",
         "media_files_count": 0,
         "command_logs_count": 0,
+        "generated_outputs_count": 0,
     }
