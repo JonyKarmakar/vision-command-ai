@@ -3138,6 +3138,88 @@ function App() {
       {},
     )
 
+  const buildGeneratedOutputAnalyticsEntries = (
+    items: GeneratedOutputHistoryItem[],
+    getKey: (item: GeneratedOutputHistoryItem) => string,
+  ) =>
+    Object.entries(
+      items.reduce<Record<string, number>>((counts, item) => {
+        const key = getKey(item)
+        return {
+          ...counts,
+          [key]: (counts[key] ?? 0) + 1,
+        }
+      }, {}),
+    ).sort((firstEntry, secondEntry) => secondEntry[1] - firstEntry[1])
+
+  const getGeneratedOutputSourceLabel = (item: GeneratedOutputHistoryItem) => {
+    if (item.source === 'uploads') {
+      return 'Uploaded image'
+    }
+
+    if (item.source === 'outputs') {
+      return 'Generated output'
+    }
+
+    return 'Unknown source'
+  }
+
+  const getGeneratedOutputCreatedByLabel = (item: GeneratedOutputHistoryItem) => {
+    const category = getGeneratedOutputCreatedByCategory(item)
+
+    if (category === 'run_command') {
+      return 'Run Command'
+    }
+
+    if (category === 'generated_output') {
+      return 'Generated Output'
+    }
+
+    return 'Unknown'
+  }
+
+  const generatedOutputWorkflowAnalytics = (() => {
+    const latestItem = filteredGeneratedOutputHistory.reduce<GeneratedOutputHistoryItem | null>(
+      (currentLatestItem, item) => {
+        if (!currentLatestItem) {
+          return item
+        }
+
+        return Date.parse(item.created_at) > Date.parse(currentLatestItem.created_at)
+          ? item
+          : currentLatestItem
+      },
+      null,
+    )
+
+    return {
+      visibleOutputCount: filteredGeneratedOutputHistory.length,
+      totalOutputCount: generatedOutputHistory.length,
+      workflowSourceCount: Object.keys(generatedOutputHistoryFilteredGroups).length,
+      actionEntries: buildGeneratedOutputAnalyticsEntries(
+        filteredGeneratedOutputHistory,
+        (item) => item.action.replace(/_/g, ' '),
+      ),
+      sourceEntries: buildGeneratedOutputAnalyticsEntries(
+        filteredGeneratedOutputHistory,
+        getGeneratedOutputSourceLabel,
+      ),
+      createdByEntries: buildGeneratedOutputAnalyticsEntries(
+        filteredGeneratedOutputHistory,
+        getGeneratedOutputCreatedByLabel,
+      ),
+      parserEntries: buildGeneratedOutputAnalyticsEntries(
+        filteredGeneratedOutputHistory,
+        (item) => item.parser_mode ?? 'No parser',
+      ),
+      plannerEntries: buildGeneratedOutputAnalyticsEntries(
+        filteredGeneratedOutputHistory,
+        (item) => item.planner_mode ?? 'No planner',
+      ),
+      latestItem,
+    }
+  })()
+
   const getSortedGeneratedOutputWorkflowItems = (items: GeneratedOutputHistoryItem[]) =>
     [...items].sort(
       (firstItem, secondItem) =>
@@ -10402,6 +10484,140 @@ uvicorn app.main:app --reload`}</pre>
                   </button>
                 </div>
               </div>
+
+              {generatedOutputHistory.length > 0 && (
+                <div className="generated-output-workflow-analytics-panel">
+                  <div className="generated-output-workflow-analytics-header">
+                    <div>
+                      <span>Workflow analytics</span>
+                      <strong>Generated output activity summary</strong>
+                      <p className="small-note">
+                        Metrics update with the current Generated Output History filters.
+                      </p>
+                    </div>
+
+                    {hasGeneratedOutputHistoryFilters && (
+                      <span className="generated-output-workflow-analytics-filter-badge">
+                        Filtered view
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="generated-output-workflow-analytics-grid">
+                    <div className="generated-output-workflow-analytics-metric">
+                      <span>Visible outputs</span>
+                      <strong>{generatedOutputWorkflowAnalytics.visibleOutputCount}</strong>
+                      <small>of {generatedOutputWorkflowAnalytics.totalOutputCount} total</small>
+                    </div>
+
+                    <div className="generated-output-workflow-analytics-metric">
+                      <span>Workflow sources</span>
+                      <strong>{generatedOutputWorkflowAnalytics.workflowSourceCount}</strong>
+                      <small>grouped by source filename</small>
+                    </div>
+
+                    <div className="generated-output-workflow-analytics-metric">
+                      <span>Action types</span>
+                      <strong>{generatedOutputWorkflowAnalytics.actionEntries.length}</strong>
+                      <small>detection, zoom, crop, or blur</small>
+                    </div>
+
+                    <div className="generated-output-workflow-analytics-metric">
+                      <span>Latest output</span>
+                      <strong>
+                        {generatedOutputWorkflowAnalytics.latestItem
+                          ? new Date(generatedOutputWorkflowAnalytics.latestItem.created_at).toLocaleTimeString()
+                          : 'None'}
+                      </strong>
+                      <small>
+                        {generatedOutputWorkflowAnalytics.latestItem?.label ?? 'No output available'}
+                      </small>
+                    </div>
+                  </div>
+
+                  <div className="generated-output-workflow-analytics-breakdowns">
+                    <div className="generated-output-workflow-analytics-breakdown">
+                      <span>Action distribution</span>
+                      {generatedOutputWorkflowAnalytics.actionEntries.length > 0 ? (
+                        <ul>
+                          {generatedOutputWorkflowAnalytics.actionEntries.map(([label, count]) => (
+                            <li key={label}>
+                              <span>{label}</span>
+                              <strong>{count}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="small-note">No visible action data.</p>
+                      )}
+                    </div>
+
+                    <div className="generated-output-workflow-analytics-breakdown">
+                      <span>Source breakdown</span>
+                      {generatedOutputWorkflowAnalytics.sourceEntries.length > 0 ? (
+                        <ul>
+                          {generatedOutputWorkflowAnalytics.sourceEntries.map(([label, count]) => (
+                            <li key={label}>
+                              <span>{label}</span>
+                              <strong>{count}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="small-note">No visible source data.</p>
+                      )}
+                    </div>
+
+                    <div className="generated-output-workflow-analytics-breakdown">
+                      <span>Created by</span>
+                      {generatedOutputWorkflowAnalytics.createdByEntries.length > 0 ? (
+                        <ul>
+                          {generatedOutputWorkflowAnalytics.createdByEntries.map(([label, count]) => (
+                            <li key={label}>
+                              <span>{label}</span>
+                              <strong>{count}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="small-note">No creator data.</p>
+                      )}
+                    </div>
+
+                    <div className="generated-output-workflow-analytics-breakdown">
+                      <span>Parser usage</span>
+                      {generatedOutputWorkflowAnalytics.parserEntries.length > 0 ? (
+                        <ul>
+                          {generatedOutputWorkflowAnalytics.parserEntries.map(([label, count]) => (
+                            <li key={label}>
+                              <span>{label}</span>
+                              <strong>{count}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="small-note">No parser data.</p>
+                      )}
+                    </div>
+
+                    <div className="generated-output-workflow-analytics-breakdown">
+                      <span>Planner usage</span>
+                      {generatedOutputWorkflowAnalytics.plannerEntries.length > 0 ? (
+                        <ul>
+                          {generatedOutputWorkflowAnalytics.plannerEntries.map(([label, count]) => (
+                            <li key={label}>
+                              <span>{label}</span>
+                              <strong>{count}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="small-note">No planner data.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {filteredGeneratedOutputHistory.length === 0 && (
                 <div className="generated-output-empty-filter-state">
