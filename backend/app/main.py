@@ -51,6 +51,9 @@ from app.services.database_service import (
     initialize_parser_attempt_logs_table,
     save_parser_attempt_to_database,
     get_database_parser_attempt_summary,
+    get_database_generated_output_lineage,
+    get_database_generated_output_workflows,
+    get_database_generated_outputs_by_source,
 )
 from app.schemas import (
     BlurAllByClassRequest,
@@ -2324,6 +2327,24 @@ def get_postgres_media_files(limit: int = Query(20, ge=1, le=100)):
 @app.get("/db/generated-outputs")
 def get_postgres_generated_outputs(limit: int = Query(100, ge=1, le=500)):
     return get_database_generated_outputs(limit)
+
+
+@app.get("/db/generated-outputs/workflows")
+def get_postgres_generated_output_workflows(limit: int = Query(500, ge=1, le=500)):
+    return get_database_generated_output_workflows(limit)
+
+
+@app.get("/db/generated-outputs/source/{source_filename}")
+def get_postgres_generated_outputs_by_source(
+    source_filename: str,
+    limit: int = Query(100, ge=1, le=500),
+):
+    return get_database_generated_outputs_by_source(source_filename, limit)
+
+
+@app.get("/db/generated-outputs/{output_id}/lineage")
+def get_postgres_generated_output_lineage(output_id: str):
+    return get_database_generated_output_lineage(output_id)
 
 
 @app.post("/db/generated-outputs")

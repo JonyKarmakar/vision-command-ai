@@ -1073,6 +1073,292 @@ def delete_database_generated_output(output_id: str):
     }
 
 
+
+def _generated_output_rows_to_items(rows):
+    return [
+        {
+            "id": row[0],
+            "action": row[1],
+            "label": row[2],
+            "filename": row[3],
+            "file_url": row[4],
+            "source": row[5],
+            "source_filename": row[6],
+            "created_by": row[7],
+            "command_text": row[8],
+            "result_type": row[9],
+            "execution_mode": row[10],
+            "parser_mode": row[11],
+            "parser_type": row[12],
+            "planner_mode": row[13],
+            "created_at": row[14],
+        }
+        for row in rows
+    ]
+
+
+def _select_generated_output_fields_sql():
+    return """
+        SELECT
+            id,
+            action,
+            COALESCE(label, '') AS label,
+            filename,
+            file_url,
+            source,
+            source_filename,
+            created_by,
+            command_text,
+            result_type,
+            execution_mode,
+            parser_mode,
+            parser_type,
+            planner_mode,
+            created_at
+        FROM generated_outputs
+    """
+
+
+def _get_all_generated_output_items(limit: int = 500):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return []
+
+    initialize_generated_outputs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                _select_generated_output_fields_sql()
+                + """
+                ORDER BY created_at ASC NULLS LAST
+                LIMIT %s;
+                """,
+                (limit,),
+            )
+            rows = cursor.fetchall()
+
+    return _generated_output_rows_to_items(rows)
+
+
+def _find_generated_output_ancestors(target_item: dict, filename_to_item: dict):
+    ancestors = []
+    visited_filenames = set()
+    current_item = target_item
+
+    while current_item.get("source_filename"):
+        source_filename = current_item.get("source_filename")
+
+        if source_filename in visited_filenames:
+            break
+
+        visited_filenames.add(source_filename)
+        parent_item = filename_to_item.get(source_filename)
+
+        if not parent_item:
+            break
+
+        ancestors.insert(0, parent_item)
+        current_item = parent_item
+
+    return ancestors
+
+
+def _find_generated_output_descendants(target_item: dict, items: list[dict]):
+    descendants = []
+    visited_ids = set()
+
+    def walk(parent_filename: str):
+        for item in items:
+            if item["id"] in visited_ids:
+                continue
+
+            if item.get("source_filename") == parent_filename:
+                visited_ids.add(item["id"])
+                descendants.append(item)
+                walk(item["filename"])
+
+    walk(target_item["filename"])
+
+    return descendants
+
+
+def _get_generated_output_root_source(item: dict, filename_to_item: dict):
+    current_item = item
+    visited_filenames = set()
+
+    while current_item.get("source_filename"):
+        source_filename = current_item.get("source_filename")
+
+        if source_filename in visited_filenames:
+            break
+
+        visited_filenames.add(source_filename)
+        parent_item = filename_to_item.get(source_filename)
+
+        if not parent_item:
+            return source_filename
+
+        current_item = parent_item
+
+    return current_item.get("source_filename") or current_item.get("filename")
+
+
+def get_database_generated_output_workflows(limit: int = 500):
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "count": 0,
+            "workflows": [],
+        }
+
+    items = _get_all_generated_output_items(limit)
+    filename_to_item = {item["filename"]: item for item in items}
+
+    workflow_map = {}
+
+    for item in items:
+        root_source_filename = _get_generated_output_root_source(item, filename_to_item)
+        workflow = workflow_map.setdefault(
+            root_source_filename,
+            {
+                "workflow_source_filename": root_source_filename,
+                "output_count": 0,
+                "actions": [],
+                "first_created_at": item.get("created_at"),
+                "latest_created_at": item.get("created_at"),
+                "outputs": [],
+            },
+        )
+
+        workflow["output_count"] += 1
+
+        if item.get("action") not in workflow["actions"]:
+            workflow["actions"].append(item.get("action"))
+
+        if item.get("created_at") and (
+            workflow["first_created_at"] is None
+            or item["created_at"] < workflow["first_created_at"]
+        ):
+            workflow["first_created_at"] = item["created_at"]
+
+        if item.get("created_at") and (
+            workflow["latest_created_at"] is None
+            or item["created_at"] > workflow["latest_created_at"]
+        ):
+            workflow["latest_created_at"] = item["created_at"]
+
+        workflow["outputs"].append(item)
+
+    workflows = sorted(
+        workflow_map.values(),
+        key=lambda workflow: workflow.get("latest_created_at") or "",
+        reverse=True,
+    )
+
+    return {
+        "status": "healthy",
+        "count": len(workflows),
+        "workflows": workflows,
+    }
+
+
+def get_database_generated_outputs_by_source(source_filename: str, limit: int = 100):
+    import psycopg
+
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "source_filename": source_filename,
+            "count": 0,
+            "generated_outputs": [],
+        }
+
+    initialize_generated_outputs_table()
+
+    with psycopg.connect(database_url) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                _select_generated_output_fields_sql()
+                + """
+                WHERE source_filename = %s
+                ORDER BY created_at DESC NULLS LAST
+                LIMIT %s;
+                """,
+                (source_filename, limit),
+            )
+            rows = cursor.fetchall()
+
+    generated_outputs = _generated_output_rows_to_items(rows)
+
+    return {
+        "status": "healthy",
+        "source_filename": source_filename,
+        "count": len(generated_outputs),
+        "generated_outputs": generated_outputs,
+    }
+
+
+def get_database_generated_output_lineage(output_id: str):
+    database_url = get_database_url()
+
+    if not database_url:
+        return {
+            "status": "not_configured",
+            "output_id": output_id,
+            "found": False,
+            "generated_output": None,
+            "ancestors": [],
+            "descendants": [],
+            "lineage": [],
+            "lineage_depth": 0,
+            "root_source_filename": None,
+        }
+
+    items = _get_all_generated_output_items()
+    id_to_item = {item["id"]: item for item in items}
+    filename_to_item = {item["filename"]: item for item in items}
+
+    target_item = id_to_item.get(output_id)
+
+    if not target_item:
+        return {
+            "status": "healthy",
+            "output_id": output_id,
+            "found": False,
+            "generated_output": None,
+            "ancestors": [],
+            "descendants": [],
+            "lineage": [],
+            "lineage_depth": 0,
+            "root_source_filename": None,
+        }
+
+    ancestors = _find_generated_output_ancestors(target_item, filename_to_item)
+    descendants = _find_generated_output_descendants(target_item, items)
+    lineage = [*ancestors, target_item, *descendants]
+    root_source_filename = _get_generated_output_root_source(target_item, filename_to_item)
+
+    return {
+        "status": "healthy",
+        "output_id": output_id,
+        "found": True,
+        "generated_output": target_item,
+        "ancestors": ancestors,
+        "descendants": descendants,
+        "lineage": lineage,
+        "lineage_depth": len(ancestors),
+        "root_source_filename": root_source_filename,
+    }
+
+
 def clear_database_generated_outputs():
     import psycopg
 
