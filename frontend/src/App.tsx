@@ -3039,6 +3039,37 @@ function App() {
     }
   }
 
+  const handleDownloadTextFile = (
+    textData: string,
+    fileName: string,
+    successMessage: string,
+    downloadKey = '',
+    mimeType = 'text/markdown',
+  ) => {
+    const blob = new Blob([textData], {
+      type: mimeType,
+    })
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+
+    link.href = downloadUrl
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+
+    window.URL.revokeObjectURL(downloadUrl)
+    setStatusMessage(successMessage)
+
+    if (downloadKey) {
+      setDownloadedParserLogJsonKey(downloadKey)
+
+      window.setTimeout(() => {
+        setDownloadedParserLogJsonKey((currentKey) => (currentKey === downloadKey ? '' : currentKey))
+      }, 2000)
+    }
+  }
+
   const generatedOutputHistoryParserModes = Array.from(
     new Set(
       generatedOutputHistory
@@ -3336,6 +3367,161 @@ function App() {
     }
   }
 
+  const buildGeneratedOutputWorkflowMarkdownReport = (exportedAt: string) => {
+    const groups = generatedOutputHistory.reduce<Record<string, GeneratedOutputHistoryItem[]>>(
+      (groupedItems, item) => {
+        const groupKey = item.source_filename ?? item.filename
+        const currentGroup = groupedItems[groupKey] ?? []
+
+        return {
+          ...groupedItems,
+          [groupKey]: [...currentGroup, item],
+        }
+      },
+      {},
+    )
+
+    const formatMarkdownValue = (value?: string | null) => {
+      const normalizedValue = value?.replace(/\s+/g, ' ').trim()
+
+      return normalizedValue && normalizedValue.length > 0 ? normalizedValue : 'N/A'
+    }
+
+    const formatAnalyticsEntries = (entries: [string, number][]) =>
+      entries.length > 0
+        ? entries.map(([label, count]) => `- ${label}: ${count}`).join('\n')
+        : '- None'
+
+    const actionEntries = buildGeneratedOutputAnalyticsEntries(
+      generatedOutputHistory,
+      (item) => item.action.replace(/_/g, ' '),
+    )
+    const sourceEntries = buildGeneratedOutputAnalyticsEntries(
+      generatedOutputHistory,
+      getGeneratedOutputSourceLabel,
+    )
+    const createdByEntries = buildGeneratedOutputAnalyticsEntries(
+      generatedOutputHistory,
+      getGeneratedOutputCreatedByLabel,
+    )
+    const parserEntries = buildGeneratedOutputAnalyticsEntries(
+      generatedOutputHistory,
+      (item) => item.parser_mode ?? 'No parser',
+    )
+    const plannerEntries = buildGeneratedOutputAnalyticsEntries(
+      generatedOutputHistory,
+      (item) => item.planner_mode ?? 'No planner',
+    )
+
+    const latestItem = generatedOutputHistory.reduce<GeneratedOutputHistoryItem | null>(
+      (currentLatestItem, item) => {
+        if (!currentLatestItem) {
+          return item
+        }
+
+        return Date.parse(item.created_at) > Date.parse(currentLatestItem.created_at)
+          ? item
+          : currentLatestItem
+      },
+      null,
+    )
+
+    const activeSourceSection = activeGeneratedImageSource
+      ? [
+          '## Active Generated Image Source',
+          '',
+          `- Label: ${formatMarkdownValue(activeGeneratedImageSource.label)}`,
+          `- Filename: ${formatMarkdownValue(activeGeneratedImageSource.filename)}`,
+          `- Action: ${formatMarkdownValue(activeGeneratedImageSource.action)}`,
+          `- Source: ${formatMarkdownValue(activeGeneratedImageSource.source)}`,
+          `- Source filename: ${formatMarkdownValue(activeGeneratedImageSource.source_filename)}`,
+          `- Created by: ${formatMarkdownValue(activeGeneratedImageSource.created_by)}`,
+          `- Command: ${formatMarkdownValue(activeGeneratedImageSource.command_text)}`,
+          `- Result type: ${formatMarkdownValue(activeGeneratedImageSource.result_type)}`,
+          `- Created at: ${formatMarkdownValue(activeGeneratedImageSource.created_at)}`,
+        ].join('\n')
+      : ['## Active Generated Image Source', '', 'No active generated image source selected.'].join('\n')
+
+    const workflowSections = Object.entries(groups)
+      .map(([workflowSourceFilename, items]) => {
+        const sortedItems = getSortedGeneratedOutputWorkflowItems(items)
+        const actions = getGeneratedOutputWorkflowActions(items).join(', ')
+
+        const stepLines = sortedItems
+          .map((item, index) =>
+            [
+              `### Step ${index + 1}: ${item.action.replace(/_/g, ' ')} · ${formatMarkdownValue(item.label)}`,
+              '',
+              `- Output filename: ${formatMarkdownValue(item.filename)}`,
+              `- Source type: ${formatMarkdownValue(item.source)}`,
+              `- Input source filename: ${formatMarkdownValue(item.source_filename)}`,
+              `- Created by: ${formatMarkdownValue(item.created_by)}`,
+              `- Command: ${formatMarkdownValue(item.command_text)}`,
+              `- Result type: ${formatMarkdownValue(item.result_type)}`,
+              `- Execution mode: ${formatMarkdownValue(item.execution_mode)}`,
+              `- Parser mode: ${formatMarkdownValue(item.parser_mode)}`,
+              `- Parser type: ${formatMarkdownValue(item.parser_type)}`,
+              `- Planner mode: ${formatMarkdownValue(item.planner_mode)}`,
+              `- Created at: ${formatMarkdownValue(item.created_at)}`,
+              '',
+              `Lineage: ${formatMarkdownValue(item.source_filename)} -> ${formatMarkdownValue(item.filename)}`,
+            ].join('\n'),
+          )
+          .join('\n\n')
+
+        return [
+          `## Workflow Source: ${workflowSourceFilename}`,
+          '',
+          `- Output count: ${items.length}`,
+          `- Actions: ${actions || 'None'}`,
+          '',
+          stepLines,
+        ].join('\n')
+      })
+      .join('\n\n')
+
+    return [
+      '# VisionCommand AI Workflow Report',
+      '',
+      `Generated at: ${new Date(exportedAt).toLocaleString()}`,
+      `Export timestamp: ${exportedAt}`,
+      '',
+      '## Summary',
+      '',
+      `- Total generated outputs: ${generatedOutputHistory.length}`,
+      `- Workflow source count: ${Object.keys(groups).length}`,
+      `- Auto-use latest generated output as active image: ${
+        autoUseLatestGeneratedOutputAsActive ? 'Enabled' : 'Disabled'
+      }`,
+      `- Latest output: ${latestItem ? formatMarkdownValue(latestItem.label) : 'None'}`,
+      `- Latest output timestamp: ${latestItem ? formatMarkdownValue(latestItem.created_at) : 'N/A'}`,
+      '',
+      '## Analytics',
+      '',
+      '### Action Distribution',
+      formatAnalyticsEntries(actionEntries),
+      '',
+      '### Source Breakdown',
+      formatAnalyticsEntries(sourceEntries),
+      '',
+      '### Created By Breakdown',
+      formatAnalyticsEntries(createdByEntries),
+      '',
+      '### Parser Usage',
+      formatAnalyticsEntries(parserEntries),
+      '',
+      '### Planner Usage',
+      formatAnalyticsEntries(plannerEntries),
+      '',
+      activeSourceSection,
+      '',
+      '## Workflow Groups',
+      '',
+      workflowSections || 'No workflow groups available.',
+      '',
+    ].join('\n')
+  }
+
   const handleDownloadGeneratedOutputWorkflowJson = () => {
     const exportedAt = new Date().toISOString()
     const fileTimestamp = exportedAt.replace(/[:.]/g, '-')
@@ -3346,6 +3532,19 @@ function App() {
       `visioncommand-generated-output-workflow-${fileTimestamp}.json`,
       'Generated Output workflow JSON downloaded.',
       'download-generated-output-workflow-json',
+    )
+  }
+
+  const handleDownloadGeneratedOutputWorkflowReport = () => {
+    const exportedAt = new Date().toISOString()
+    const fileTimestamp = exportedAt.replace(/[:.]/g, '-')
+    const workflowReport = buildGeneratedOutputWorkflowMarkdownReport(exportedAt)
+
+    handleDownloadTextFile(
+      workflowReport,
+      `visioncommand-generated-output-workflow-report-${fileTimestamp}.md`,
+      'Generated Output workflow report downloaded.',
+      'download-generated-output-workflow-report',
     )
   }
 
@@ -10360,6 +10559,17 @@ uvicorn app.main:app --reload`}</pre>
                   {downloadedParserLogJsonKey === 'download-generated-output-workflow-json'
                     ? 'Downloaded'
                     : 'Export Workflow JSON'}
+                </button>
+
+                <button
+                  className="secondary-button"
+                  onClick={handleDownloadGeneratedOutputWorkflowReport}
+                  disabled={isBusy || generatedOutputHistory.length === 0}
+                  data-testid="download-generated-output-workflow-report"
+                >
+                  {downloadedParserLogJsonKey === 'download-generated-output-workflow-report'
+                    ? 'Downloaded'
+                    : 'Download Workflow Report'}
                 </button>
 
                 <button
