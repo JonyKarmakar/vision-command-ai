@@ -1,10 +1,22 @@
 # VisionCommand AI
 
-VisionCommand AI is an end-to-end AI-powered computer vision and media editing application. Users can upload images, run YOLO object detection, view annotated results, crop or blur detected objects, use text or browser-based voice commands, and work with database-backed media, command, detection, and inference history.
+VisionCommand AI is an end-to-end full-stack AI media workflow platform. Users can upload images or videos, run YOLO object detection, view annotated results, crop, blur, zoom into targets, reuse generated outputs, use text or browser-based voice commands, inspect workflow history, and export workflow reports.
 
-The project is being built as a learning-focused production-style AI system. The goal is not only to build a computer vision demo, but also to learn full-stack AI development, Git/GitHub workflow, Docker, CI/CD, PostgreSQL-backed data engineering, and MLOps-style inference monitoring.
+The project is being built as a learning-focused production-style AI system. The goal is not only to build a computer vision demo, but also to learn full-stack AI development, Git/GitHub workflow, Docker, CI/CD, PostgreSQL-backed data engineering, MLOps-style inference monitoring, LLMOps-style command evaluation, and analytics-ready AI workflow reporting.
 
 ---
+
+## Latest Release
+
+Latest prepared release:
+
+- `v0.5.0` - AI Workflow Intelligence, Generated Output Lineage, Analytics, and Reporting
+
+Release notes:
+
+- `docs/releases/v0.5.0.md`
+
+v0.5.0 expands VisionCommand AI from a deployed AI media demo into a more complete workflow platform with command planning, prepared execution, target-aware zoom, generated output reuse, workflow persistence, lineage APIs, analytics, and Markdown workflow report export.
 
 ## Live Demo
 
@@ -25,9 +37,10 @@ The deployed demo currently includes:
 - Render PostgreSQL database
 - YOLO image upload and object detection
 - Annotated image output
-- Crop and blur workflows
-- Command-based crop and blur actions
-- Database-backed detection history and inference logs
+- Crop, blur, and zoom workflows
+- Command-based crop, blur, zoom, and generated-output actions
+- Generated Output History with workflow grouping, details, analytics, and report export
+- Database-backed detection history, inference logs, command logs, and generated-output persistence where configured
 
 The first Render deployment was manually smoke tested through the browser.
 
@@ -71,8 +84,12 @@ VisionCommand AI is currently a full-stack computer vision studio with:
 - Video upload, metadata extraction, trimming, frame extraction, frame detection, sampled detection, and object tracking
 - Text-command and browser voice-command workflows
 - Parser-aware command execution with rule-based, mock LLM, and real LLM provider paths
-- PostgreSQL-backed media, command, detection, parser, and inference logs
-- LLMOps-style parser and command monitoring dashboards
+- Command planner modes with rule-based, mock LLM, and real LLM planning support
+- Prepared command execution from validated command plans
+- Generated output reuse as active image sources for iterative AI media workflows
+- PostgreSQL-backed media, command, detection, parser, inference, and generated-output logs where configured
+- LLMOps-style parser, planner, command, and provider monitoring dashboards
+- Workflow history, lineage, analytics, JSON export, and Markdown report export
 - Workspace snapshot export and import
 - Local workspace backup, automatic autosave, recovery banner, undo clear, and restore safety confirmations
 - Docker Compose setup for backend, frontend, and PostgreSQL
@@ -146,6 +163,32 @@ The project has moved beyond a simple object detection demo and now acts as a le
 - Log command executions locally and in PostgreSQL
 - View recent command history in the frontend
 
+### Command Planning and Prepared Execution
+
+- Generate structured command plans with `POST /commands/plan`
+- Use planner modes such as `rule_based`, `llm_mock`, and `real_llm`
+- Preview planner prompts and expected planner JSON schema
+- Compare planner behavior across modes
+- Evaluate command planner behavior through backend evaluation endpoints
+- Prepare executable commands from validated command plans
+- Execute prepared commands through the backend
+- Route prepared command results into the same visual result panels used by normal commands
+
+### Generated Output Workflows
+
+- Store generated detection, zoom, crop, and blur outputs in Generated Output History
+- Show generated output thumbnails as gallery-style cards
+- Run YOLO detection directly on generated outputs
+- Crop or blur detections from generated output images
+- Use generated outputs as the active image source for later commands
+- Group generated outputs by workflow source filename
+- Show workflow details with ordered steps and metadata
+- Show workflow analytics with action, source, created-by, parser, and planner usage
+- Persist Generated Output History in PostgreSQL where configured
+- Load saved generated output history from the backend
+- Export generated output workflows as JSON
+- Export generated output workflow reports as Markdown
+
 ### Database and Analytics
 
 - Store uploaded media metadata in PostgreSQL
@@ -159,6 +202,10 @@ The project has moved beyond a simple object detection demo and now acts as a le
 - View detection summary analytics from the frontend
 - View inference logs and inference summary from the frontend
 - View model metadata from the frontend
+- View generated output count in Database Stats
+- Query persisted generated output workflows through backend APIs
+- Query generated outputs by source filename
+- Query generated output lineage by output id
 
 ### Workspace Recovery and UX Safety
 
@@ -266,6 +313,11 @@ vision-command-ai/
 
 Additional project documentation is available in the `docs/` folder:
 
+- `docs/releases/v0.5.0.md` summarizes the v0.5.0 workflow intelligence, lineage, analytics, and reporting release.
+- `docs/releases/v0.4.0.md` documents the first public Render cloud deployment milestone.
+- `docs/releases/v0.3.0.md` documents the LLM command intelligence, LLMOps, command analytics, JSON export, and workspace recovery release.
+- `docs/command-planner-design.md` explains the command planner architecture and planning direction.
+- `docs/project-vision-and-ai-roadmap.md` documents the corrected product identity and AI roadmap.
 - `docs/llm-command-parser-architecture.md` explains the command parser architecture, parser modes, provider abstraction, and LLMOps-related design.
 - `docs/workspace-recovery-flow.md` explains the workspace recovery system, including snapshot export/import, local backup, autosave, recovery banner, clear confirmations, undo clear, restore confirmations, manual test matrix, known limitations, and future improvements.
 
@@ -922,7 +974,7 @@ Completed:
 - Backend CI
 - Frontend CI
 - Protected main branch
-- GitHub release `v0.1.0`
+- Versioned GitHub release workflow with v0.5.0 release documentation prepared
 - Pull Request workflow
 
 ---
@@ -949,19 +1001,17 @@ This keeps `main.py` smaller and makes the backend easier to maintain.
 
 Planned future improvements:
 
+- Refactor the large frontend `App.tsx` into smaller workflow-focused components
+- Add backend-powered workflow analytics endpoints
+- Add PDF export for workflow reports
 - Improve video tracking with stronger tracking algorithms such as ByteTrack or DeepSORT
 - Add full-video tracking summaries across longer videos
 - Add object-specific video editing based on tracked objects
-- Add full-video detection timeline across automatically sampled frames
-- Add advanced FFmpeg-based video editing workflows
-- Add backend-side command parser improvements
-- Add support for commands such as `crop the highest confidence person`
-- Add support for commands such as `blur all persons from 0 to 3 seconds`
-- Add LLM-based command parsing
+- Add deeper command planning evaluation datasets and reports
 - Add proper backend speech-to-text integration
 - Add MLflow for experiment tracking
 - Add DVC for data/model versioning
-- Add deployment workflow
+- Add object storage for longer-lived uploaded and generated media
 ---
 
 ## Learning Goals
@@ -981,7 +1031,9 @@ This project is designed to teach:
 - PostgreSQL-backed data engineering
 - Full-stack AI system design
 - MLOps-style inference logging and analytics
-- LLMOps foundations through command logging and command history
+- LLMOps foundations through command logging, planner evaluation, and provider monitoring
+- Analytics engineering through workflow metrics and dashboard-ready summaries
+- Evaluation and reporting foundations through JSON and Markdown workflow exports
 ---
 
 ## Environment Configuration
