@@ -747,6 +747,10 @@ function App() {
     setIsGeneratedOutputHistoryPanelVisible,
   ] = useState(false)
   const [
+    selectedGeneratedOutputWorkflowSource,
+    setSelectedGeneratedOutputWorkflowSource,
+  ] = useState<string | null>(null)
+  const [
     activeGeneratedImageSource,
     setActiveGeneratedImageSource,
   ] = useState<GeneratedOutputHistoryItem | null>(null)
@@ -1040,6 +1044,7 @@ function App() {
   const handleClearGeneratedOutputHistory = async () => {
     setGeneratedOutputHistory([])
     setIsGeneratedOutputHistoryPanelVisible(true)
+    setSelectedGeneratedOutputWorkflowSource(null)
     setActiveGeneratedImageSource(null)
     setExpandedGeneratedOutputDetails(new Set())
     setStatusMessage('Generated Output History cleared.')
@@ -1060,6 +1065,10 @@ function App() {
 
     if (activeGeneratedImageSource?.id === item.id) {
       setActiveGeneratedImageSource(null)
+    }
+
+    if (selectedGeneratedOutputWorkflowSource === (item.source_filename ?? item.filename)) {
+      setSelectedGeneratedOutputWorkflowSource(null)
     }
 
     setStatusMessage(`Removed output history item: ${item.label}.`)
@@ -3128,6 +3137,26 @@ function App() {
       },
       {},
     )
+
+  const getSortedGeneratedOutputWorkflowItems = (items: GeneratedOutputHistoryItem[]) =>
+    [...items].sort(
+      (firstItem, secondItem) =>
+        Date.parse(firstItem.created_at) - Date.parse(secondItem.created_at),
+    )
+
+  const getGeneratedOutputWorkflowActions = (items: GeneratedOutputHistoryItem[]) =>
+    Array.from(new Set(items.map((item) => item.action.replace(/_/g, ' '))))
+
+  const handleToggleGeneratedOutputWorkflowDetails = (workflowSourceFilename: string) => {
+    const isCurrentlySelected = selectedGeneratedOutputWorkflowSource === workflowSourceFilename
+
+    setSelectedGeneratedOutputWorkflowSource(isCurrentlySelected ? null : workflowSourceFilename)
+    setStatusMessage(
+      isCurrentlySelected
+        ? 'Workflow details hidden.'
+        : `Viewing workflow details for ${workflowSourceFilename}.`,
+    )
+  }
 
   const hasGeneratedOutputHistoryFilters =
     generatedOutputHistorySearch.trim().length > 0 ||
@@ -10384,13 +10413,75 @@ uvicorn app.main:app --reload`}</pre>
                 {Object.entries(generatedOutputHistoryFilteredGroups).map(([groupKey, groupItems]) => (
                   <div className="generated-output-group" key={groupKey}>
                     <div className="generated-output-group-header">
-                      <span>Workflow source</span>
-                      <strong>{groupKey}</strong>
-                      <small>
-                        {groupItems.length} generated output
-                        {groupItems.length === 1 ? '' : 's'}
-                      </small>
+                      <div className="generated-output-group-title">
+                        <span>Workflow source</span>
+                        <strong>{groupKey}</strong>
+                        <small>
+                          {groupItems.length} generated output
+                          {groupItems.length === 1 ? '' : 's'}
+                        </small>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => handleToggleGeneratedOutputWorkflowDetails(groupKey)}
+                        disabled={isBusy}
+                      >
+                        {selectedGeneratedOutputWorkflowSource === groupKey
+                          ? 'Hide Workflow Details'
+                          : 'View Workflow Details'}
+                      </button>
                     </div>
+
+                    {selectedGeneratedOutputWorkflowSource === groupKey && (
+                      <div className="generated-output-workflow-detail-panel">
+                        <div className="generated-output-workflow-detail-summary">
+                          <span>Workflow details</span>
+                          <strong>{groupKey}</strong>
+                          <p className="small-note">
+                            {groupItems.length} step{groupItems.length === 1 ? '' : 's'} · Actions:{' '}
+                            {getGeneratedOutputWorkflowActions(groupItems).join(', ')}
+                          </p>
+                        </div>
+
+                        <ol className="generated-output-workflow-steps">
+                          {getSortedGeneratedOutputWorkflowItems(groupItems).map((workflowItem, index) => (
+                            <li className="generated-output-workflow-step" key={workflowItem.id}>
+                              <span className="generated-output-workflow-step-number">{index + 1}</span>
+
+                              <div className="generated-output-workflow-step-content">
+                                <strong>
+                                  {workflowItem.action.replace(/_/g, ' ')} · {workflowItem.label}
+                                </strong>
+                                <p className="generated-output-workflow-step-filename">
+                                  {workflowItem.filename}
+                                </p>
+                                <p className="small-note">
+                                  {workflowItem.command_text ??
+                                    workflowItem.result_type ??
+                                    'No command metadata available'}
+                                </p>
+
+                                <div className="generated-output-workflow-step-meta">
+                                  <span>Created by: {workflowItem.created_by ?? 'Unknown'}</span>
+                                  {workflowItem.result_type && (
+                                    <span>Result: {workflowItem.result_type}</span>
+                                  )}
+                                  {workflowItem.parser_mode && (
+                                    <span>Parser: {workflowItem.parser_mode}</span>
+                                  )}
+                                  {workflowItem.planner_mode && (
+                                    <span>Planner: {workflowItem.planner_mode}</span>
+                                  )}
+                                  <span>{new Date(workflowItem.created_at).toLocaleString()}</span>
+                                </div>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
 
                     <div className="generated-output-group-items">
                       {groupItems.map((item) => {
