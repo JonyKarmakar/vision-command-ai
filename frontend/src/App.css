@@ -4596,3 +4596,124 @@ input[type="file"]::file-selector-button:hover {
     flex-direction: column;
   }
 }
+
+.generated-output-group-title {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.generated-output-workflow-detail-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--surface-muted);
+}
+
+.generated-output-workflow-detail-summary {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.generated-output-workflow-detail-summary span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.generated-output-workflow-steps {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.generated-output-workflow-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--card-background);
+}
+
+.generated-output-workflow-step-number {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--surface-muted);
+}
+
+.generated-output-workflow-step-content {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.generated-output-workflow-step-filename {
+  margin: 0;
+  font-size: 0.85rem;
+  word-break: break-all;
+  opacity: 0.8;
+}
+
+.generated-output-workflow-step-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.generated-output-workflow-step-meta span {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: var(--surface-muted);
+}
+
+.generated-output-group-header {
+  align-items: flex-start;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.generated-output-group-header .secondary-button {
+  width: auto;
+  align-self: flex-start;
+  white-space: nowrap;
+}
+
+.generated-output-group-title {
+  min-width: 0;
+  text-align: left;
+}
+
+.generated-output-workflow-detail-panel,
+.generated-output-workflow-detail-summary,
+.generated-output-workflow-step-content {
+  text-align: left;
+}
+
+.generated-output-workflow-step-meta {
+  justify-content: flex-start;
+}
+
+@media (max-width: 720px) {
+  .generated-output-group-header {
+    align-items: stretch;
+  }
+
+  .generated-output-group-header .secondary-button {
+    width: 100%;
+  }
+}
