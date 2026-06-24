@@ -10,10 +10,7 @@ import {
   groupGeneratedOutputHistoryByWorkflowSource,
   hasGeneratedOutputHistoryFilters as getHasGeneratedOutputHistoryFilters,
 } from './features/generatedOutputs/generatedOutputUtils'
-import { GeneratedOutputGroup } from './features/generatedOutputs/GeneratedOutputGroup'
-import { GeneratedOutputHistoryHeader } from './features/generatedOutputs/GeneratedOutputHistoryHeader'
-import { GeneratedOutputHistoryFilters } from './features/generatedOutputs/GeneratedOutputHistoryFilters'
-import { GeneratedOutputWorkflowAnalyticsPanel } from './features/generatedOutputs/GeneratedOutputWorkflowAnalyticsPanel'
+import { GeneratedOutputHistorySection } from './features/generatedOutputs/GeneratedOutputHistorySection'
 import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
 
 type UploadResponse = {
@@ -10109,110 +10106,74 @@ uvicorn app.main:app --reload`}</pre>
         </section>
       )}
 
-        {(generatedOutputHistory.length > 0 || isGeneratedOutputHistoryPanelVisible) && (
-          <section className="card generated-output-history-card" ref={generatedOutputHistoryRef}>
-            <GeneratedOutputHistoryHeader
-              activeGeneratedImageSource={activeGeneratedImageSource}
-              autoUseLatestGeneratedOutputAsActive={autoUseLatestGeneratedOutputAsActive}
-              generatedOutputHistoryCount={generatedOutputHistory.length}
-              isBusy={isBusy}
-              isLoadingGeneratedOutputHistory={isLoadingGeneratedOutputHistory}
-              isWorkflowJsonDownloaded={downloadedParserLogJsonKey === 'download-generated-output-workflow-json'}
-              isWorkflowReportDownloaded={downloadedParserLogJsonKey === 'download-generated-output-workflow-report'}
-              onAutoUseLatestGeneratedOutputAsActiveChange={(nextChecked) => {
-                setAutoUseLatestGeneratedOutputAsActive(nextChecked)
+        <GeneratedOutputHistorySection
+          isVisible={generatedOutputHistory.length > 0 || isGeneratedOutputHistoryPanelVisible}
+          sectionRef={generatedOutputHistoryRef}
+          activeGeneratedImageSource={activeGeneratedImageSource}
+          autoUseLatestGeneratedOutputAsActive={autoUseLatestGeneratedOutputAsActive}
+          generatedOutputHistory={generatedOutputHistory}
+          filteredGeneratedOutputHistory={filteredGeneratedOutputHistory}
+          groupedGeneratedOutputHistory={generatedOutputHistoryFilteredGroups}
+          filters={generatedOutputHistoryFilters}
+          parserModes={generatedOutputHistoryParserModes}
+          plannerModes={generatedOutputHistoryPlannerModes}
+          hasFilters={hasGeneratedOutputHistoryFilters}
+          analytics={generatedOutputWorkflowAnalytics}
+          selectedWorkflowSource={selectedGeneratedOutputWorkflowSource}
+          expandedGeneratedOutputDetails={expandedGeneratedOutputDetails}
+          isBusy={isBusy}
+          isLoadingGeneratedOutputHistory={isLoadingGeneratedOutputHistory}
+          isWorkflowJsonDownloaded={downloadedParserLogJsonKey === 'download-generated-output-workflow-json'}
+          isWorkflowReportDownloaded={downloadedParserLogJsonKey === 'download-generated-output-workflow-report'}
+          onAutoUseLatestGeneratedOutputAsActiveChange={(nextChecked) => {
+            setAutoUseLatestGeneratedOutputAsActive(nextChecked)
 
-                if (nextChecked && generatedOutputHistory.length > 0) {
-                  setActiveGeneratedImageSource(generatedOutputHistory[0])
-                }
+            if (nextChecked && generatedOutputHistory.length > 0) {
+              setActiveGeneratedImageSource(generatedOutputHistory[0])
+            }
 
-                if (!nextChecked) {
-                  setActiveGeneratedImageSource(null)
-                }
+            if (!nextChecked) {
+              setActiveGeneratedImageSource(null)
+            }
 
-                setStatusMessage(
-                  nextChecked
-                    ? 'Auto-use latest generated output as active image enabled.'
-                    : 'Auto-use latest generated output as active image disabled.',
-                )
-              }}
-              onLoadSavedHistory={() => void loadPersistedGeneratedOutputHistory()}
-              onExportWorkflowJson={handleDownloadGeneratedOutputWorkflowJson}
-              onDownloadWorkflowReport={handleDownloadGeneratedOutputWorkflowReport}
-              onClearOutputHistory={() => void handleClearGeneratedOutputHistory()}
-            />
+            setStatusMessage(
+              nextChecked
+                ? 'Auto-use latest generated output as active image enabled.'
+                : 'Auto-use latest generated output as active image disabled.',
+            )
+          }}
+          onLoadSavedHistory={() => void loadPersistedGeneratedOutputHistory()}
+          onExportWorkflowJson={handleDownloadGeneratedOutputWorkflowJson}
+          onDownloadWorkflowReport={handleDownloadGeneratedOutputWorkflowReport}
+          onClearOutputHistory={() => void handleClearGeneratedOutputHistory()}
+          onSearchChange={setGeneratedOutputHistorySearch}
+          onActionFilterChange={setGeneratedOutputHistoryActionFilter}
+          onSourceFilterChange={setGeneratedOutputHistorySourceFilter}
+          onCreatedByFilterChange={setGeneratedOutputHistoryCreatedByFilter}
+          onParserFilterChange={setGeneratedOutputHistoryParserFilter}
+          onPlannerFilterChange={setGeneratedOutputHistoryPlannerFilter}
+          onClearFilters={handleClearGeneratedOutputHistoryFilters}
+          onToggleWorkflowDetails={handleToggleGeneratedOutputWorkflowDetails}
+          onUseAsActiveImage={(selectedItem) => {
+            setActiveGeneratedImageSource(selectedItem)
+            setStatusMessage(`Using generated output as active image: ${selectedItem.label}.`)
+          }}
+          onRunYolo={(selectedItem) => void handleDetectGeneratedOutputHistoryItem(selectedItem)}
+          onToggleItemDetails={(itemId) => {
+            setExpandedGeneratedOutputDetails((previousIds) => {
+              const nextIds = new Set(previousIds)
 
-              <GeneratedOutputHistoryFilters
-                search={generatedOutputHistorySearch}
-                actionFilter={generatedOutputHistoryActionFilter}
-                sourceFilter={generatedOutputHistorySourceFilter}
-                createdByFilter={generatedOutputHistoryCreatedByFilter}
-                parserFilter={generatedOutputHistoryParserFilter}
-                plannerFilter={generatedOutputHistoryPlannerFilter}
-                parserModes={generatedOutputHistoryParserModes}
-                plannerModes={generatedOutputHistoryPlannerModes}
-                visibleOutputCount={filteredGeneratedOutputHistory.length}
-                totalOutputCount={generatedOutputHistory.length}
-                hasFilters={hasGeneratedOutputHistoryFilters}
-                isBusy={isBusy}
-                onSearchChange={setGeneratedOutputHistorySearch}
-                onActionFilterChange={setGeneratedOutputHistoryActionFilter}
-                onSourceFilterChange={setGeneratedOutputHistorySourceFilter}
-                onCreatedByFilterChange={setGeneratedOutputHistoryCreatedByFilter}
-                onParserFilterChange={setGeneratedOutputHistoryParserFilter}
-                onPlannerFilterChange={setGeneratedOutputHistoryPlannerFilter}
-                onClearFilters={handleClearGeneratedOutputHistoryFilters}
-              />
+              if (nextIds.has(itemId)) {
+                nextIds.delete(itemId)
+              } else {
+                nextIds.add(itemId)
+              }
 
-              {generatedOutputHistory.length > 0 && (
-                <GeneratedOutputWorkflowAnalyticsPanel
-                  analytics={generatedOutputWorkflowAnalytics}
-                  hasFilters={hasGeneratedOutputHistoryFilters}
-                />
-              )}
-
-              {filteredGeneratedOutputHistory.length === 0 && (
-                <div className="generated-output-empty-filter-state">
-                  No generated outputs match the current filters.
-                </div>
-              )}
-
-              <div className="generated-output-list">
-                {Object.entries(generatedOutputHistoryFilteredGroups).map(([groupKey, groupItems]) => (
-                  <GeneratedOutputGroup
-                    key={groupKey}
-                    groupKey={groupKey}
-                    items={groupItems}
-                    selectedWorkflowSource={selectedGeneratedOutputWorkflowSource}
-                    activeGeneratedImageSourceId={activeGeneratedImageSource?.id ?? null}
-                    expandedGeneratedOutputDetails={expandedGeneratedOutputDetails}
-                    isBusy={isBusy}
-                    isLoadingGeneratedOutputHistory={isLoadingGeneratedOutputHistory}
-                    onToggleWorkflowDetails={handleToggleGeneratedOutputWorkflowDetails}
-                    onUseAsActiveImage={(selectedItem) => {
-                      setActiveGeneratedImageSource(selectedItem)
-                      setStatusMessage(`Using generated output as active image: ${selectedItem.label}.`)
-                    }}
-                    onRunYolo={(selectedItem) => void handleDetectGeneratedOutputHistoryItem(selectedItem)}
-                    onToggleItemDetails={(itemId) => {
-                      setExpandedGeneratedOutputDetails((previousIds) => {
-                        const nextIds = new Set(previousIds)
-
-                        if (nextIds.has(itemId)) {
-                          nextIds.delete(itemId)
-                        } else {
-                          nextIds.add(itemId)
-                        }
-
-                        return nextIds
-                      })
-                    }}
-                    onRemove={(selectedItem) => void handleRemoveGeneratedOutputHistoryItem(selectedItem)}
-                  />
-                ))}
-              </div>
-          </section>
-        )}
+              return nextIds
+            })
+          }}
+          onRemove={(selectedItem) => void handleRemoveGeneratedOutputHistoryItem(selectedItem)}
+        />
 
       {detectionResult && (
         <section className="result-grid">
