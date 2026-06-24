@@ -8,7 +8,7 @@ The project is being built as a learning-focused production-style AI system. The
 
 ## Latest Release
 
-Latest prepared release:
+Latest release:
 
 - `v0.5.0` - AI Workflow Intelligence, Generated Output Lineage, Analytics, and Reporting
 
