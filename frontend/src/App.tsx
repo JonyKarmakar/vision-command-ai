@@ -11,6 +11,7 @@ import {
   hasGeneratedOutputHistoryFilters as getHasGeneratedOutputHistoryFilters,
 } from './features/generatedOutputs/generatedOutputUtils'
 import { GeneratedOutputGroup } from './features/generatedOutputs/GeneratedOutputGroup'
+import { GeneratedOutputHistoryHeader } from './features/generatedOutputs/GeneratedOutputHistoryHeader'
 import { GeneratedOutputHistoryFilters } from './features/generatedOutputs/GeneratedOutputHistoryFilters'
 import { GeneratedOutputWorkflowAnalyticsPanel } from './features/generatedOutputs/GeneratedOutputWorkflowAnalyticsPanel'
 import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
@@ -10110,89 +10111,36 @@ uvicorn app.main:app --reload`}</pre>
 
         {(generatedOutputHistory.length > 0 || isGeneratedOutputHistoryPanelVisible) && (
           <section className="card generated-output-history-card" ref={generatedOutputHistoryRef}>
-            <div className="generated-output-history-header">
-              <div>
-                <p className="section-eyebrow">Generated Outputs</p>
-                <h2>Output History</h2>
-                <p className="small-note">
-                  Session trace of generated images from detection, zoom, crop, and blur actions.
-                  Clearing this history does not remove active result panels.
-                </p>
-                  {activeGeneratedImageSource && (
-                    <p className="small-note">
-                      Active image source: {activeGeneratedImageSource.label} · {activeGeneratedImageSource.filename}
-                    </p>
-                  )}
+            <GeneratedOutputHistoryHeader
+              activeGeneratedImageSource={activeGeneratedImageSource}
+              autoUseLatestGeneratedOutputAsActive={autoUseLatestGeneratedOutputAsActive}
+              generatedOutputHistoryCount={generatedOutputHistory.length}
+              isBusy={isBusy}
+              isLoadingGeneratedOutputHistory={isLoadingGeneratedOutputHistory}
+              isWorkflowJsonDownloaded={downloadedParserLogJsonKey === 'download-generated-output-workflow-json'}
+              isWorkflowReportDownloaded={downloadedParserLogJsonKey === 'download-generated-output-workflow-report'}
+              onAutoUseLatestGeneratedOutputAsActiveChange={(nextChecked) => {
+                setAutoUseLatestGeneratedOutputAsActive(nextChecked)
 
-                  <label className="generated-output-auto-active-toggle">
-                    <input
-                      type="checkbox"
-                      checked={autoUseLatestGeneratedOutputAsActive}
-                      onChange={(event) => {
-                        const nextChecked = event.target.checked
+                if (nextChecked && generatedOutputHistory.length > 0) {
+                  setActiveGeneratedImageSource(generatedOutputHistory[0])
+                }
 
-                        setAutoUseLatestGeneratedOutputAsActive(nextChecked)
+                if (!nextChecked) {
+                  setActiveGeneratedImageSource(null)
+                }
 
-                        if (nextChecked && generatedOutputHistory.length > 0) {
-                          setActiveGeneratedImageSource(generatedOutputHistory[0])
-                        }
-
-                        if (!nextChecked) {
-                          setActiveGeneratedImageSource(null)
-                        }
-
-                        setStatusMessage(
-                          nextChecked
-                            ? 'Auto-use latest generated output as active image enabled.'
-                            : 'Auto-use latest generated output as active image disabled.',
-                        )
-                      }}
-                      disabled={isBusy}
-                    />
-                    <span>Auto-use latest generated output as active image</span>
-                  </label>
-              </div>
-
-              <div className="generated-output-history-actions">
-                  <button
-                    className="secondary-button"
-                    onClick={() => void loadPersistedGeneratedOutputHistory()}
-                    disabled={isBusy || isLoadingGeneratedOutputHistory}
-                  >
-                    {isLoadingGeneratedOutputHistory ? 'Loading Saved History...' : 'Load Saved History'}
-                  </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={handleDownloadGeneratedOutputWorkflowJson}
-                  disabled={isBusy}
-                  data-testid="download-generated-output-workflow-json"
-                >
-                  {downloadedParserLogJsonKey === 'download-generated-output-workflow-json'
-                    ? 'Downloaded'
-                    : 'Export Workflow JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={handleDownloadGeneratedOutputWorkflowReport}
-                  disabled={isBusy || generatedOutputHistory.length === 0}
-                  data-testid="download-generated-output-workflow-report"
-                >
-                  {downloadedParserLogJsonKey === 'download-generated-output-workflow-report'
-                    ? 'Downloaded'
-                    : 'Download Workflow Report'}
-                </button>
-
-                <button
-                  className="secondary-button view-clear-button"
-                    onClick={() => void handleClearGeneratedOutputHistory()}
-                    disabled={isBusy || isLoadingGeneratedOutputHistory}
-                >
-                  Clear Output History
-                </button>
-              </div>
-            </div>
+                setStatusMessage(
+                  nextChecked
+                    ? 'Auto-use latest generated output as active image enabled.'
+                    : 'Auto-use latest generated output as active image disabled.',
+                )
+              }}
+              onLoadSavedHistory={() => void loadPersistedGeneratedOutputHistory()}
+              onExportWorkflowJson={handleDownloadGeneratedOutputWorkflowJson}
+              onDownloadWorkflowReport={handleDownloadGeneratedOutputWorkflowReport}
+              onClearOutputHistory={() => void handleClearGeneratedOutputHistory()}
+            />
 
               <GeneratedOutputHistoryFilters
                 search={generatedOutputHistorySearch}
