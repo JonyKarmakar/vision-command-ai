@@ -12,6 +12,7 @@ import {
   groupGeneratedOutputHistoryByWorkflowSource,
   hasGeneratedOutputHistoryFilters as getHasGeneratedOutputHistoryFilters,
 } from './features/generatedOutputs/generatedOutputUtils'
+import { GeneratedOutputHistoryFilters } from './features/generatedOutputs/GeneratedOutputHistoryFilters'
 import { GeneratedOutputWorkflowAnalyticsPanel } from './features/generatedOutputs/GeneratedOutputWorkflowAnalyticsPanel'
 import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
 
@@ -10194,118 +10195,27 @@ uvicorn app.main:app --reload`}</pre>
               </div>
             </div>
 
-              <div className="generated-output-history-filters">
-                <label className="generated-output-history-filter-field">
-                  <span>Search</span>
-                  <input
-                    type="search"
-                    value={generatedOutputHistorySearch}
-                    onChange={(event) => setGeneratedOutputHistorySearch(event.target.value)}
-                    placeholder="Search filename, command, label, or source"
-                    disabled={isBusy}
-                  />
-                </label>
-
-                <label className="generated-output-history-filter-field">
-                  <span>Action</span>
-                  <select
-                    value={generatedOutputHistoryActionFilter}
-                    onChange={(event) =>
-                      setGeneratedOutputHistoryActionFilter(
-                        event.target.value as 'all' | GeneratedOutputHistoryItem['action'],
-                      )
-                    }
-                    disabled={isBusy}
-                  >
-                    <option value="all">All actions</option>
-                    <option value="annotated_detection">Detection</option>
-                    <option value="zoom">Zoom</option>
-                    <option value="crop">Crop</option>
-                    <option value="blur">Blur</option>
-                  </select>
-                </label>
-
-                <label className="generated-output-history-filter-field">
-                  <span>Source</span>
-                  <select
-                    value={generatedOutputHistorySourceFilter}
-                    onChange={(event) =>
-                      setGeneratedOutputHistorySourceFilter(event.target.value as 'all' | 'uploads' | 'outputs')
-                    }
-                    disabled={isBusy}
-                  >
-                    <option value="all">All sources</option>
-                    <option value="uploads">Uploaded image</option>
-                    <option value="outputs">Generated output</option>
-                  </select>
-                </label>
-
-                <label className="generated-output-history-filter-field">
-                  <span>Created by</span>
-                  <select
-                    value={generatedOutputHistoryCreatedByFilter}
-                    onChange={(event) =>
-                      setGeneratedOutputHistoryCreatedByFilter(
-                        event.target.value as 'all' | 'run_command' | 'generated_output' | 'unknown',
-                      )
-                    }
-                    disabled={isBusy}
-                  >
-                    <option value="all">All creators</option>
-                    <option value="run_command">Run Command</option>
-                    <option value="generated_output">Generated Output</option>
-                    <option value="unknown">Unknown</option>
-                  </select>
-                </label>
-
-                <label className="generated-output-history-filter-field">
-                  <span>Parser</span>
-                  <select
-                    value={generatedOutputHistoryParserFilter}
-                    onChange={(event) => setGeneratedOutputHistoryParserFilter(event.target.value)}
-                    disabled={isBusy}
-                  >
-                    <option value="all">All parsers</option>
-                    {generatedOutputHistoryParserModes.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {mode}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="generated-output-history-filter-field">
-                  <span>Planner</span>
-                  <select
-                    value={generatedOutputHistoryPlannerFilter}
-                    onChange={(event) => setGeneratedOutputHistoryPlannerFilter(event.target.value)}
-                    disabled={isBusy}
-                  >
-                    <option value="all">All planners</option>
-                    {generatedOutputHistoryPlannerModes.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {mode}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="generated-output-history-filter-summary">
-                  <span>
-                    Showing {filteredGeneratedOutputHistory.length} of {generatedOutputHistory.length} output
-                    {generatedOutputHistory.length === 1 ? '' : 's'}
-                  </span>
-
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={handleClearGeneratedOutputHistoryFilters}
-                    disabled={isBusy || !hasGeneratedOutputHistoryFilters}
-                  >
-                    Clear filters
-                  </button>
-                </div>
-              </div>
+              <GeneratedOutputHistoryFilters
+                search={generatedOutputHistorySearch}
+                actionFilter={generatedOutputHistoryActionFilter}
+                sourceFilter={generatedOutputHistorySourceFilter}
+                createdByFilter={generatedOutputHistoryCreatedByFilter}
+                parserFilter={generatedOutputHistoryParserFilter}
+                plannerFilter={generatedOutputHistoryPlannerFilter}
+                parserModes={generatedOutputHistoryParserModes}
+                plannerModes={generatedOutputHistoryPlannerModes}
+                visibleOutputCount={filteredGeneratedOutputHistory.length}
+                totalOutputCount={generatedOutputHistory.length}
+                hasFilters={hasGeneratedOutputHistoryFilters}
+                isBusy={isBusy}
+                onSearchChange={setGeneratedOutputHistorySearch}
+                onActionFilterChange={setGeneratedOutputHistoryActionFilter}
+                onSourceFilterChange={setGeneratedOutputHistorySourceFilter}
+                onCreatedByFilterChange={setGeneratedOutputHistoryCreatedByFilter}
+                onParserFilterChange={setGeneratedOutputHistoryParserFilter}
+                onPlannerFilterChange={setGeneratedOutputHistoryPlannerFilter}
+                onClearFilters={handleClearGeneratedOutputHistoryFilters}
+              />
 
               {generatedOutputHistory.length > 0 && (
                 <GeneratedOutputWorkflowAnalyticsPanel
