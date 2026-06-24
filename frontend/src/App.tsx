@@ -7,13 +7,12 @@ import {
   buildGeneratedOutputWorkflowMarkdownReport,
   filterGeneratedOutputHistory,
   getGeneratedOutputHistoryModes,
-  getGeneratedOutputWorkflowActions,
-  getSortedGeneratedOutputWorkflowItems,
   groupGeneratedOutputHistoryByWorkflowSource,
   hasGeneratedOutputHistoryFilters as getHasGeneratedOutputHistoryFilters,
 } from './features/generatedOutputs/generatedOutputUtils'
 import { GeneratedOutputHistoryFilters } from './features/generatedOutputs/GeneratedOutputHistoryFilters'
 import { GeneratedOutputWorkflowAnalyticsPanel } from './features/generatedOutputs/GeneratedOutputWorkflowAnalyticsPanel'
+import { GeneratedOutputWorkflowDetailPanel } from './features/generatedOutputs/GeneratedOutputWorkflowDetailPanel'
 import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
 
 type UploadResponse = {
@@ -10256,52 +10255,7 @@ uvicorn app.main:app --reload`}</pre>
                     </div>
 
                     {selectedGeneratedOutputWorkflowSource === groupKey && (
-                      <div className="generated-output-workflow-detail-panel">
-                        <div className="generated-output-workflow-detail-summary">
-                          <span>Workflow details</span>
-                          <strong>{groupKey}</strong>
-                          <p className="small-note">
-                            {groupItems.length} step{groupItems.length === 1 ? '' : 's'} · Actions:{' '}
-                            {getGeneratedOutputWorkflowActions(groupItems).join(', ')}
-                          </p>
-                        </div>
-
-                        <ol className="generated-output-workflow-steps">
-                          {getSortedGeneratedOutputWorkflowItems(groupItems).map((workflowItem, index) => (
-                            <li className="generated-output-workflow-step" key={workflowItem.id}>
-                              <span className="generated-output-workflow-step-number">{index + 1}</span>
-
-                              <div className="generated-output-workflow-step-content">
-                                <strong>
-                                  {workflowItem.action.replace(/_/g, ' ')} · {workflowItem.label}
-                                </strong>
-                                <p className="generated-output-workflow-step-filename">
-                                  {workflowItem.filename}
-                                </p>
-                                <p className="small-note">
-                                  {workflowItem.command_text ??
-                                    workflowItem.result_type ??
-                                    'No command metadata available'}
-                                </p>
-
-                                <div className="generated-output-workflow-step-meta">
-                                  <span>Created by: {workflowItem.created_by ?? 'Unknown'}</span>
-                                  {workflowItem.result_type && (
-                                    <span>Result: {workflowItem.result_type}</span>
-                                  )}
-                                  {workflowItem.parser_mode && (
-                                    <span>Parser: {workflowItem.parser_mode}</span>
-                                  )}
-                                  {workflowItem.planner_mode && (
-                                    <span>Planner: {workflowItem.planner_mode}</span>
-                                  )}
-                                  <span>{new Date(workflowItem.created_at).toLocaleString()}</span>
-                                </div>
-                              </div>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
+                      <GeneratedOutputWorkflowDetailPanel groupKey={groupKey} items={groupItems} />
                     )}
 
                     <div className="generated-output-group-items">
