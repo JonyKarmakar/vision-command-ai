@@ -10,10 +10,9 @@ import {
   groupGeneratedOutputHistoryByWorkflowSource,
   hasGeneratedOutputHistoryFilters as getHasGeneratedOutputHistoryFilters,
 } from './features/generatedOutputs/generatedOutputUtils'
+import { GeneratedOutputGroup } from './features/generatedOutputs/GeneratedOutputGroup'
 import { GeneratedOutputHistoryFilters } from './features/generatedOutputs/GeneratedOutputHistoryFilters'
-import { GeneratedOutputItemCard } from './features/generatedOutputs/GeneratedOutputItemCard'
 import { GeneratedOutputWorkflowAnalyticsPanel } from './features/generatedOutputs/GeneratedOutputWorkflowAnalyticsPanel'
-import { GeneratedOutputWorkflowDetailPanel } from './features/generatedOutputs/GeneratedOutputWorkflowDetailPanel'
 import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
 
 type UploadResponse = {
@@ -10232,65 +10231,36 @@ uvicorn app.main:app --reload`}</pre>
 
               <div className="generated-output-list">
                 {Object.entries(generatedOutputHistoryFilteredGroups).map(([groupKey, groupItems]) => (
-                  <div className="generated-output-group" key={groupKey}>
-                    <div className="generated-output-group-header">
-                      <div className="generated-output-group-title">
-                        <span>Workflow source</span>
-                        <strong>{groupKey}</strong>
-                        <small>
-                          {groupItems.length} generated output
-                          {groupItems.length === 1 ? '' : 's'}
-                        </small>
-                      </div>
+                  <GeneratedOutputGroup
+                    key={groupKey}
+                    groupKey={groupKey}
+                    items={groupItems}
+                    selectedWorkflowSource={selectedGeneratedOutputWorkflowSource}
+                    activeGeneratedImageSourceId={activeGeneratedImageSource?.id ?? null}
+                    expandedGeneratedOutputDetails={expandedGeneratedOutputDetails}
+                    isBusy={isBusy}
+                    isLoadingGeneratedOutputHistory={isLoadingGeneratedOutputHistory}
+                    onToggleWorkflowDetails={handleToggleGeneratedOutputWorkflowDetails}
+                    onUseAsActiveImage={(selectedItem) => {
+                      setActiveGeneratedImageSource(selectedItem)
+                      setStatusMessage(`Using generated output as active image: ${selectedItem.label}.`)
+                    }}
+                    onRunYolo={(selectedItem) => void handleDetectGeneratedOutputHistoryItem(selectedItem)}
+                    onToggleItemDetails={(itemId) => {
+                      setExpandedGeneratedOutputDetails((previousIds) => {
+                        const nextIds = new Set(previousIds)
 
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => handleToggleGeneratedOutputWorkflowDetails(groupKey)}
-                        disabled={isBusy}
-                      >
-                        {selectedGeneratedOutputWorkflowSource === groupKey
-                          ? 'Hide Workflow Details'
-                          : 'View Workflow Details'}
-                      </button>
-                    </div>
+                        if (nextIds.has(itemId)) {
+                          nextIds.delete(itemId)
+                        } else {
+                          nextIds.add(itemId)
+                        }
 
-                    {selectedGeneratedOutputWorkflowSource === groupKey && (
-                      <GeneratedOutputWorkflowDetailPanel groupKey={groupKey} items={groupItems} />
-                    )}
-
-                    <div className="generated-output-group-items">
-                      {groupItems.map((item) => (
-                        <GeneratedOutputItemCard
-                          key={item.id}
-                          item={item}
-                          isActive={activeGeneratedImageSource?.id === item.id}
-                          isDetailsExpanded={expandedGeneratedOutputDetails.has(item.id)}
-                          isBusy={isBusy}
-                          isLoadingGeneratedOutputHistory={isLoadingGeneratedOutputHistory}
-                          onUseAsActiveImage={(selectedItem) => {
-                            setActiveGeneratedImageSource(selectedItem)
-                            setStatusMessage(`Using generated output as active image: ${selectedItem.label}.`)
-                          }}
-                          onRunYolo={(selectedItem) => void handleDetectGeneratedOutputHistoryItem(selectedItem)}
-                          onToggleDetails={(itemId) => {
-                            setExpandedGeneratedOutputDetails((previousIds) => {
-                              const nextIds = new Set(previousIds)
-
-                              if (nextIds.has(itemId)) {
-                                nextIds.delete(itemId)
-                              } else {
-                                nextIds.add(itemId)
-                              }
-
-                              return nextIds
-                            })
-                          }}
-                          onRemove={(selectedItem) => void handleRemoveGeneratedOutputHistoryItem(selectedItem)}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                        return nextIds
+                      })
+                    }}
+                    onRemove={(selectedItem) => void handleRemoveGeneratedOutputHistoryItem(selectedItem)}
+                  />
                 ))}
               </div>
           </section>
