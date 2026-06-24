@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import './App.css'
 
+import {
+  buildGeneratedOutputWorkflowAnalytics,
+  buildGeneratedOutputWorkflowExport,
+  buildGeneratedOutputWorkflowMarkdownReport,
+  filterGeneratedOutputHistory,
+  getGeneratedOutputHistoryModes,
+  getGeneratedOutputWorkflowActions,
+  getSortedGeneratedOutputWorkflowItems,
+  groupGeneratedOutputHistoryByWorkflowSource,
+  hasGeneratedOutputHistoryFilters as getHasGeneratedOutputHistoryFilters,
+} from './features/generatedOutputs/generatedOutputUtils'
+import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
+
 type UploadResponse = {
   message: string
   original_filename: string
@@ -175,23 +188,6 @@ type BlurResponse = {
   }
 }
 
-type GeneratedOutputHistoryItem = {
-  id: string
-  action: 'annotated_detection' | 'zoom' | 'crop' | 'blur'
-  label: string
-  filename: string
-  file_url: string
-  source?: 'uploads' | 'outputs'
-  source_filename?: string | null
-  created_by?: string | null
-  command_text?: string | null
-  result_type?: string | null
-  execution_mode?: string | null
-  parser_mode?: string | null
-  parser_type?: string | null
-  planner_mode?: string | null
-  created_at: string
-}
 
 type VideoDetectFramesCommandResponse = {
   extracted_frames: VideoMultiFrameExtractResponse
@@ -3070,195 +3066,39 @@ function App() {
     }
   }
 
-  const generatedOutputHistoryParserModes = Array.from(
-    new Set(
-      generatedOutputHistory
-        .map((item) => item.parser_mode)
-        .filter((mode): mode is string => Boolean(mode)),
-    ),
-  ).sort()
+  const generatedOutputHistoryParserModes = getGeneratedOutputHistoryModes(
+    generatedOutputHistory,
+    'parser_mode',
+  )
 
-  const generatedOutputHistoryPlannerModes = Array.from(
-    new Set(
-      generatedOutputHistory
-        .map((item) => item.planner_mode)
-        .filter((mode): mode is string => Boolean(mode)),
-    ),
-  ).sort()
+  const generatedOutputHistoryPlannerModes = getGeneratedOutputHistoryModes(
+    generatedOutputHistory,
+    'planner_mode',
+  )
 
-  const generatedOutputHistorySearchValue = generatedOutputHistorySearch.trim().toLowerCase()
-
-  const getGeneratedOutputCreatedByCategory = (item: GeneratedOutputHistoryItem) => {
-    const createdBy = item.created_by?.toLowerCase() ?? ''
-
-    if (createdBy.includes('run command')) {
-      return 'run_command'
-    }
-
-    if (createdBy.includes('generated output')) {
-      return 'generated_output'
-    }
-
-    return 'unknown'
+  const generatedOutputHistoryFilters = {
+    search: generatedOutputHistorySearch,
+    actionFilter: generatedOutputHistoryActionFilter,
+    sourceFilter: generatedOutputHistorySourceFilter,
+    createdByFilter: generatedOutputHistoryCreatedByFilter,
+    parserFilter: generatedOutputHistoryParserFilter,
+    plannerFilter: generatedOutputHistoryPlannerFilter,
   }
 
-  const filteredGeneratedOutputHistory = generatedOutputHistory.filter((item) => {
-    const searchableText = [
-      item.action,
-      item.label,
-      item.filename,
-      item.file_url,
-      item.source ?? '',
-      item.source_filename ?? '',
-      item.created_by ?? '',
-      item.command_text ?? '',
-      item.result_type ?? '',
-      item.execution_mode ?? '',
-      item.parser_mode ?? '',
-      item.parser_type ?? '',
-      item.planner_mode ?? '',
-    ]
-      .join(' ')
-      .toLowerCase()
+  const filteredGeneratedOutputHistory = filterGeneratedOutputHistory(
+    generatedOutputHistory,
+    generatedOutputHistoryFilters,
+  )
 
-    const matchesSearch =
-      generatedOutputHistorySearchValue.length === 0 ||
-      searchableText.includes(generatedOutputHistorySearchValue)
+  const generatedOutputHistoryFilteredGroups = groupGeneratedOutputHistoryByWorkflowSource(
+    filteredGeneratedOutputHistory,
+  )
 
-    const matchesAction =
-      generatedOutputHistoryActionFilter === 'all' ||
-      item.action === generatedOutputHistoryActionFilter
-
-    const matchesSource =
-      generatedOutputHistorySourceFilter === 'all' ||
-      item.source === generatedOutputHistorySourceFilter
-
-    const matchesCreatedBy =
-      generatedOutputHistoryCreatedByFilter === 'all' ||
-      getGeneratedOutputCreatedByCategory(item) === generatedOutputHistoryCreatedByFilter
-
-    const matchesParser =
-      generatedOutputHistoryParserFilter === 'all' ||
-      item.parser_mode === generatedOutputHistoryParserFilter
-
-    const matchesPlanner =
-      generatedOutputHistoryPlannerFilter === 'all' ||
-      item.planner_mode === generatedOutputHistoryPlannerFilter
-
-    return (
-      matchesSearch &&
-      matchesAction &&
-      matchesSource &&
-      matchesCreatedBy &&
-      matchesParser &&
-      matchesPlanner
-    )
+  const generatedOutputWorkflowAnalytics = buildGeneratedOutputWorkflowAnalytics({
+    filteredItems: filteredGeneratedOutputHistory,
+    totalItems: generatedOutputHistory,
+    groupedItems: generatedOutputHistoryFilteredGroups,
   })
-
-  const generatedOutputHistoryFilteredGroups =
-    filteredGeneratedOutputHistory.reduce<Record<string, GeneratedOutputHistoryItem[]>>(
-      (groups, item) => {
-        const groupKey = item.source_filename ?? item.filename
-        const currentGroup = groups[groupKey] ?? []
-
-        return {
-          ...groups,
-          [groupKey]: [...currentGroup, item],
-        }
-      },
-      {},
-    )
-
-  const buildGeneratedOutputAnalyticsEntries = (
-    items: GeneratedOutputHistoryItem[],
-    getKey: (item: GeneratedOutputHistoryItem) => string,
-  ) =>
-    Object.entries(
-      items.reduce<Record<string, number>>((counts, item) => {
-        const key = getKey(item)
-        return {
-          ...counts,
-          [key]: (counts[key] ?? 0) + 1,
-        }
-      }, {}),
-    ).sort((firstEntry, secondEntry) => secondEntry[1] - firstEntry[1])
-
-  const getGeneratedOutputSourceLabel = (item: GeneratedOutputHistoryItem) => {
-    if (item.source === 'uploads') {
-      return 'Uploaded image'
-    }
-
-    if (item.source === 'outputs') {
-      return 'Generated output'
-    }
-
-    return 'Unknown source'
-  }
-
-  const getGeneratedOutputCreatedByLabel = (item: GeneratedOutputHistoryItem) => {
-    const category = getGeneratedOutputCreatedByCategory(item)
-
-    if (category === 'run_command') {
-      return 'Run Command'
-    }
-
-    if (category === 'generated_output') {
-      return 'Generated Output'
-    }
-
-    return 'Unknown'
-  }
-
-  const generatedOutputWorkflowAnalytics = (() => {
-    const latestItem = filteredGeneratedOutputHistory.reduce<GeneratedOutputHistoryItem | null>(
-      (currentLatestItem, item) => {
-        if (!currentLatestItem) {
-          return item
-        }
-
-        return Date.parse(item.created_at) > Date.parse(currentLatestItem.created_at)
-          ? item
-          : currentLatestItem
-      },
-      null,
-    )
-
-    return {
-      visibleOutputCount: filteredGeneratedOutputHistory.length,
-      totalOutputCount: generatedOutputHistory.length,
-      workflowSourceCount: Object.keys(generatedOutputHistoryFilteredGroups).length,
-      actionEntries: buildGeneratedOutputAnalyticsEntries(
-        filteredGeneratedOutputHistory,
-        (item) => item.action.replace(/_/g, ' '),
-      ),
-      sourceEntries: buildGeneratedOutputAnalyticsEntries(
-        filteredGeneratedOutputHistory,
-        getGeneratedOutputSourceLabel,
-      ),
-      createdByEntries: buildGeneratedOutputAnalyticsEntries(
-        filteredGeneratedOutputHistory,
-        getGeneratedOutputCreatedByLabel,
-      ),
-      parserEntries: buildGeneratedOutputAnalyticsEntries(
-        filteredGeneratedOutputHistory,
-        (item) => item.parser_mode ?? 'No parser',
-      ),
-      plannerEntries: buildGeneratedOutputAnalyticsEntries(
-        filteredGeneratedOutputHistory,
-        (item) => item.planner_mode ?? 'No planner',
-      ),
-      latestItem,
-    }
-  })()
-
-  const getSortedGeneratedOutputWorkflowItems = (items: GeneratedOutputHistoryItem[]) =>
-    [...items].sort(
-      (firstItem, secondItem) =>
-        Date.parse(firstItem.created_at) - Date.parse(secondItem.created_at),
-    )
-
-  const getGeneratedOutputWorkflowActions = (items: GeneratedOutputHistoryItem[]) =>
-    Array.from(new Set(items.map((item) => item.action.replace(/_/g, ' '))))
 
   const handleToggleGeneratedOutputWorkflowDetails = (workflowSourceFilename: string) => {
     const isCurrentlySelected = selectedGeneratedOutputWorkflowSource === workflowSourceFilename
@@ -3271,13 +3111,7 @@ function App() {
     )
   }
 
-  const hasGeneratedOutputHistoryFilters =
-    generatedOutputHistorySearch.trim().length > 0 ||
-    generatedOutputHistoryActionFilter !== 'all' ||
-    generatedOutputHistorySourceFilter !== 'all' ||
-    generatedOutputHistoryCreatedByFilter !== 'all' ||
-    generatedOutputHistoryParserFilter !== 'all' ||
-    generatedOutputHistoryPlannerFilter !== 'all'
+  const hasGeneratedOutputHistoryFilters = getHasGeneratedOutputHistoryFilters(generatedOutputHistoryFilters)
 
   const handleClearGeneratedOutputHistoryFilters = () => {
     setGeneratedOutputHistorySearch('')
@@ -3289,243 +3123,15 @@ function App() {
     setStatusMessage('Generated Output History filters cleared.')
   }
 
-  const buildGeneratedOutputWorkflowExport = (exportedAt: string) => {
-    const groups = generatedOutputHistory.reduce<Record<string, GeneratedOutputHistoryItem[]>>(
-      (groupedItems, item) => {
-        const groupKey = item.source_filename ?? item.filename
-        const currentGroup = groupedItems[groupKey] ?? []
-
-        return {
-          ...groupedItems,
-          [groupKey]: [...currentGroup, item],
-        }
-      },
-      {},
-    )
-
-    return {
-      source: 'generated_output_workflow_export',
-      workflow_version: 'generated-output-workflow-v1',
-      exported_at: exportedAt,
-      downloaded_at: exportedAt,
-      summary: {
-        output_count: generatedOutputHistory.length,
-        workflow_source_count: Object.keys(groups).length,
-        auto_use_latest_generated_output_as_active: autoUseLatestGeneratedOutputAsActive,
-      },
-      active_generated_image_source: activeGeneratedImageSource
-        ? {
-            id: activeGeneratedImageSource.id,
-            action: activeGeneratedImageSource.action,
-            label: activeGeneratedImageSource.label,
-            filename: activeGeneratedImageSource.filename,
-            file_url: activeGeneratedImageSource.file_url,
-            source: activeGeneratedImageSource.source ?? null,
-            source_filename: activeGeneratedImageSource.source_filename ?? null,
-            created_by: activeGeneratedImageSource.created_by ?? null,
-            command_text: activeGeneratedImageSource.command_text ?? null,
-            result_type: activeGeneratedImageSource.result_type ?? null,
-            execution_mode: activeGeneratedImageSource.execution_mode ?? null,
-            parser_mode: activeGeneratedImageSource.parser_mode ?? null,
-            parser_type: activeGeneratedImageSource.parser_type ?? null,
-            planner_mode: activeGeneratedImageSource.planner_mode ?? null,
-            created_at: activeGeneratedImageSource.created_at,
-          }
-        : null,
-      workflow_groups: Object.entries(groups).map(([workflowSourceFilename, items]) => ({
-        workflow_source_filename: workflowSourceFilename,
-        output_count: items.length,
-        outputs: items.map((item, index) => ({
-          step: index + 1,
-          id: item.id,
-          action: item.action,
-          label: item.label,
-          filename: item.filename,
-          file_url: item.file_url,
-          api_file_url: `/api${item.file_url}`,
-          source: item.source ?? null,
-          source_filename: item.source_filename ?? null,
-          metadata: {
-            created_by: item.created_by ?? null,
-            command_text: item.command_text ?? null,
-            result_type: item.result_type ?? null,
-            execution_mode: item.execution_mode ?? null,
-            parser_mode: item.parser_mode ?? null,
-            parser_type: item.parser_type ?? null,
-            planner_mode: item.planner_mode ?? null,
-            created_at: item.created_at,
-          },
-          lineage: {
-            input_source_type: item.source ?? 'unknown',
-            input_source_filename: item.source_filename ?? null,
-            output_action: item.action,
-            output_filename: item.filename,
-          },
-        })),
-      })),
-      flat_outputs: generatedOutputHistory,
-    }
-  }
-
-  const buildGeneratedOutputWorkflowMarkdownReport = (exportedAt: string) => {
-    const groups = generatedOutputHistory.reduce<Record<string, GeneratedOutputHistoryItem[]>>(
-      (groupedItems, item) => {
-        const groupKey = item.source_filename ?? item.filename
-        const currentGroup = groupedItems[groupKey] ?? []
-
-        return {
-          ...groupedItems,
-          [groupKey]: [...currentGroup, item],
-        }
-      },
-      {},
-    )
-
-    const formatMarkdownValue = (value?: string | null) => {
-      const normalizedValue = value?.replace(/\s+/g, ' ').trim()
-
-      return normalizedValue && normalizedValue.length > 0 ? normalizedValue : 'N/A'
-    }
-
-    const formatAnalyticsEntries = (entries: [string, number][]) =>
-      entries.length > 0
-        ? entries.map(([label, count]) => `- ${label}: ${count}`).join('\n')
-        : '- None'
-
-    const actionEntries = buildGeneratedOutputAnalyticsEntries(
-      generatedOutputHistory,
-      (item) => item.action.replace(/_/g, ' '),
-    )
-    const sourceEntries = buildGeneratedOutputAnalyticsEntries(
-      generatedOutputHistory,
-      getGeneratedOutputSourceLabel,
-    )
-    const createdByEntries = buildGeneratedOutputAnalyticsEntries(
-      generatedOutputHistory,
-      getGeneratedOutputCreatedByLabel,
-    )
-    const parserEntries = buildGeneratedOutputAnalyticsEntries(
-      generatedOutputHistory,
-      (item) => item.parser_mode ?? 'No parser',
-    )
-    const plannerEntries = buildGeneratedOutputAnalyticsEntries(
-      generatedOutputHistory,
-      (item) => item.planner_mode ?? 'No planner',
-    )
-
-    const latestItem = generatedOutputHistory.reduce<GeneratedOutputHistoryItem | null>(
-      (currentLatestItem, item) => {
-        if (!currentLatestItem) {
-          return item
-        }
-
-        return Date.parse(item.created_at) > Date.parse(currentLatestItem.created_at)
-          ? item
-          : currentLatestItem
-      },
-      null,
-    )
-
-    const activeSourceSection = activeGeneratedImageSource
-      ? [
-          '## Active Generated Image Source',
-          '',
-          `- Label: ${formatMarkdownValue(activeGeneratedImageSource.label)}`,
-          `- Filename: ${formatMarkdownValue(activeGeneratedImageSource.filename)}`,
-          `- Action: ${formatMarkdownValue(activeGeneratedImageSource.action)}`,
-          `- Source: ${formatMarkdownValue(activeGeneratedImageSource.source)}`,
-          `- Source filename: ${formatMarkdownValue(activeGeneratedImageSource.source_filename)}`,
-          `- Created by: ${formatMarkdownValue(activeGeneratedImageSource.created_by)}`,
-          `- Command: ${formatMarkdownValue(activeGeneratedImageSource.command_text)}`,
-          `- Result type: ${formatMarkdownValue(activeGeneratedImageSource.result_type)}`,
-          `- Created at: ${formatMarkdownValue(activeGeneratedImageSource.created_at)}`,
-        ].join('\n')
-      : ['## Active Generated Image Source', '', 'No active generated image source selected.'].join('\n')
-
-    const workflowSections = Object.entries(groups)
-      .map(([workflowSourceFilename, items]) => {
-        const sortedItems = getSortedGeneratedOutputWorkflowItems(items)
-        const actions = getGeneratedOutputWorkflowActions(items).join(', ')
-
-        const stepLines = sortedItems
-          .map((item, index) =>
-            [
-              `### Step ${index + 1}: ${item.action.replace(/_/g, ' ')} · ${formatMarkdownValue(item.label)}`,
-              '',
-              `- Output filename: ${formatMarkdownValue(item.filename)}`,
-              `- Source type: ${formatMarkdownValue(item.source)}`,
-              `- Input source filename: ${formatMarkdownValue(item.source_filename)}`,
-              `- Created by: ${formatMarkdownValue(item.created_by)}`,
-              `- Command: ${formatMarkdownValue(item.command_text)}`,
-              `- Result type: ${formatMarkdownValue(item.result_type)}`,
-              `- Execution mode: ${formatMarkdownValue(item.execution_mode)}`,
-              `- Parser mode: ${formatMarkdownValue(item.parser_mode)}`,
-              `- Parser type: ${formatMarkdownValue(item.parser_type)}`,
-              `- Planner mode: ${formatMarkdownValue(item.planner_mode)}`,
-              `- Created at: ${formatMarkdownValue(item.created_at)}`,
-              '',
-              `Lineage: ${formatMarkdownValue(item.source_filename)} -> ${formatMarkdownValue(item.filename)}`,
-            ].join('\n'),
-          )
-          .join('\n\n')
-
-        return [
-          `## Workflow Source: ${workflowSourceFilename}`,
-          '',
-          `- Output count: ${items.length}`,
-          `- Actions: ${actions || 'None'}`,
-          '',
-          stepLines,
-        ].join('\n')
-      })
-      .join('\n\n')
-
-    return [
-      '# VisionCommand AI Workflow Report',
-      '',
-      `Generated at: ${new Date(exportedAt).toLocaleString()}`,
-      `Export timestamp: ${exportedAt}`,
-      '',
-      '## Summary',
-      '',
-      `- Total generated outputs: ${generatedOutputHistory.length}`,
-      `- Workflow source count: ${Object.keys(groups).length}`,
-      `- Auto-use latest generated output as active image: ${
-        autoUseLatestGeneratedOutputAsActive ? 'Enabled' : 'Disabled'
-      }`,
-      `- Latest output: ${latestItem ? formatMarkdownValue(latestItem.label) : 'None'}`,
-      `- Latest output timestamp: ${latestItem ? formatMarkdownValue(latestItem.created_at) : 'N/A'}`,
-      '',
-      '## Analytics',
-      '',
-      '### Action Distribution',
-      formatAnalyticsEntries(actionEntries),
-      '',
-      '### Source Breakdown',
-      formatAnalyticsEntries(sourceEntries),
-      '',
-      '### Created By Breakdown',
-      formatAnalyticsEntries(createdByEntries),
-      '',
-      '### Parser Usage',
-      formatAnalyticsEntries(parserEntries),
-      '',
-      '### Planner Usage',
-      formatAnalyticsEntries(plannerEntries),
-      '',
-      activeSourceSection,
-      '',
-      '## Workflow Groups',
-      '',
-      workflowSections || 'No workflow groups available.',
-      '',
-    ].join('\n')
-  }
-
   const handleDownloadGeneratedOutputWorkflowJson = () => {
     const exportedAt = new Date().toISOString()
     const fileTimestamp = exportedAt.replace(/[:.]/g, '-')
-    const workflowExport = buildGeneratedOutputWorkflowExport(exportedAt)
+    const workflowExport = buildGeneratedOutputWorkflowExport({
+      items: generatedOutputHistory,
+      exportedAt,
+      autoUseLatestGeneratedOutputAsActive,
+      activeGeneratedImageSource,
+    })
 
     handleDownloadJsonFile(
       workflowExport,
@@ -3538,7 +3144,12 @@ function App() {
   const handleDownloadGeneratedOutputWorkflowReport = () => {
     const exportedAt = new Date().toISOString()
     const fileTimestamp = exportedAt.replace(/[:.]/g, '-')
-    const workflowReport = buildGeneratedOutputWorkflowMarkdownReport(exportedAt)
+    const workflowReport = buildGeneratedOutputWorkflowMarkdownReport({
+      items: generatedOutputHistory,
+      exportedAt,
+      autoUseLatestGeneratedOutputAsActive,
+      activeGeneratedImageSource,
+    })
 
     handleDownloadTextFile(
       workflowReport,
