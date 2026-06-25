@@ -12,6 +12,7 @@ import {
 } from './features/generatedOutputs/generatedOutputUtils'
 import { GeneratedOutputHistorySection } from './features/generatedOutputs/GeneratedOutputHistorySection'
 import { ImageUploadMediaHistorySection } from './features/media/ImageUploadMediaHistorySection'
+import { VideoUploadFoundationSection } from './features/media/VideoUploadFoundationSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
 import type {
@@ -8624,177 +8625,31 @@ uvicorn app.main:app --reload`}</pre>
         </section>
       )}
 
-      <section className="card">
-        <h2>Video Upload Foundation</h2>
-        <p className="small-note">
-          Upload a video file and preview it from the backend. Video detection and trimming will come later.
-        </p>
-
-        <input
-          className="file-input"
-          type="file"
-          accept="video/*"
-          onChange={handleVideoFileChange}
-          disabled={isBusy}
-        />
-
-        {selectedVideoFile && (
-          <p className="selected-file">
-            Selected video: <strong>{selectedVideoFile.name}</strong>
-          </p>
-        )}
-
-        <div className="button-row">
-          <button onClick={handleVideoUpload} disabled={isBusy || !selectedVideoFile}>
-            {isUploadingVideo ? 'Uploading video...' : 'Upload Video'}
-          </button>
-        </div>
-      </section>
-
-      {videoUploadResult && (
-        <>
-          <section className="result-grid" ref={videoUploadResultRef}>
-            <div className="card">
-              <h2>Video Upload Result</h2>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void handleCopyParserLogJson(
-                      {
-                        source: 'video_upload_result',
-                        copied_at: new Date().toISOString(),
-                        original_filename: videoUploadResult.original_filename,
-                        stored_filename: videoUploadResult.stored_filename,
-                        content_type: videoUploadResult.content_type,
-                        file_size_bytes: videoUploadResult.file_size_bytes,
-                        metadata: videoUploadResult.metadata,
-                        result: videoUploadResult,
-                      },
-                      'video-upload-result-json',
-                      'Copied Video Upload Result JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy || !videoUploadResult}
-                >
-                  {copiedParserLogJsonKey === 'video-upload-result-json'
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === 'video-upload-result-json'
-                      ? 'Copy failed'
-                      : 'Copy Video Upload Result JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    handleDownloadJsonFile(
-                      {
-                        source: 'video_upload_result',
-                        downloaded_at: new Date().toISOString(),
-                        original_filename: videoUploadResult.original_filename,
-                        stored_filename: videoUploadResult.stored_filename,
-                        content_type: videoUploadResult.content_type,
-                        file_size_bytes: videoUploadResult.file_size_bytes,
-                        metadata: videoUploadResult.metadata,
-                        result: videoUploadResult,
-                      },
-                      `video_upload_result_file-${videoUploadResult.original_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                      'Downloaded Video Upload Result JSON.',
-                      'download-video-upload-result-json',
-                    )
-                  }
-                  disabled={isBusy || !videoUploadResult}
-                  data-testid="download-video-upload-result-json"
-                >
-                  {downloadedParserLogJsonKey === 'download-video-upload-result-json'
-                    ? 'Downloaded!'
-                    : 'Download Video Upload Result JSON'}
-                </button>
-
-                <button
-                  className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setVideoUploadResult(null)
-                    setStatusMessage('Video Upload Result view cleared.')
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear View
-                </button>
-              </div>
-
-              <div className="metadata-list">
-                <p><strong>Original filename:</strong> {videoUploadResult.original_filename}</p>
-                <p><strong>Stored filename:</strong> {videoUploadResult.stored_filename}</p>
-                <p><strong>Content type:</strong> {videoUploadResult.content_type}</p>
-                <p><strong>File size:</strong> {videoUploadResult.file_size_bytes} bytes</p>
-                <p><strong>Readable:</strong> {videoUploadResult.metadata.is_readable ? 'Yes' : 'No'}</p>
-                <p><strong>Width:</strong> {videoUploadResult.metadata.width ?? 'Unknown'}</p>
-                <p><strong>Height:</strong> {videoUploadResult.metadata.height ?? 'Unknown'}</p>
-                <p><strong>FPS:</strong> {videoUploadResult.metadata.fps ?? 'Unknown'}</p>
-                <p><strong>Frame count:</strong> {videoUploadResult.metadata.frame_count ?? 'Unknown'}</p>
-                <p><strong>Duration:</strong> {videoUploadResult.metadata.duration_seconds ? `${videoUploadResult.metadata.duration_seconds}s` : 'Unknown'}</p>
-              </div>
-            </div>
-
-            <div className="card">
-              <h2>Video Preview</h2>
-              {uploadedVideoUrl && videoUploadResult && (
-                <>
-                  <video className="preview-video" src={uploadedVideoUrl} controls />
-
-                  <div className="output-actions">
-                    <a href={uploadedVideoUrl} target="_blank" rel="noreferrer">
-                      Open video
-                    </a>
-                    <a href={uploadedVideoUrl} download={videoUploadResult.original_filename}>
-                      Download video
-                    </a>
-                  </div>
-                </>
-              )}
-            </div>
-          </section>
-
-          <section className="card video-trim-card">
-            <h2>Trim Video</h2>
-            <p className="small-note">
-              Select a start and end time in seconds. The backend will create a browser-playable trimmed MP4.
-            </p>
-
-            <div className="trim-input-grid">
-              <label>
-                Start seconds
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={trimStartSeconds}
-                  onChange={(event) => setTrimStartSeconds(Number(event.target.value))}
-                  disabled={isBusy}
-                />
-              </label>
-
-              <label>
-                End seconds
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={trimEndSeconds}
-                  onChange={(event) => setTrimEndSeconds(Number(event.target.value))}
-                  disabled={isBusy}
-                />
-              </label>
-            </div>
-
-            <button onClick={handleVideoTrim} disabled={isBusy || !videoUploadResult}>
-              {isTrimmingVideo ? 'Trimming video...' : 'Trim Video'}
-            </button>
-          </section>
-        </>
-      )}
+      <VideoUploadFoundationSection
+        selectedVideoFile={selectedVideoFile}
+        videoUploadResult={videoUploadResult}
+        uploadedVideoUrl={uploadedVideoUrl}
+        videoUploadResultRef={videoUploadResultRef}
+        trimStartSeconds={trimStartSeconds}
+        trimEndSeconds={trimEndSeconds}
+        isBusy={isBusy}
+        isUploadingVideo={isUploadingVideo}
+        isTrimmingVideo={isTrimmingVideo}
+        copiedParserLogJsonKey={copiedParserLogJsonKey}
+        failedParserLogJsonKey={failedParserLogJsonKey}
+        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+        onVideoFileChange={handleVideoFileChange}
+        onVideoUpload={handleVideoUpload}
+        onVideoTrim={handleVideoTrim}
+        onTrimStartSecondsChange={setTrimStartSeconds}
+        onTrimEndSecondsChange={setTrimEndSeconds}
+        onClearVideoUploadResult={() => {
+          setVideoUploadResult(null)
+          setStatusMessage('Video Upload Result view cleared.')
+        }}
+        onCopyJson={handleCopyParserLogJson}
+        onDownloadJson={handleDownloadJsonFile}
+      />
 
       {uploadResult && (
         <section className="result-grid" ref={uploadResultRef}>
