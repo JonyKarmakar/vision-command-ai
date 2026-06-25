@@ -28,6 +28,7 @@ import { CommandInputControlsSection } from './features/commands/CommandInputCon
 import { CommandModeSelectorsSection } from './features/commands/CommandModeSelectorsSection'
 import { CommandHistoryControlsSection } from './features/commands/CommandHistoryControlsSection'
 import { ParserObservabilityControlsSection } from './features/commands/ParserObservabilityControlsSection'
+import { PromptPreviewPanelsSection } from './features/commands/PromptPreviewPanelsSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -5153,195 +5154,27 @@ function App() {
             />
           </div>
 
-          {commandPlannerPromptPreviewResult && (
-            <div className="llm-prompt-preview" ref={plannerPromptPreviewRef}>
-              <h3>Planner Prompt Preview</h3>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void handleCopyParserLogJson(
-                      {
-                        source: 'planner_prompt_preview',
-                        copied_at: new Date().toISOString(),
-                        command: commandPlannerPromptPreviewResult.command,
-                        planner_mode: selectedPlannerMode,
-                        prompt_version: commandPlannerPromptPreviewResult.prompt_version,
-                        preview: commandPlannerPromptPreviewResult,
-                      },
-                      'planner-prompt-preview-json',
-                      'Copied Planner Prompt Preview JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy || !commandPlannerPromptPreviewResult}
-                >
-                  {copiedParserLogJsonKey === 'planner-prompt-preview-json'
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === 'planner-prompt-preview-json'
-                      ? 'Copy failed'
-                      : 'Copy Planner Prompt Preview JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    handleDownloadJsonFile(
-                      {
-                        source: 'planner_prompt_preview',
-                        downloaded_at: new Date().toISOString(),
-                        command: commandPlannerPromptPreviewResult.command,
-                        planner_mode: selectedPlannerMode,
-                        prompt_version: commandPlannerPromptPreviewResult.prompt_version,
-                        preview: commandPlannerPromptPreviewResult,
-                      },
-                      `planner_prompt_preview_mode-${selectedPlannerMode}_version-${commandPlannerPromptPreviewResult.prompt_version.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                      'Downloaded Planner Prompt Preview JSON.',
-                      'download-planner-prompt-preview-json',
-                    )
-                  }
-                  disabled={isBusy || !commandPlannerPromptPreviewResult}
-                  data-testid="download-planner-prompt-preview-json"
-                >
-                  {downloadedParserLogJsonKey === 'download-planner-prompt-preview-json'
-                    ? 'Downloaded!'
-                    : 'Download Planner Prompt Preview JSON'}
-                </button>
-
-                <button
-                  className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setCommandPlannerPromptPreviewResult(null)
-                    setStatusMessage('Planner Prompt Preview view cleared.')
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear View
-                </button>
-              </div>
-
-              <div className="prompt-metadata-grid">
-                <div>
-                  <span>Planner mode</span>
-                  <strong>{selectedPlannerMode}</strong>
-                </div>
-                <div>
-                  <span>Prompt version</span>
-                  <strong>{commandPlannerPromptPreviewResult.prompt_version}</strong>
-                </div>
-              </div>
-
-              <div className="prompt-preview-grid">
-                <div className="prompt-block">
-                  <h4>System Prompt</h4>
-                  <pre>{commandPlannerPromptPreviewResult.system_prompt}</pre>
-                </div>
-
-                <div className="prompt-block">
-                  <h4>User Prompt</h4>
-                  <pre>{commandPlannerPromptPreviewResult.user_prompt}</pre>
-                </div>
-
-                <div className="prompt-block">
-                  <h4>Expected JSON Schema</h4>
-                  <pre>{JSON.stringify(commandPlannerPromptPreviewResult.expected_json_schema, null, 2)}</pre>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {commandPromptPreviewResult && (
-            <div className="llm-prompt-preview-panel" ref={llmPromptPreviewRef}>
-              <h3>LLM Prompt Preview</h3>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void handleCopyParserLogJson(
-                      {
-                        source: 'llm_prompt_preview',
-                        copied_at: new Date().toISOString(),
-                        parser_mode: commandPromptPreviewResult.parser_mode,
-                        prompt_version: commandPromptPreviewResult.prompt_version,
-                        preview: commandPromptPreviewResult,
-                      },
-                      'llm-prompt-preview-json',
-                      'Copied LLM Prompt Preview JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy || !commandPromptPreviewResult}
-                >
-                  {copiedParserLogJsonKey === 'llm-prompt-preview-json'
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === 'llm-prompt-preview-json'
-                      ? 'Copy failed'
-                      : 'Copy LLM Prompt Preview JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    handleDownloadJsonFile(
-                      {
-                        source: 'llm_prompt_preview',
-                        downloaded_at: new Date().toISOString(),
-                        parser_mode: commandPromptPreviewResult.parser_mode,
-                        prompt_version: commandPromptPreviewResult.prompt_version,
-                        preview: commandPromptPreviewResult,
-                      },
-                      `llm_prompt_preview_mode-${commandPromptPreviewResult.parser_mode}_version-${commandPromptPreviewResult.prompt_version.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                      'Downloaded LLM Prompt Preview JSON.',
-                      'download-llm-prompt-preview-json',
-                    )
-                  }
-                  disabled={isBusy || !commandPromptPreviewResult}
-                  data-testid="download-llm-prompt-preview-json"
-                >
-                  {downloadedParserLogJsonKey === 'download-llm-prompt-preview-json'
-                    ? 'Downloaded!'
-                    : 'Download LLM Prompt Preview JSON'}
-                </button>
-
-                <button
-                  className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setCommandPromptPreviewResult(null)
-                    setStatusMessage('LLM Prompt Preview view cleared.')
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear View
-                </button>
-              </div>
-
-              <div className="prompt-metadata-grid">
-                <div>
-                  <span>Parser mode</span>
-                  <strong>{commandPromptPreviewResult.parser_mode}</strong>
-                </div>
-                <div>
-                  <span>Prompt version</span>
-                  <strong>{commandPromptPreviewResult.prompt_version}</strong>
-                </div>
-              </div>
-
-              <div className="prompt-block">
-                <h4>System Prompt</h4>
-                <pre>{commandPromptPreviewResult.system_prompt}</pre>
-              </div>
-
-              <div className="prompt-block">
-                <h4>User Prompt</h4>
-                <pre>{commandPromptPreviewResult.user_prompt}</pre>
-              </div>
-
-              <div className="prompt-block">
-                <h4>Expected JSON Schema</h4>
-                <pre>{JSON.stringify(commandPromptPreviewResult.expected_json_schema, null, 2)}</pre>
-              </div>
-            </div>
-          )}
+          <PromptPreviewPanelsSection
+            commandPlannerPromptPreviewResult={commandPlannerPromptPreviewResult}
+            commandPromptPreviewResult={commandPromptPreviewResult}
+            plannerPromptPreviewRef={plannerPromptPreviewRef}
+            llmPromptPreviewRef={llmPromptPreviewRef}
+            selectedPlannerMode={selectedPlannerMode}
+            copiedParserLogJsonKey={copiedParserLogJsonKey}
+            failedParserLogJsonKey={failedParserLogJsonKey}
+            downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+            isBusy={isBusy}
+            onCopyJson={handleCopyParserLogJson}
+            onDownloadJson={handleDownloadJsonFile}
+            onClearPlannerPromptPreview={() => {
+              setCommandPlannerPromptPreviewResult(null)
+              setStatusMessage('Planner Prompt Preview view cleared.')
+            }}
+            onClearLlmPromptPreview={() => {
+              setCommandPromptPreviewResult(null)
+              setStatusMessage('LLM Prompt Preview view cleared.')
+            }}
+          />
 
           {commandPlanResult && (
             <div className="command-parse-result" ref={commandPlanPreviewRef}>
