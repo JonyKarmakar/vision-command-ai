@@ -18,6 +18,7 @@ import { VideoFrameToolsSection } from './features/media/VideoFrameToolsSection'
 import { VideoTrimResultSection } from './features/media/VideoTrimResultSection'
 import { ExtractedFrameResultSection } from './features/media/ExtractedFrameResultSection'
 import { VideoFrameDetectionResultSection } from './features/media/VideoFrameDetectionResultSection'
+import { SampledVideoSection } from './features/media/SampledVideoSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -8870,189 +8871,35 @@ uvicorn app.main:app --reload`}</pre>
         onDownloadJson={handleDownloadJsonFile}
       />
 
-      {videoUploadResult && (
-        <section className="card video-sampled-detection-card">
-          <h2>Detect Sampled Video</h2>
-          <p className="small-note">
-            Sample frames across the full video and run YOLO detection on each sampled frame.
-          </p>
-
-          <div className="trim-input-grid">
-            <label>
-              Sampling interval seconds
-              <input
-                type="number"
-                min="0.1"
-                step="0.1"
-                value={sampledVideoIntervalSeconds}
-                onChange={(event) => setSampledVideoIntervalSeconds(Number(event.target.value))}
-                disabled={isBusy}
-              />
-            </label>
-          </div>
-
-          <button
-            onClick={handleDetectSampledVideo}
-            disabled={isBusy || !videoUploadResult}
-          >
-            {isDetectingSampledVideo ? 'Detecting sampled video...' : 'Detect Sampled Video'}
-          </button>
-
-          {videoUploadResult && (
-        <section className="card video-tracking-card">
-          <h2>Track Sampled Video</h2>
-          <p className="small-note">
-            Track detected objects across sampled video frames using simple centroid-based matching.
-          </p>
-
-          <div className="trim-input-grid">
-            <label>
-              Start seconds
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={trackingStartSeconds}
-                onChange={(event) => setTrackingStartSeconds(Number(event.target.value))}
-                disabled={isBusy}
-              />
-            </label>
-
-            <label>
-              End seconds
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={trackingEndSeconds}
-                onChange={(event) => setTrackingEndSeconds(Number(event.target.value))}
-                disabled={isBusy}
-              />
-            </label>
-
-            <label>
-              Interval seconds
-              <input
-                type="number"
-                min="0.1"
-                step="0.1"
-                value={trackingIntervalSeconds}
-                onChange={(event) => setTrackingIntervalSeconds(Number(event.target.value))}
-                disabled={isBusy}
-              />
-            </label>
-
-            <label>
-              Max distance pixels
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={trackingMaxDistancePixels}
-                onChange={(event) => setTrackingMaxDistancePixels(Number(event.target.value))}
-                disabled={isBusy}
-              />
-            </label>
-          </div>
-
-          <button
-            onClick={handleTrackSampledVideo}
-            disabled={isBusy || !videoUploadResult}
-          >
-            {isTrackingVideo ? 'Tracking video...' : 'Track Sampled Video'}
-          </button>
-        </section>
-      )}
-
-      {videoSampledDetectionResult && (
-            <>
-              <h3 ref={videoSampledDetectionResultRef}>Sampled Video Detection Result</h3>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void handleCopyParserLogJson(
-                      {
-                        source: 'sampled_video_detection_result',
-                        copied_at: new Date().toISOString(),
-                        filename: videoSampledDetectionResult.filename,
-                        interval_seconds: videoSampledDetectionResult.interval_seconds,
-                        confidence_threshold: videoSampledDetectionResult.confidence_threshold,
-                        class_filter: videoSampledDetectionResult.class_filter,
-                        extracted_frame_count: videoSampledDetectionResult.extracted_frames.frame_count,
-                        detected_frame_count: videoSampledDetectionResult.detection.frame_count,
-                        extracted_frames: videoSampledDetectionResult.extracted_frames,
-                        detection: videoSampledDetectionResult.detection,
-                        result: videoSampledDetectionResult,
-                      },
-                      'sampled-video-detection-result-json',
-                      'Copied Sampled Video Detection Result JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy || !videoSampledDetectionResult}
-                >
-                  {copiedParserLogJsonKey === 'sampled-video-detection-result-json'
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === 'sampled-video-detection-result-json'
-                      ? 'Copy failed'
-                      : 'Copy Sampled Video Detection Result JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    handleDownloadJsonFile(
-                      {
-                        source: 'sampled_video_detection_result',
-                        downloaded_at: new Date().toISOString(),
-                        filename: videoSampledDetectionResult.filename,
-                        interval_seconds: videoSampledDetectionResult.interval_seconds,
-                        confidence_threshold: videoSampledDetectionResult.confidence_threshold,
-                        class_filter: videoSampledDetectionResult.class_filter,
-                        extracted_frame_count: videoSampledDetectionResult.extracted_frames.frame_count,
-                        detected_frame_count: videoSampledDetectionResult.detection.frame_count,
-                        extracted_frames: videoSampledDetectionResult.extracted_frames,
-                        detection: videoSampledDetectionResult.detection,
-                        result: videoSampledDetectionResult,
-                      },
-                      `sampled_video_detection_result_file-${videoSampledDetectionResult.filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                      'Downloaded Sampled Video Detection Result JSON.',
-                      'download-sampled-video-detection-result-json',
-                    )
-                  }
-                  disabled={isBusy || !videoSampledDetectionResult}
-                  data-testid="download-sampled-video-detection-result-json"
-                >
-                  {downloadedParserLogJsonKey === 'download-sampled-video-detection-result-json'
-                    ? 'Downloaded!'
-                    : 'Download Sampled Video Detection Result JSON'}
-                </button>
-
-                <button
-                  className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setVideoSampledDetectionResult(null)
-                    setStatusMessage('Sampled Video Detection Result view cleared.')
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear View
-                </button>
-              </div>
-
-              <div className="summary-box sampled-video-summary">
-                <p><strong>Video:</strong> {videoSampledDetectionResult.filename}</p>
-                <p><strong>Interval:</strong> {videoSampledDetectionResult.interval_seconds}s</p>
-                <p><strong>Confidence threshold:</strong> {(videoSampledDetectionResult.confidence_threshold * 100).toFixed(0)}%</p>
-                <p><strong>Class filter:</strong> {videoSampledDetectionResult.class_filter ?? 'All classes'}</p>
-                <p><strong>Extracted frames:</strong> {videoSampledDetectionResult.extracted_frames.frame_count}</p>
-                <p><strong>Detected frames:</strong> {videoSampledDetectionResult.detection.frame_count}</p>
-              </div>
-            </>
-          )}
-        </section>
-      )}
+      <SampledVideoSection
+        videoUploadResult={videoUploadResult}
+        videoSampledDetectionResult={videoSampledDetectionResult}
+        videoSampledDetectionResultRef={videoSampledDetectionResultRef}
+        sampledVideoIntervalSeconds={sampledVideoIntervalSeconds}
+        trackingStartSeconds={trackingStartSeconds}
+        trackingEndSeconds={trackingEndSeconds}
+        trackingIntervalSeconds={trackingIntervalSeconds}
+        trackingMaxDistancePixels={trackingMaxDistancePixels}
+        isBusy={isBusy}
+        isDetectingSampledVideo={isDetectingSampledVideo}
+        isTrackingVideo={isTrackingVideo}
+        copiedParserLogJsonKey={copiedParserLogJsonKey}
+        failedParserLogJsonKey={failedParserLogJsonKey}
+        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+        onSampledVideoIntervalSecondsChange={setSampledVideoIntervalSeconds}
+        onTrackingStartSecondsChange={setTrackingStartSeconds}
+        onTrackingEndSecondsChange={setTrackingEndSeconds}
+        onTrackingIntervalSecondsChange={setTrackingIntervalSeconds}
+        onTrackingMaxDistancePixelsChange={setTrackingMaxDistancePixels}
+        onDetectSampledVideo={handleDetectSampledVideo}
+        onTrackSampledVideo={handleTrackSampledVideo}
+        onClearVideoSampledDetectionResult={() => {
+          setVideoSampledDetectionResult(null)
+          setStatusMessage('Sampled Video Detection Result view cleared.')
+        }}
+        onCopyJson={handleCopyParserLogJson}
+        onDownloadJson={handleDownloadJsonFile}
+      />
 
       {videoMultiFrameResult && (
         <section className="card" ref={videoMultiFrameResultRef}>
