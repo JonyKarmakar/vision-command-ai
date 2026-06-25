@@ -30,6 +30,7 @@ import { CommandHistoryControlsSection } from './features/commands/CommandHistor
 import { ParserObservabilityControlsSection } from './features/commands/ParserObservabilityControlsSection'
 import { PromptPreviewPanelsSection } from './features/commands/PromptPreviewPanelsSection'
 import { CommandPlanPreviewSection } from './features/commands/CommandPlanPreviewSection'
+import { ParsedCommandPreviewSection } from './features/commands/ParsedCommandPreviewSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -5204,187 +5205,28 @@ function App() {
             }}
           />
 
-          {commandParseResult && (
-            <div className="command-parse-result" ref={parsedCommandPreviewRef}>
-              <h3>Parsed Command Preview</h3>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void handleCopyParserLogJson(
-                      {
-                        source: 'parsed_command_preview',
-                        copied_at: new Date().toISOString(),
-                        command: commandParseResult.command,
-                        parser_mode: commandParseResult.parser_mode ?? null,
-                        parser_type: commandParseResult.parser_type ?? null,
-                        parser_version: commandParseResult.parser_version ?? null,
-                        preview: commandParseResult,
-                      },
-                      'parsed-command-preview-json',
-                      'Copied Parsed Command Preview JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy || !commandParseResult}
-                >
-                  {copiedParserLogJsonKey === 'parsed-command-preview-json'
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === 'parsed-command-preview-json'
-                      ? 'Copy failed'
-                      : 'Copy Parsed Command Preview JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    handleDownloadJsonFile(
-                      {
-                        source: 'parsed_command_preview',
-                        downloaded_at: new Date().toISOString(),
-                        command: commandParseResult.command,
-                        parser_mode: commandParseResult.parser_mode ?? null,
-                        parser_type: commandParseResult.parser_type ?? null,
-                        parser_version: commandParseResult.parser_version ?? null,
-                        preview: commandParseResult,
-                      },
-                      `parsed_command_preview_mode-${commandParseResult.parser_mode ?? 'unknown'}_version-${(commandParseResult.parser_version ?? 'unknown').replace(/[^a-z0-9]+/gi, '-')}.json`,
-                      'Downloaded Parsed Command Preview JSON.',
-                      'download-parsed-command-preview-json',
-                    )
-                  }
-                  disabled={isBusy || !commandParseResult}
-                  data-testid="download-parsed-command-preview-json"
-                >
-                  {downloadedParserLogJsonKey === 'download-parsed-command-preview-json'
-                    ? 'Downloaded!'
-                    : 'Download Parsed Command Preview JSON'}
-                </button>
-
-                <button
-                  className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setCommandParseResult(null)
-                    setStatusMessage('Parsed Command Preview view cleared.')
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear View
-                </button>
-              </div>
-
-              <p><strong>Original command:</strong> {commandParseResult.command}</p>
-              {commandParseResult.parser_mode && (
-                <p><strong>Parser mode:</strong> {commandParseResult.parser_mode}</p>
-              )}
-              {commandParseResult.parser_type && (
-                <p><strong>Parser type:</strong> {commandParseResult.parser_type}</p>
-              )}
-              {commandParseResult.parser_version && (
-                <p><strong>Parser version:</strong> {commandParseResult.parser_version}</p>
-              )}
-
-              <div className="parse-field-list">
-                {Object.entries(commandParseResult.parsed_command).map(([key, value]) => (
-                  <div className="parse-field" key={key}>
-                    <span>{key}</span>
-                    <strong>{value === null || value === undefined ? 'null' : String(value)}</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {commandParseResult && (
-            <div className="parsed-command-validation-panel" ref={parsedCommandValidationRef}>
-              <h3>Parsed Command Validation</h3>
-              <p className="small-note">
-                Validate the structured JSON before it is passed to the execution layer.
-              </p>
-
-              <button
-                className="secondary-button"
-                onClick={handleValidateParsedCommand}
-                disabled={isBusy || !commandParseResult}
-              >
-                {isValidatingParsedCommand ? 'Validating...' : 'Validate Parsed Command'}
-              </button>
-
-              {parsedCommandValidationResult && (
-                <div className="validation-result">
-                  <p><strong>Status:</strong> {parsedCommandValidationResult.status}</p>
-
-                  <div className="loaded-panel-actions">
-                    <button
-                      className="secondary-button"
-                      onClick={() =>
-                        void handleCopyParserLogJson(
-                          {
-                            source: 'parsed_command_validation',
-                            copied_at: new Date().toISOString(),
-                            status: parsedCommandValidationResult.status,
-                            validation: parsedCommandValidationResult,
-                          },
-                          'parsed-command-validation-json',
-                          'Copied Parsed Command Validation JSON to clipboard.',
-                        )
-                      }
-                      disabled={isBusy || !parsedCommandValidationResult}
-                    >
-                      {copiedParserLogJsonKey === 'parsed-command-validation-json'
-                        ? 'Copied!'
-                        : failedParserLogJsonKey === 'parsed-command-validation-json'
-                          ? 'Copy failed'
-                          : 'Copy Validation JSON'}
-                    </button>
-
-                    <button
-                      className="secondary-button"
-                      onClick={() =>
-                        handleDownloadJsonFile(
-                          {
-                            source: 'parsed_command_validation',
-                            downloaded_at: new Date().toISOString(),
-                            status: parsedCommandValidationResult.status,
-                            validation: parsedCommandValidationResult,
-                          },
-                          `parsed_command_validation_status-${parsedCommandValidationResult.status.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                          'Downloaded Parsed Command Validation JSON.',
-                          'download-parsed-command-validation-json',
-                        )
-                      }
-                      disabled={isBusy || !parsedCommandValidationResult}
-                      data-testid="download-parsed-command-validation-json"
-                    >
-                      {downloadedParserLogJsonKey === 'download-parsed-command-validation-json'
-                        ? 'Downloaded!'
-                        : 'Download Validation JSON'}
-                    </button>
-
-                <button
-                  className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setParsedCommandValidationResult(null)
-                    setStatusMessage('Parsed Command Validation view cleared.')
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear View
-                </button>
-                  </div>
-
-                  <div className="parse-field-list">
-                    {Object.entries(parsedCommandValidationResult.validated_command).map(([key, value]) => (
-                      <div className="parse-field" key={key}>
-                        <span>{key}</span>
-                        <strong>{value === null || value === undefined ? 'null' : String(value)}</strong>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          <ParsedCommandPreviewSection
+            commandParseResult={commandParseResult}
+            parsedCommandValidationResult={parsedCommandValidationResult}
+            parsedCommandPreviewRef={parsedCommandPreviewRef}
+            parsedCommandValidationRef={parsedCommandValidationRef}
+            copiedParserLogJsonKey={copiedParserLogJsonKey}
+            failedParserLogJsonKey={failedParserLogJsonKey}
+            downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+            isBusy={isBusy}
+            isValidatingParsedCommand={isValidatingParsedCommand}
+            onCopyJson={handleCopyParserLogJson}
+            onDownloadJson={handleDownloadJsonFile}
+            onValidateParsedCommand={handleValidateParsedCommand}
+            onClearParsedCommandPreview={() => {
+              setCommandParseResult(null)
+              setStatusMessage('Parsed Command Preview view cleared.')
+            }}
+            onClearParsedCommandValidation={() => {
+              setParsedCommandValidationResult(null)
+              setStatusMessage('Parsed Command Validation view cleared.')
+            }}
+          />
 
           {commandResult && (
             <div className="command-result" ref={commandResultRef}>
