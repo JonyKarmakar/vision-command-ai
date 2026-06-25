@@ -27,6 +27,7 @@ import { CommandPresetsSection } from './features/commands/CommandPresetsSection
 import { CommandInputControlsSection } from './features/commands/CommandInputControlsSection'
 import { CommandModeSelectorsSection } from './features/commands/CommandModeSelectorsSection'
 import { CommandHistoryControlsSection } from './features/commands/CommandHistoryControlsSection'
+import { ParserObservabilityControlsSection } from './features/commands/ParserObservabilityControlsSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -5111,143 +5112,45 @@ function App() {
               onLoadParserAttemptLogs={handleLoadParserAttemptLogs}
             />
 
-            <div className="database-parser-log-filters">
-              <label>
-                Parser mode
-                <select
-                  value={databaseParserLogParserModeFilter}
-                  onChange={(event) => {
-                    setDatabaseParserLogParserModeFilter(event.target.value)
-                    clearDatabaseParserResultsForFilterChange()
-                  }}
-                  disabled={isBusy}
-                >
-                  <option value="all">All</option>
-                  <option value="rule_based">rule_based</option>
-                  <option value="llm_mock">llm_mock</option>
-                  <option value="real_llm">real_llm</option>
-                </select>
-              </label>
-
-              <label>
-                Result
-                <select
-                  value={databaseParserLogSuccessFilter}
-                  onChange={(event) => {
-                    setDatabaseParserLogSuccessFilter(event.target.value)
-                    clearDatabaseParserResultsForFilterChange()
-                  }}
-                  disabled={isBusy}
-                >
-                  <option value="all">All</option>
-                  <option value="success">Success</option>
-                  <option value="failed">Failed</option>
-                </select>
-              </label>
-
-              <label>
-                Recent logs
-                <select
-                  value={databaseParserLogLimit}
-                  onChange={(event) => {
-                    setDatabaseParserLogLimit(event.target.value)
-                    clearDatabaseParserResultsForFilterChange()
-                  }}
-                  disabled={isBusy}
-                >
-                  <option value="5">5</option>
-                  <option value="10">10</option>
-                  <option value="20">20</option>
-                  <option value="50">50</option>
-                </select>
-              </label>
-
-            <label className="llmops-real-llm-toggle">
-              <input
-                type="checkbox"
-                checked={includeRealLlmEvaluationInDashboard}
-                onChange={(event) => {
-                  setIncludeRealLlmEvaluationInDashboard(event.target.checked)
-                  clearDatabaseParserResultsForFilterChange()
-                }}
-              />
-              Include real LLM evaluation
-            </label>
-
-              <button
-                className="secondary-button"
-                onClick={handleResetParserFilters}
-                disabled={isBusy}
-              >
-                Reset Parser Filters
-              </button>
-            </div>
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadDatabaseParserAttemptLogs}
-              disabled={isBusy}
-            >
-              {isLoadingDatabaseParserAttemptLogs ? 'Loading DB logs...' : 'Load DB Parser Logs'}
-            </button>
-
-            <button
-              className="secondary-button"
-              onClick={handleExportDatabaseParserAttemptLogs}
-              disabled={isBusy}
-            >
-              Export DB Parser Logs
-            </button>
-
-            {databaseParserResetNotice && (
-              <p className="database-parser-reset-notice">
-                {databaseParserResetNotice}
-              </p>
-            )}
-
-            {databaseParserExportNotice && (
-              <p className="database-parser-export-notice">
-                {databaseParserExportNotice}
-              </p>
-            )}
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadDatabaseParserAttemptSummary}
-              disabled={isBusy}
-            >
-              {isLoadingDatabaseParserAttemptSummary ? 'Loading DB summary...' : 'Load DB Parser Summary'}
-            </button>
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadLlmProviderStatus}
-              disabled={isBusy}
-            >
-              {isLoadingLlmProviderStatus ? 'Loading provider...' : 'Load LLM Provider Status'}
-            </button>
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadLlmOpsDashboard}
-              disabled={isBusy}
-            >
-              {isLoadingLlmOpsDashboard ? 'Loading LLMOps...' : 'Load LLMOps Dashboard'}
-            </button>
-
-              <button
-                className="secondary-button"
-                onClick={clearAllLoadedObservabilityViews}
-                disabled={isBusy || !hasAnyLoadedObservabilityView}
-              >
-                Clear All Loaded Views
-              </button>
-
-              <p className="loaded-views-status">
-                {hasAnyLoadedObservabilityView
-                  ? `${loadedObservabilityViewCount} loaded observability view(s) open: ${loadedObservabilityViewNames.join(', ')}.`
-                  : 'No loaded observability views open.'}
-              </p>
+            <ParserObservabilityControlsSection
+              databaseParserLogParserModeFilter={databaseParserLogParserModeFilter}
+              databaseParserLogSuccessFilter={databaseParserLogSuccessFilter}
+              databaseParserLogLimit={databaseParserLogLimit}
+              includeRealLlmEvaluationInDashboard={includeRealLlmEvaluationInDashboard}
+              databaseParserResetNotice={databaseParserResetNotice}
+              databaseParserExportNotice={databaseParserExportNotice}
+              isBusy={isBusy}
+              isLoadingDatabaseParserAttemptLogs={isLoadingDatabaseParserAttemptLogs}
+              isLoadingDatabaseParserAttemptSummary={isLoadingDatabaseParserAttemptSummary}
+              isLoadingLlmProviderStatus={isLoadingLlmProviderStatus}
+              isLoadingLlmOpsDashboard={isLoadingLlmOpsDashboard}
+              hasAnyLoadedObservabilityView={hasAnyLoadedObservabilityView}
+              loadedObservabilityViewCount={loadedObservabilityViewCount}
+              loadedObservabilityViewNames={loadedObservabilityViewNames}
+              onDatabaseParserLogParserModeFilterChange={(value) => {
+                setDatabaseParserLogParserModeFilter(value)
+                clearDatabaseParserResultsForFilterChange()
+              }}
+              onDatabaseParserLogSuccessFilterChange={(value) => {
+                setDatabaseParserLogSuccessFilter(value)
+                clearDatabaseParserResultsForFilterChange()
+              }}
+              onDatabaseParserLogLimitChange={(value) => {
+                setDatabaseParserLogLimit(value)
+                clearDatabaseParserResultsForFilterChange()
+              }}
+              onIncludeRealLlmEvaluationChange={(checked) => {
+                setIncludeRealLlmEvaluationInDashboard(checked)
+                clearDatabaseParserResultsForFilterChange()
+              }}
+              onResetParserFilters={handleResetParserFilters}
+              onLoadDatabaseParserAttemptLogs={handleLoadDatabaseParserAttemptLogs}
+              onExportDatabaseParserAttemptLogs={handleExportDatabaseParserAttemptLogs}
+              onLoadDatabaseParserAttemptSummary={handleLoadDatabaseParserAttemptSummary}
+              onLoadLlmProviderStatus={handleLoadLlmProviderStatus}
+              onLoadLlmOpsDashboard={handleLoadLlmOpsDashboard}
+              onClearAllLoadedObservabilityViews={clearAllLoadedObservabilityViews}
+            />
           </div>
 
           {commandPlannerPromptPreviewResult && (
