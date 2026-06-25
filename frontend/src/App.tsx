@@ -26,6 +26,7 @@ import { WorkspaceNavigationSection } from './features/workspace/WorkspaceNaviga
 import { CommandPresetsSection } from './features/commands/CommandPresetsSection'
 import { CommandInputControlsSection } from './features/commands/CommandInputControlsSection'
 import { CommandModeSelectorsSection } from './features/commands/CommandModeSelectorsSection'
+import { CommandHistoryControlsSection } from './features/commands/CommandHistoryControlsSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -5071,146 +5072,44 @@ function App() {
           />
 
           <div className="button-row command-history-actions">
-            <label className="command-history-filter">
-              Command history parser
-              <select
-                value={commandHistoryParserModeFilter}
-                onChange={(event) => {
-                  setCommandHistoryParserModeFilter(event.target.value)
-                  setCommandHistorySearch('')
-                  clearCommandHistoryResultsForFilterChange()
-                }}
-                disabled={isBusy}
-              >
-                <option value="all">all</option>
-                <option value="rule_based">rule_based</option>
-                <option value="llm_mock">llm_mock</option>
-                <option value="real_llm">real_llm</option>
-              </select>
-            </label>
-
-            <label className="command-history-filter">
-              Command history result type
-              <select
-                value={commandHistoryResultTypeFilter}
-                onChange={(event) => {
-                  setCommandHistoryResultTypeFilter(event.target.value)
-                  setCommandHistorySearch('')
-                  clearCommandHistoryResultsForFilterChange()
-                }}
-                disabled={isBusy}
-              >
-                <option value="all">all</option>
-                <option value="annotated_detection">annotated_detection</option>
-                <option value="crop_by_class">crop_by_class</option>
-                <option value="blur_by_class">blur_by_class</option>
-                <option value="blur_all_by_class">blur_all_by_class</option>
-                <option value="zoom_by_class">zoom_by_class</option>
-                <option value="extract_frame">extract_frame</option>
-                <option value="extract_frames">extract_frames</option>
-                <option value="detect_frames">detect_frames</option>
-                <option value="track_video">track_video</option>
-                <option value="trim_video">trim_video</option>
-              </select>
-            </label>
-
-            <label className="command-history-filter">
-              Command history limit
-              <select
-                value={commandHistoryLimit}
-                onChange={(event) => {
-                  setCommandHistoryLimit(event.target.value)
-                  setCommandHistorySearch('')
-                  clearCommandHistoryResultsForFilterChange()
-                }}
-                disabled={isBusy}
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-            </label>
-
-            <p className="small-note command-history-active-filters">
-              <strong>Command history filters:</strong> parser = {commandHistoryParserModeFilter}, result type = {commandHistoryResultTypeFilter}, limit = {commandHistoryLimit}
-            </p>
-
-            <button
-              className="secondary-button"
-              onClick={handleResetCommandHistoryFilters}
-              disabled={isBusy}
-            >
-              Reset Command History Filters
-            </button>
-
-            {commandHistoryResetNotice && (
-              <p className="command-history-reset-notice">
-                {commandHistoryResetNotice}
-              </p>
-            )}
-
-            {commandHistoryExportNotice && (
-              <p className="command-history-export-notice">
-                {commandHistoryExportNotice}
-              </p>
-            )}
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadCommandLogs}
-              disabled={isBusy}
-            >
-              {isLoadingLogs ? 'Loading history...' : 'Load Command History'}
-            </button>
-
-            <button
-              className="secondary-button"
-              onClick={handleExportCommandLogs}
-              disabled={isBusy}
-            >
-              Export Command History CSV
-            </button>
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadCommandLogSummary}
-              disabled={isBusy || isLoadingCommandLogSummary}
-            >
-              {isLoadingCommandLogSummary ? 'Loading summary...' : 'Load Command Summary'}
-            </button>
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadCommandEvaluation}
-              disabled={isBusy || isRealLlmActionBlocked}
-            >
-              {isLoadingCommandEvaluation ? 'Loading evaluation...' : 'Load Parser Evaluation'}
-            </button>
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadParserComparison}
-              disabled={isBusy}
-            >
-              {isLoadingParserComparison ? 'Loading comparison...' : 'Load Parser Comparison'}
-            </button>
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadPlannerComparison}
-              disabled={isBusy}
-            >
-              {isLoadingPlannerComparison ? 'Loading planner comparison...' : 'Load Planner Comparison'}
-            </button>
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadParserAttemptLogs}
-              disabled={isBusy}
-            >
-              {isLoadingParserAttemptLogs ? 'Loading logs...' : 'Load Local Parser Attempt Logs'}
-            </button>
+            <CommandHistoryControlsSection
+              commandHistoryParserModeFilter={commandHistoryParserModeFilter}
+              commandHistoryResultTypeFilter={commandHistoryResultTypeFilter}
+              commandHistoryLimit={commandHistoryLimit}
+              commandHistoryResetNotice={commandHistoryResetNotice}
+              commandHistoryExportNotice={commandHistoryExportNotice}
+              isBusy={isBusy}
+              isRealLlmActionBlocked={isRealLlmActionBlocked}
+              isLoadingLogs={isLoadingLogs}
+              isLoadingCommandLogSummary={isLoadingCommandLogSummary}
+              isLoadingCommandEvaluation={isLoadingCommandEvaluation}
+              isLoadingParserComparison={isLoadingParserComparison}
+              isLoadingPlannerComparison={isLoadingPlannerComparison}
+              isLoadingParserAttemptLogs={isLoadingParserAttemptLogs}
+              onCommandHistoryParserModeFilterChange={(value) => {
+                setCommandHistoryParserModeFilter(value)
+                setCommandHistorySearch('')
+                clearCommandHistoryResultsForFilterChange()
+              }}
+              onCommandHistoryResultTypeFilterChange={(value) => {
+                setCommandHistoryResultTypeFilter(value)
+                setCommandHistorySearch('')
+                clearCommandHistoryResultsForFilterChange()
+              }}
+              onCommandHistoryLimitChange={(value) => {
+                setCommandHistoryLimit(value)
+                setCommandHistorySearch('')
+                clearCommandHistoryResultsForFilterChange()
+              }}
+              onResetCommandHistoryFilters={handleResetCommandHistoryFilters}
+              onLoadCommandLogs={handleLoadCommandLogs}
+              onExportCommandLogs={handleExportCommandLogs}
+              onLoadCommandLogSummary={handleLoadCommandLogSummary}
+              onLoadCommandEvaluation={handleLoadCommandEvaluation}
+              onLoadParserComparison={handleLoadParserComparison}
+              onLoadPlannerComparison={handleLoadPlannerComparison}
+              onLoadParserAttemptLogs={handleLoadParserAttemptLogs}
+            />
 
             <div className="database-parser-log-filters">
               <label>
