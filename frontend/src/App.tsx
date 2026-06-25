@@ -23,6 +23,7 @@ import { MultiFrameExtractionResultSection } from './features/media/MultiFrameEx
 import { MultiFrameDetectionResultSection } from './features/media/MultiFrameDetectionResultSection'
 import { VideoTrackingResultSection } from './features/media/VideoTrackingResultSection'
 import { WorkspaceNavigationSection } from './features/workspace/WorkspaceNavigationSection'
+import { CommandPresetsSection } from './features/commands/CommandPresetsSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -5000,64 +5001,14 @@ function App() {
             Use preset buttons or type commands manually. Object-specific presets appear after YOLO detects classes.
           </p>
 
-          <div className="smart-command-presets">
-            <div className="command-preset-group">
-              <h3>General commands</h3>
-              <p className="small-note">
-                These commands work after uploading the required media type.
-              </p>
-
-              <div className="preset-button-grid">
-                {generalCommandPresets.map((preset) => {
-                  const requiresImage = preset.target === 'image'
-                  const requiresVideo = preset.target === 'video'
-                  const disabled =
-                    isBusy ||
-                    (requiresImage && !uploadResult) ||
-                    (requiresVideo && !videoUploadResult)
-
-                  return (
-                    <button
-                      key={preset.command}
-                      className="preset-button"
-                      type="button"
-                      onClick={() => setCommandText(preset.command)}
-                      disabled={disabled}
-                    >
-                      {preset.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="command-preset-group">
-              <h3>Detected object commands</h3>
-              <p className="small-note">
-                These presets are generated from detected object classes. Run detection first.
-              </p>
-
-              {detectedObjectCommandPresets.length > 0 ? (
-                <div className="preset-button-grid">
-                  {detectedObjectCommandPresets.map((preset) => (
-                    <button
-                      key={preset.command}
-                      className="preset-button"
-                      type="button"
-                      onClick={() => setCommandText(preset.command)}
-                      disabled={isBusy || !uploadResult}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="empty-preset-note">
-                  No detected classes yet. Upload an image and run YOLO detection to generate object presets.
-                </p>
-              )}
-            </div>
-          </div>
+          <CommandPresetsSection
+            generalCommandPresets={generalCommandPresets}
+            detectedObjectCommandPresets={detectedObjectCommandPresets}
+            hasUploadResult={Boolean(uploadResult)}
+            hasVideoUploadResult={Boolean(videoUploadResult)}
+            isBusy={isBusy}
+            onSelectCommand={setCommandText}
+          />
 
           <div className="parser-mode-selector">
             <label htmlFor="parser-mode">
