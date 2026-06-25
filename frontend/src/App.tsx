@@ -15,6 +15,7 @@ import { ImageUploadMediaHistorySection } from './features/media/ImageUploadMedi
 import { ImageUploadResultSection } from './features/media/ImageUploadResultSection'
 import { VideoUploadFoundationSection } from './features/media/VideoUploadFoundationSection'
 import { VideoFrameToolsSection } from './features/media/VideoFrameToolsSection'
+import { VideoTrimResultSection } from './features/media/VideoTrimResultSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -8817,113 +8818,21 @@ uvicorn app.main:app --reload`}</pre>
         onExtractMultipleVideoFrames={handleExtractMultipleVideoFrames}
       />
 
-      {videoTrimResult && (
-        <section className="result-grid" ref={videoTrimResultRef}>
-          <div className="card">
-            <h2>Trimmed Video Result</h2>
-
-            <div className="loaded-panel-actions">
-              <button
-                className="secondary-button"
-                onClick={() =>
-                  void handleCopyParserLogJson(
-                    {
-                      source: 'video_trim_result',
-                      copied_at: new Date().toISOString(),
-                      original_filename: videoTrimResult.filename,
-                      trimmed_filename: videoTrimResult.trimmed_filename,
-                      start_seconds: videoTrimResult.start_seconds,
-                      end_seconds: videoTrimResult.end_seconds,
-                      duration_seconds: videoTrimResult.duration_seconds,
-                      metadata: videoTrimResult.metadata,
-                      result: videoTrimResult,
-                    },
-                    'video-trim-result-json',
-                    'Copied Video Trim Result JSON to clipboard.',
-                  )
-                }
-                disabled={isBusy || !videoTrimResult}
-              >
-                {copiedParserLogJsonKey === 'video-trim-result-json'
-                  ? 'Copied!'
-                  : failedParserLogJsonKey === 'video-trim-result-json'
-                    ? 'Copy failed'
-                    : 'Copy Video Trim Result JSON'}
-              </button>
-
-              <button
-                className="secondary-button"
-                onClick={() =>
-                  handleDownloadJsonFile(
-                    {
-                      source: 'video_trim_result',
-                      downloaded_at: new Date().toISOString(),
-                      original_filename: videoTrimResult.filename,
-                      trimmed_filename: videoTrimResult.trimmed_filename,
-                      start_seconds: videoTrimResult.start_seconds,
-                      end_seconds: videoTrimResult.end_seconds,
-                      duration_seconds: videoTrimResult.duration_seconds,
-                      metadata: videoTrimResult.metadata,
-                      result: videoTrimResult,
-                    },
-                    `video_trim_result_file-${videoTrimResult.trimmed_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                    'Downloaded Video Trim Result JSON.',
-                    'download-video-trim-result-json',
-                  )
-                }
-                disabled={isBusy || !videoTrimResult}
-                data-testid="download-video-trim-result-json"
-              >
-                {downloadedParserLogJsonKey === 'download-video-trim-result-json'
-                  ? 'Downloaded!'
-                  : 'Download Video Trim Result JSON'}
-              </button>
-
-                <button
-                  className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setVideoTrimResult(null)
-                    setStatusMessage('Video Trim Result view cleared.')
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear View
-                </button>
-            </div>
-
-            <div className="metadata-list">
-              <p><strong>Original filename:</strong> {videoTrimResult.filename}</p>
-              <p><strong>Trimmed filename:</strong> {videoTrimResult.trimmed_filename}</p>
-              <p><strong>Start:</strong> {videoTrimResult.start_seconds}s</p>
-              <p><strong>End:</strong> {videoTrimResult.end_seconds}s</p>
-              <p><strong>Trim duration:</strong> {videoTrimResult.duration_seconds}s</p>
-              <p><strong>Readable:</strong> {videoTrimResult.metadata.is_readable ? 'Yes' : 'No'}</p>
-              <p><strong>Width:</strong> {videoTrimResult.metadata.width ?? 'Unknown'}</p>
-              <p><strong>Height:</strong> {videoTrimResult.metadata.height ?? 'Unknown'}</p>
-              <p><strong>FPS:</strong> {videoTrimResult.metadata.fps ?? 'Unknown'}</p>
-              <p><strong>Frame count:</strong> {videoTrimResult.metadata.frame_count ?? 'Unknown'}</p>
-            </div>
-          </div>
-
-          <div className="card">
-            <h2>Trimmed Video Preview</h2>
-            {trimmedVideoUrl && videoTrimResult && (
-              <>
-                <video className="preview-video" src={trimmedVideoUrl} controls />
-
-                <div className="output-actions">
-                  <a href={trimmedVideoUrl} target="_blank" rel="noreferrer">
-                    Open trimmed video
-                  </a>
-                  <a href={trimmedVideoUrl} download={videoTrimResult.trimmed_filename}>
-                    Download trimmed video
-                  </a>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-      )}
+      <VideoTrimResultSection
+        videoTrimResult={videoTrimResult}
+        videoTrimResultRef={videoTrimResultRef}
+        trimmedVideoUrl={trimmedVideoUrl}
+        isBusy={isBusy}
+        copiedParserLogJsonKey={copiedParserLogJsonKey}
+        failedParserLogJsonKey={failedParserLogJsonKey}
+        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+        onClearVideoTrimResult={() => {
+          setVideoTrimResult(null)
+          setStatusMessage('Video Trim Result view cleared.')
+        }}
+        onCopyJson={handleCopyParserLogJson}
+        onDownloadJson={handleDownloadJsonFile}
+      />
 
       {videoFrameResult && (
         <section className="result-grid" ref={videoFrameResultRef}>
