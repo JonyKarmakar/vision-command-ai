@@ -11,6 +11,7 @@ import {
   hasGeneratedOutputHistoryFilters as getHasGeneratedOutputHistoryFilters,
 } from './features/generatedOutputs/generatedOutputUtils'
 import { GeneratedOutputHistorySection } from './features/generatedOutputs/GeneratedOutputHistorySection'
+import { ImageUploadMediaHistorySection } from './features/media/ImageUploadMediaHistorySection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
 import type {
@@ -5068,169 +5069,30 @@ function App() {
         onDownloadJson={handleDownloadJsonFile}
       />
 
-      <section className="card">
-        <h2>1. Upload Image</h2>
-
-        <input
-          className="file-input"
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          disabled={isBusy}
-        />
-
-        {selectedFile && (
-          <p className="selected-file">
-            Selected: <strong>{selectedFile.name}</strong>
-          </p>
-        )}
-
-        <div className="button-row">
-          <button onClick={handleUpload} disabled={isBusy || !selectedFile}>
-            {isUploading ? 'Uploading...' : 'Upload Image'}
-          </button>
-
-          <button
-            className="secondary-button"
-            onClick={handleDetection}
-            disabled={!uploadResult || isBusy}
-          >
-            {isDetecting ? 'Detecting...' : 'Run YOLO Detection'}
-          </button>
-        </div>
-
-        <div className="button-row media-history-actions">
-          <button
-            className="secondary-button"
-            onClick={handleLoadMediaFiles}
-            disabled={isBusy}
-          >
-            {isLoadingMediaFiles ? 'Loading media history...' : 'Load Uploaded Media History'}
-          </button>
-        </div>
-
-        {error && <p className="error">{error}</p>}
-      </section>
-
-      {mediaFiles.length > 0 && (
-        <section className="card media-history">
-          <div className="view-panel-header">
-      <h2>Uploaded Media History</h2>
-      <button
-        className="secondary-button view-clear-button"
-        onClick={() => {
+      <ImageUploadMediaHistorySection
+        selectedFile={selectedFile}
+        uploadResult={uploadResult}
+        mediaFiles={mediaFiles}
+        isBusy={isBusy}
+        isUploading={isUploading}
+        isDetecting={isDetecting}
+        isLoadingMediaFiles={isLoadingMediaFiles}
+        error={error}
+        copiedParserLogJsonKey={copiedParserLogJsonKey}
+        failedParserLogJsonKey={failedParserLogJsonKey}
+        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+        onFileChange={handleFileChange}
+        onUpload={handleUpload}
+        onDetection={handleDetection}
+        onLoadMediaFiles={handleLoadMediaFiles}
+        onClearMediaHistory={() => {
           setMediaFiles([])
           setStatusMessage('Uploaded Media History view cleared.')
         }}
-        disabled={isBusy}
-      >
-        Clear View
-      </button>
-    </div>
-
-          <div className="loaded-panel-actions">
-            <button
-              className="secondary-button"
-              onClick={() =>
-                void handleCopyParserLogJson(
-                  {
-                    source: 'uploaded_media_history',
-                    copied_at: new Date().toISOString(),
-                    media_count: mediaFiles.length,
-                    items: mediaFiles.map((mediaFile) => ({
-                      original_filename: mediaFile.original_filename,
-                      stored_filename: mediaFile.stored_filename,
-                      content_type: mediaFile.content_type,
-                      width: mediaFile.width,
-                      height: mediaFile.height,
-                      created_at: mediaFile.created_at,
-                      file_url: mediaFile.file_url,
-                      media_url: `/api${mediaFile.file_url}`,
-                      media_file: mediaFile,
-                    })),
-                  },
-                  'uploaded-media-history-json',
-                  'Copied Uploaded Media History JSON to clipboard.',
-                )
-              }
-              disabled={isBusy || mediaFiles.length === 0}
-            >
-              {copiedParserLogJsonKey === 'uploaded-media-history-json'
-                ? 'Copied!'
-                : failedParserLogJsonKey === 'uploaded-media-history-json'
-                  ? 'Copy failed'
-                  : 'Copy Uploaded Media History JSON'}
-            </button>
-
-            <button
-              className="secondary-button"
-              onClick={() =>
-                handleDownloadJsonFile(
-                  {
-                    source: 'uploaded_media_history',
-                    downloaded_at: new Date().toISOString(),
-                    media_count: mediaFiles.length,
-                    items: mediaFiles.map((mediaFile) => ({
-                      original_filename: mediaFile.original_filename,
-                      stored_filename: mediaFile.stored_filename,
-                      content_type: mediaFile.content_type,
-                      width: mediaFile.width,
-                      height: mediaFile.height,
-                      created_at: mediaFile.created_at,
-                      file_url: mediaFile.file_url,
-                      media_url: `/api${mediaFile.file_url}`,
-                      media_file: mediaFile,
-                    })),
-                  },
-                  `uploaded_media_history_count-${mediaFiles.length}.json`,
-                  'Downloaded Uploaded Media History JSON.',
-                  'download-uploaded-media-history-json',
-                )
-              }
-              disabled={isBusy || mediaFiles.length === 0}
-              data-testid="download-uploaded-media-history-json"
-            >
-              {downloadedParserLogJsonKey === 'download-uploaded-media-history-json'
-                ? 'Downloaded!'
-                : 'Download Uploaded Media History JSON'}
-            </button>
-          </div>
-
-          {mediaFiles.map((mediaFile) => {
-            const mediaUrl = `/api${mediaFile.file_url}`
-
-            return (
-              <div className="media-log-item" key={mediaFile.stored_filename}>
-                <div>
-                  <strong>{mediaFile.original_filename}</strong>
-                  <p>{new Date(mediaFile.created_at).toLocaleString()}</p>
-                  <p>
-                    {mediaFile.width}px × {mediaFile.height}px · {mediaFile.content_type}
-                  </p>
-                  <p className="stored-name">{mediaFile.stored_filename}</p>
-                </div>
-
-                <div className="output-actions">
-                  <button
-                    className="history-use-button"
-                    onClick={() => handleUseMediaFile(mediaFile)}
-                    disabled={isBusy}
-                  >
-                    Use this image
-                  </button>
-
-                  <a href={mediaUrl} target="_blank" rel="noreferrer">
-                    Open
-                  </a>
-                  <a href={mediaUrl} download={mediaFile.original_filename}>
-                    Download
-                  </a>
-                </div>
-              </div>
-            )
-          })}
-        </section>
-      )}
+        onCopyJson={handleCopyParserLogJson}
+        onDownloadJson={handleDownloadJsonFile}
+        onUseMediaFile={handleUseMediaFile}
+      />
 
       {(uploadResult || videoUploadResult) && (
         <section className="card command-card">
