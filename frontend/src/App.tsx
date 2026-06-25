@@ -29,6 +29,7 @@ import { CommandModeSelectorsSection } from './features/commands/CommandModeSele
 import { CommandHistoryControlsSection } from './features/commands/CommandHistoryControlsSection'
 import { ParserObservabilityControlsSection } from './features/commands/ParserObservabilityControlsSection'
 import { PromptPreviewPanelsSection } from './features/commands/PromptPreviewPanelsSection'
+import { CommandPlanPreviewSection } from './features/commands/CommandPlanPreviewSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -5176,216 +5177,32 @@ function App() {
             }}
           />
 
-          {commandPlanResult && (
-            <div className="command-parse-result" ref={commandPlanPreviewRef}>
-              <h3>Command Plan Preview</h3>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void handleCopyParserLogJson(
-                      {
-                        source: 'command_plan_preview',
-                        copied_at: new Date().toISOString(),
-                        command: commandText,
-                        planner_mode: selectedPlannerMode,
-                        plan: commandPlanResult,
-                      },
-                      'command-plan-preview-json',
-                      'Copied Command Plan Preview JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy || !commandPlanResult}
-                >
-                  {copiedParserLogJsonKey === 'command-plan-preview-json'
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === 'command-plan-preview-json'
-                      ? 'Copy failed'
-                      : 'Copy Command Plan JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    handleDownloadJsonFile(
-                      {
-                        source: 'command_plan_preview',
-                        downloaded_at: new Date().toISOString(),
-                        command: commandText,
-                        planner_mode: selectedPlannerMode,
-                        plan: commandPlanResult,
-                      },
-                      `command_plan_preview_mode-${selectedPlannerMode}_action-${commandPlanResult.action}.json`,
-                      'Downloaded Command Plan Preview JSON.',
-                      'download-command-plan-preview-json',
-                    )
-                  }
-                  disabled={isBusy || !commandPlanResult}
-                >
-                  {downloadedParserLogJsonKey === 'download-command-plan-preview-json'
-                    ? 'Downloaded!'
-                    : 'Download Command Plan JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={handlePrepareCommandPlanExecution}
-                  disabled={isBusy || !commandPlanResult}
-                >
-                  {isPreparingCommandPlanExecution ? 'Preparing...' : 'Prepare Execution'}
-                </button>
-
-                <button
-                  className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setCommandPlanResult(null)
-                    setStatusMessage('Command Plan Preview view cleared.')
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear View
-                </button>
-              </div>
-
-              <p><strong>Original command:</strong> {commandText}</p>
-              <p><strong>Planner mode:</strong> {selectedPlannerMode}</p>
-
-              <div className="parse-field-list">
-                {Object.entries(commandPlanResult).map(([key, value]) => (
-                  <div className="parse-field" key={key}>
-                    <span>{key}</span>
-                    <strong>
-                      {value === null || value === undefined
-                        ? 'null'
-                        : typeof value === 'object'
-                          ? JSON.stringify(value)
-                          : String(value)}
-                    </strong>
-                  </div>
-                ))}
-              </div>
-
-              {commandPlanResult.needs_clarification && commandPlanResult.clarification_question && (
-                <div className="real-llm-warning">
-                  <strong>Clarification needed</strong>
-                  <p>{commandPlanResult.clarification_question}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {commandPlanExecutionPrepareResult && (
-            <div className="command-parse-result" ref={commandPlanExecutionPrepareRef}>
-              <h3>Prepared Execution Preview</h3>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void handleCopyParserLogJson(
-                      {
-                        source: 'prepared_execution_preview',
-                        copied_at: new Date().toISOString(),
-                        command: commandText,
-                        planner_mode: selectedPlannerMode,
-                        plan: commandPlanResult,
-                        preparation: commandPlanExecutionPrepareResult,
-                      },
-                      'prepared-execution-preview-json',
-                      'Copied Prepared Execution Preview JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy || !commandPlanExecutionPrepareResult}
-                >
-                  {copiedParserLogJsonKey === 'prepared-execution-preview-json'
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === 'prepared-execution-preview-json'
-                      ? 'Copy failed'
-                      : 'Copy Prepared Execution JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    handleDownloadJsonFile(
-                      {
-                        source: 'prepared_execution_preview',
-                        downloaded_at: new Date().toISOString(),
-                        command: commandText,
-                        planner_mode: selectedPlannerMode,
-                        plan: commandPlanResult,
-                        preparation: commandPlanExecutionPrepareResult,
-                      },
-                      `prepared_execution_preview_status-${commandPlanExecutionPrepareResult.status}.json`,
-                      'Downloaded Prepared Execution Preview JSON.',
-                      'download-prepared-execution-preview-json',
-                    )
-                  }
-                  disabled={isBusy || !commandPlanExecutionPrepareResult}
-                  data-testid="download-prepared-execution-preview-json"
-                >
-                  {downloadedParserLogJsonKey === 'download-prepared-execution-preview-json'
-                    ? 'Downloaded!'
-                    : 'Download Prepared Execution JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={handleExecutePreparedCommand}
-                  disabled={
-                    isBusy ||
-                    isExecutingPreparedCommand ||
-                    !commandPlanExecutionPrepareResult.executable ||
-                    !commandPlanExecutionPrepareResult.prepared_command
-                  }
-                >
-                  {isExecutingPreparedCommand ? 'Executing...' : 'Execute Prepared Command'}
-                </button>
-
-                <button
-                  className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setCommandPlanExecutionPrepareResult(null)
-                    setStatusMessage('Prepared Execution Preview view cleared.')
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear View
-                </button>
-              </div>
-
-              <p><strong>Status:</strong> {commandPlanExecutionPrepareResult.status}</p>
-              <p><strong>Executable:</strong> {commandPlanExecutionPrepareResult.executable ? 'yes' : 'no'}</p>
-
-              <div className="parse-field-list">
-                <div className="parse-field">
-                  <span>prepared_command</span>
-                  <strong>
-                    {commandPlanExecutionPrepareResult.prepared_command
-                      ? JSON.stringify(commandPlanExecutionPrepareResult.prepared_command)
-                      : 'null'}
-                  </strong>
-                </div>
-
-                <div className="parse-field">
-                  <span>warnings</span>
-                  <strong>
-                    {commandPlanExecutionPrepareResult.warnings.length > 0
-                      ? commandPlanExecutionPrepareResult.warnings.join(' | ')
-                      : 'none'}
-                  </strong>
-                </div>
-              </div>
-
-              {commandPlanExecutionPrepareResult.warnings.length > 0 && (
-                <div className="real-llm-warning">
-                  <strong>Preparation warning</strong>
-                  <p>{commandPlanExecutionPrepareResult.warnings.join(' ')}</p>
-                </div>
-              )}
-            </div>
-          )}
+          <CommandPlanPreviewSection
+            commandPlanResult={commandPlanResult}
+            commandPlanExecutionPrepareResult={commandPlanExecutionPrepareResult}
+            commandPlanPreviewRef={commandPlanPreviewRef}
+            commandPlanExecutionPrepareRef={commandPlanExecutionPrepareRef}
+            commandText={commandText}
+            selectedPlannerMode={selectedPlannerMode}
+            copiedParserLogJsonKey={copiedParserLogJsonKey}
+            failedParserLogJsonKey={failedParserLogJsonKey}
+            downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+            isBusy={isBusy}
+            isPreparingCommandPlanExecution={isPreparingCommandPlanExecution}
+            isExecutingPreparedCommand={isExecutingPreparedCommand}
+            onCopyJson={handleCopyParserLogJson}
+            onDownloadJson={handleDownloadJsonFile}
+            onPrepareCommandPlanExecution={handlePrepareCommandPlanExecution}
+            onExecutePreparedCommand={handleExecutePreparedCommand}
+            onClearCommandPlanPreview={() => {
+              setCommandPlanResult(null)
+              setStatusMessage('Command Plan Preview view cleared.')
+            }}
+            onClearPreparedExecutionPreview={() => {
+              setCommandPlanExecutionPrepareResult(null)
+              setStatusMessage('Prepared Execution Preview view cleared.')
+            }}
+          />
 
           {commandParseResult && (
             <div className="command-parse-result" ref={parsedCommandPreviewRef}>
