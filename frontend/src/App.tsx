@@ -14,6 +14,7 @@ import { GeneratedOutputHistorySection } from './features/generatedOutputs/Gener
 import { ImageUploadMediaHistorySection } from './features/media/ImageUploadMediaHistorySection'
 import { ImageUploadResultSection } from './features/media/ImageUploadResultSection'
 import { VideoUploadFoundationSection } from './features/media/VideoUploadFoundationSection'
+import { VideoFrameToolsSection } from './features/media/VideoFrameToolsSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -8799,86 +8800,22 @@ uvicorn app.main:app --reload`}</pre>
         onCopyJson={handleCopyParserLogJson}
         onDownloadJson={handleDownloadJsonFile}
       />
-      {videoUploadResult && (
-        <section className="card video-frame-card">
-          <h2>Extract Video Frame</h2>
-          <p className="small-note">
-            Select a timestamp in seconds. The backend will extract that video frame as an image.
-          </p>
-
-          <div className="trim-input-grid">
-            <label>
-              Timestamp seconds
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={frameTimestampSeconds}
-                onChange={(event) => setFrameTimestampSeconds(Number(event.target.value))}
-                disabled={isBusy}
-              />
-            </label>
-          </div>
-
-          <button onClick={handleExtractVideoFrame} disabled={isBusy || !videoUploadResult}>
-            {isExtractingFrame ? 'Extracting frame...' : 'Extract Frame'}
-          </button>
-        </section>
-      )}
-
-      {videoUploadResult && (
-        <section className="card video-multiframe-card">
-          <h2>Extract Multiple Frames</h2>
-          <p className="small-note">
-            Select a start time, end time, and interval. The backend will extract a frame gallery.
-          </p>
-
-          <div className="trim-input-grid">
-            <label>
-              Start seconds
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={multiFrameStartSeconds}
-                onChange={(event) => setMultiFrameStartSeconds(Number(event.target.value))}
-                disabled={isBusy}
-              />
-            </label>
-
-            <label>
-              End seconds
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={multiFrameEndSeconds}
-                onChange={(event) => setMultiFrameEndSeconds(Number(event.target.value))}
-                disabled={isBusy}
-              />
-            </label>
-
-            <label>
-              Interval seconds
-              <input
-                type="number"
-                min="0.1"
-                step="0.1"
-                value={multiFrameIntervalSeconds}
-                onChange={(event) => setMultiFrameIntervalSeconds(Number(event.target.value))}
-                disabled={isBusy}
-              />
-            </label>
-          </div>
-
-          <button
-            onClick={handleExtractMultipleVideoFrames}
-            disabled={isBusy || !videoUploadResult}
-          >
-            {isExtractingMultipleFrames ? 'Extracting frames...' : 'Extract Multiple Frames'}
-          </button>
-        </section>
-      )}
+      <VideoFrameToolsSection
+        videoUploadResult={videoUploadResult}
+        frameTimestampSeconds={frameTimestampSeconds}
+        multiFrameStartSeconds={multiFrameStartSeconds}
+        multiFrameEndSeconds={multiFrameEndSeconds}
+        multiFrameIntervalSeconds={multiFrameIntervalSeconds}
+        isBusy={isBusy}
+        isExtractingFrame={isExtractingFrame}
+        isExtractingMultipleFrames={isExtractingMultipleFrames}
+        onFrameTimestampSecondsChange={setFrameTimestampSeconds}
+        onMultiFrameStartSecondsChange={setMultiFrameStartSeconds}
+        onMultiFrameEndSecondsChange={setMultiFrameEndSeconds}
+        onMultiFrameIntervalSecondsChange={setMultiFrameIntervalSeconds}
+        onExtractVideoFrame={handleExtractVideoFrame}
+        onExtractMultipleVideoFrames={handleExtractMultipleVideoFrames}
+      />
 
       {videoTrimResult && (
         <section className="result-grid" ref={videoTrimResultRef}>
