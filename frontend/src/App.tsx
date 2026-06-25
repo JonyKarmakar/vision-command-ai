@@ -24,6 +24,7 @@ import { MultiFrameDetectionResultSection } from './features/media/MultiFrameDet
 import { VideoTrackingResultSection } from './features/media/VideoTrackingResultSection'
 import { WorkspaceNavigationSection } from './features/workspace/WorkspaceNavigationSection'
 import { CommandPresetsSection } from './features/commands/CommandPresetsSection'
+import { CommandInputControlsSection } from './features/commands/CommandInputControlsSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -5131,90 +5132,29 @@ function App() {
             </p>
           </div>
 
-          <div className="command-row">
-            <input
-              className="command-input"
-              type="text"
-              value={commandText}
-              placeholder="Type a command, for example: crop person or extract frame at 1 second"
-              onChange={(event) => {
-                setCommandText(event.target.value)
-                setCommandParseResult(null)
-              }}
-              disabled={isBusy}
-            />
-
-            <button
-              className="secondary-button"
-              onClick={handleParseCommand}
-              disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}
-            >
-              {isParsingCommand ? 'Parsing...' : 'Parse Command'}
-            </button>
-
-              <button
-                className="secondary-button"
-                onClick={handlePlanCommand}
-                disabled={isBusy || !commandText.trim()}
-              >
-                {isPlanningCommand ? 'Planning...' : 'Plan Command'}
-              </button>
-
-              <button
-                className="secondary-button"
-                onClick={handleLoadPlannerPromptPreview}
-                disabled={isBusy || !commandText.trim()}
-              >
-                {isLoadingPlannerPromptPreview ? 'Loading planner prompt...' : 'Preview Planner Prompt'}
-              </button>
-
-            <button
-              className="secondary-button"
-              onClick={handleLoadPromptPreview}
-              disabled={isBusy || !commandText.trim()}
-            >
-              {isLoadingPromptPreview ? 'Loading prompt...' : 'Preview LLM Prompt'}
-            </button>
-
-            <button onClick={handleCommand} disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}>
-              {isRunningCommand ? 'Running...' : 'Run Command'}
-            </button>
-
-            <button
-              className="voice-button"
-              onClick={handleVoiceCommand}
-              disabled={isBusy}
-            >
-              {isListening ? 'Listening...' : 'Voice Command'}
-            </button>
-          </div>
-
-          {isRealLlmActionBlocked && (
-            <div className="real-llm-warning">
-              <strong>Real LLM actions are disabled</strong>
-              <p>
-                Load provider status first. If no provider is available, use <code>rule_based</code> or <code>llm_mock</code>, or configure Ollama/OpenAI.
-              </p>
-
-              <div className="real-llm-warning-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setSelectedParserMode('rule_based')}
-                >
-                  Use rule_based
-                </button>
-
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setSelectedParserMode('llm_mock')}
-                >
-                  Use llm_mock
-                </button>
-              </div>
-            </div>
-          )}
+          <CommandInputControlsSection
+            commandText={commandText}
+            isBusy={isBusy}
+            isRealLlmActionBlocked={isRealLlmActionBlocked}
+            isParsingCommand={isParsingCommand}
+            isPlanningCommand={isPlanningCommand}
+            isLoadingPlannerPromptPreview={isLoadingPlannerPromptPreview}
+            isLoadingPromptPreview={isLoadingPromptPreview}
+            isRunningCommand={isRunningCommand}
+            isListening={isListening}
+            onCommandTextChange={(nextCommandText) => {
+              setCommandText(nextCommandText)
+              setCommandParseResult(null)
+            }}
+            onParseCommand={handleParseCommand}
+            onPlanCommand={handlePlanCommand}
+            onLoadPlannerPromptPreview={handleLoadPlannerPromptPreview}
+            onLoadPromptPreview={handleLoadPromptPreview}
+            onRunCommand={handleCommand}
+            onVoiceCommand={handleVoiceCommand}
+            onUseRuleBasedParser={() => setSelectedParserMode('rule_based')}
+            onUseMockParser={() => setSelectedParserMode('llm_mock')}
+          />
 
           <div className="button-row command-history-actions">
             <label className="command-history-filter">
