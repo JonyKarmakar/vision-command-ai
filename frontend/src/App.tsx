@@ -31,6 +31,7 @@ import { ParserObservabilityControlsSection } from './features/commands/ParserOb
 import { PromptPreviewPanelsSection } from './features/commands/PromptPreviewPanelsSection'
 import { CommandPlanPreviewSection } from './features/commands/CommandPlanPreviewSection'
 import { ParsedCommandPreviewSection } from './features/commands/ParsedCommandPreviewSection'
+import { CommandResultSection } from './features/commands/CommandResultSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -5228,252 +5229,82 @@ function App() {
             }}
           />
 
-          {commandResult && (
-            <div className="command-result" ref={commandResultRef}>
-              <h3>Command Result</h3>
+          <CommandResultSection
+            commandResult={commandResult}
+            commandResultRef={commandResultRef}
+            activeGeneratedImageFilename={activeGeneratedImageSource?.filename ?? null}
+            copiedParserLogJsonKey={copiedParserLogJsonKey}
+            failedParserLogJsonKey={failedParserLogJsonKey}
+            downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+            isBusy={isBusy}
+            onCopyJson={handleCopyParserLogJson}
+            onDownloadJson={handleDownloadJsonFile}
+            onClearCommandResult={() => {
+              setCommandResult(null)
+              setStatusMessage('Command Result view cleared.')
+            }}
+            onDetectZoomedImage={async (result) => {
+              try {
+                setStatusMessage('Running YOLO on zoomed image...')
 
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void handleCopyParserLogJson(
-                      {
-                        source: 'command_result',
-                        copied_at: new Date().toISOString(),
-                        parser_mode: commandResult.parser_mode,
-                        parser_type: commandResult.parser_type ?? null,
-                        parser_version: commandResult.parser_version ?? null,
-                        parsed_action: commandResult.parsed_command.action,
-                        result_type: commandResult.result_type,
-                        result: commandResult,
-                      },
-                      'command-result-json',
-                      'Copied Command Result JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy || !commandResult}
-                >
-                  {copiedParserLogJsonKey === 'command-result-json'
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === 'command-result-json'
-                      ? 'Copy failed'
-                      : 'Copy Command Result JSON'}
-                </button>
+                const normalizedDetectionThreshold =
+                  confidenceThreshold > 1 ? confidenceThreshold / 100 : confidenceThreshold
 
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    handleDownloadJsonFile(
-                      {
-                        source: 'command_result',
-                        downloaded_at: new Date().toISOString(),
-                        parser_mode: commandResult.parser_mode,
-                        parser_type: commandResult.parser_type ?? null,
-                        parser_version: commandResult.parser_version ?? null,
-                        parsed_action: commandResult.parsed_command.action,
-                        result_type: commandResult.result_type,
-                        result: commandResult,
-                      },
-                      `command_result_action-${commandResult.parsed_command.action.replace(/[^a-z0-9]+/gi, '-')}_result-${commandResult.result_type.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                      'Downloaded Command Result JSON.',
-                      'download-command-result-json',
-                    )
-                  }
-                  disabled={isBusy || !commandResult}
-                  data-testid="download-command-result-json"
-                >
-                  {downloadedParserLogJsonKey === 'download-command-result-json'
-                    ? 'Downloaded!'
-                    : 'Download Command Result JSON'}
-                </button>
+                const response = await fetch(
+                  `/api/vision/detect-output/${encodeURIComponent(result.zoomed_filename)}/annotated?confidence_threshold=${normalizedDetectionThreshold}`,
+                  {
+                    method: 'POST',
+                  },
+                )
 
-                <button
-                  className="secondary-button view-clear-button"
-                  onClick={() => {
-                    setCommandResult(null)
-                    setStatusMessage('Command Result view cleared.')
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear View
-                </button>
-              </div>
+                if (!response.ok) {
+                  const errorData = await response.json().catch(() => null)
+                  throw new Error(errorData?.detail ?? 'Failed to run YOLO on zoomed image.')
+                }
 
-              <p><strong>Parser mode:</strong> {commandResult.parser_mode}</p>
-              {commandResult.parser_type && (
-                <p><strong>Parser type:</strong> {commandResult.parser_type}</p>
-              )}
-              {commandResult.parser_version && (
-                <p><strong>Parser version:</strong> {commandResult.parser_version}</p>
-              )}
-              <p><strong>Parsed action:</strong> {commandResult.parsed_command.action}</p>
-              {commandResult.parsed_command.class_name && (
-                <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
-              )}
-              <p><strong>Result type:</strong> {commandResult.result_type}</p>
+                const detectionData = await response.json() as DetectionResponse
 
-                {commandResult.result_type === 'zoom_by_class' && (
-                  <div className="command-result-output">
-                    {(() => {
-                      const result = commandResult.result as ZoomResponse
-                      const zoomOriginalSource =
-                        result.source ??
-                        (activeGeneratedImageSource?.filename === result.filename ? 'outputs' : 'uploads')
-                      const zoomOriginalFileUrl =
-                        zoomOriginalSource === 'outputs'
-                          ? `/media/outputs/${encodeURIComponent(result.filename)}`
-                          : `/media/uploads/${encodeURIComponent(result.filename)}`
+                setDetectionResult(detectionData)
+                addGeneratedOutputHistoryItem({
+                  action: 'annotated_detection',
+                  label: detectionData.source === 'outputs'
+                    ? 'YOLO on generated output'
+                    : 'Annotated detection output',
+                  filename: detectionData.annotated_filename,
+                  file_url: detectionData.annotated_file_url,
+                  source: detectionData.source ?? 'uploads',
+                  source_filename: detectionData.filename,
+                })
+                setSelectedClass('all')
+                setLastDetectionThreshold(normalizedDetectionThreshold)
+                setLastDetectionClass('all')
 
-                      const handleDetectZoomedImage = async () => {
-                        try {
-                          setStatusMessage('Running YOLO on zoomed image...')
+                window.setTimeout(() => {
+                  detectionResultRef.current?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                  })
+                }, 100)
 
-                          const normalizedDetectionThreshold =
-                            confidenceThreshold > 1 ? confidenceThreshold / 100 : confidenceThreshold
+                setClassOptions((previousClasses) =>
+                  Array.from(
+                    new Set([
+                      ...previousClasses,
+                      ...detectionData.detections.map((detection) => detection.class_name),
+                    ]),
+                  ).sort(),
+                )
 
-                          const response = await fetch(
-                            `/api/vision/detect-output/${encodeURIComponent(result.zoomed_filename)}/annotated?confidence_threshold=${normalizedDetectionThreshold}`,
-                            {
-                              method: 'POST',
-                            },
-                          )
-
-                          if (!response.ok) {
-                            const errorData = await response.json().catch(() => null)
-                            throw new Error(errorData?.detail ?? 'Failed to run YOLO on zoomed image.')
-                          }
-
-                          const detectionData = await response.json() as DetectionResponse
-
-                          setDetectionResult(detectionData)
-                          addGeneratedOutputHistoryItem({
-                            action: 'annotated_detection',
-                            label: detectionData.source === 'outputs'
-                              ? 'YOLO on generated output'
-                              : 'Annotated detection output',
-                            filename: detectionData.annotated_filename,
-                            file_url: detectionData.annotated_file_url,
-                            source: detectionData.source ?? 'uploads',
-                            source_filename: detectionData.filename,
-                          })
-                          setSelectedClass('all')
-                          setLastDetectionThreshold(normalizedDetectionThreshold)
-                          setLastDetectionClass('all')
-
-                          window.setTimeout(() => {
-                            detectionResultRef.current?.scrollIntoView({
-                              behavior: 'smooth',
-                              block: 'start',
-                            })
-                          }, 100)
-
-                          setClassOptions((previousClasses) =>
-                            Array.from(
-                              new Set([
-                                ...previousClasses,
-                                ...detectionData.detections.map((detection) => detection.class_name),
-                              ]),
-                            ).sort(),
-                          )
-
-                          setStatusMessage('YOLO detection completed on zoomed image.')
-                        } catch (error) {
-                          setStatusMessage(
-                            error instanceof Error
-                              ? error.message
-                              : 'Failed to run YOLO on zoomed image.',
-                          )
-                        }
-                      }
-
-                      return (
-                        <>
-                          <p><strong>Zoomed file:</strong> {result.zoomed_filename}</p>
-                          <p>
-                            <strong>Zoom box:</strong>{' '}
-                            x1={Math.round(result.zoom_box.x1)}, y1={Math.round(result.zoom_box.y1)},{' '}
-                            x2={Math.round(result.zoom_box.x2)}, y2={Math.round(result.zoom_box.y2)}
-                          </p>
-                          <p>
-                            <strong>Output size:</strong>{' '}
-                            {result.output_size.width} × {result.output_size.height}
-                          </p>
-                          {result.target_scope && (
-                            <p><strong>Target scope:</strong> {result.target_scope}</p>
-                          )}
-
-                          <div className="loaded-panel-actions">
-                            <a
-                              className="secondary-button zoom-image-action-link"
-                              href={result.zoomed_file_url}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Open Zoomed Image
-                            </a>
-
-                            <a
-                              className="secondary-button zoom-image-action-link"
-                              href={result.zoomed_file_url}
-                              download={result.zoomed_filename}
-                            >
-                              Download Zoomed Image
-                            </a>
-
-                            <button
-                              type="button"
-                              className="secondary-button zoom-image-action-link"
-                              onClick={handleDetectZoomedImage}
-                            >
-                              Run YOLO on Zoomed Image
-                            </button>
-                          </div>
-
-                          <div className="zoom-comparison-grid">
-                            <div className="zoom-original-card">
-                              <div className="zoom-card-header">
-                                <span>Original</span>
-                                <strong>Zoom region</strong>
-                              </div>
-
-                              <div className="zoom-original-frame">
-                                <img
-                                  src={zoomOriginalFileUrl}
-                                  alt={`Original ${result.class_name}`}
-                                />
-                                <span
-                                  className="zoom-region-box"
-                                  style={{
-                                    left: `${(result.zoom_box.x1 / result.output_size.width) * 100}%`,
-                                    top: `${(result.zoom_box.y1 / result.output_size.height) * 100}%`,
-                                    width: `${((result.zoom_box.x2 - result.zoom_box.x1) / result.output_size.width) * 100}%`,
-                                    height: `${((result.zoom_box.y2 - result.zoom_box.y1) / result.output_size.height) * 100}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="zoomed-image-card">
-                              <div className="zoom-card-header">
-                                <span>Zoomed output</span>
-                                <strong>{result.class_name}</strong>
-                              </div>
-
-                              <div className="zoomed-image-frame">
-                                <img
-                                  src={result.zoomed_file_url}
-                                  alt={`Zoomed ${result.class_name}`}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )
-                    })()}
-                  </div>
-                )}
-            </div>
-          )}
+                setStatusMessage('YOLO detection completed on zoomed image.')
+              } catch (error) {
+                setStatusMessage(
+                  error instanceof Error
+                    ? error.message
+                    : 'Failed to run YOLO on zoomed image.',
+                )
+              }
+            }}
+          />
 
           <details className="local-ollama-help-panel">
             <summary>Local Ollama Setup for real_llm</summary>
