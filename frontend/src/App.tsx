@@ -40,6 +40,7 @@ import { DatabaseParserAttemptLogsSection } from './features/commands/DatabasePa
 import { LocalParserAttemptLogsSection } from './features/commands/LocalParserAttemptLogsSection'
 import { ParserComparisonSection } from './features/commands/ParserComparisonSection'
 import { PlannerComparisonSection } from './features/commands/PlannerComparisonSection'
+import { ParserEvaluationSection } from './features/commands/ParserEvaluationSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -360,6 +361,7 @@ function App() {
   const videoTrackingResultRef = useRef<HTMLHeadingElement | null>(null)
   const parserComparisonRef = useRef<HTMLDivElement | null>(null)
   const plannerComparisonRef = useRef<HTMLDivElement | null>(null)
+  const parserEvaluationRef = useRef<HTMLDivElement | null>(null)
   const commandHistoryRef = useRef<HTMLDivElement | null>(null)
   const [activeWorkspaceResultLabel, setActiveWorkspaceResultLabel] = useState<string | null>(null)
   const [isWorkspaceQuickJumpOpen, setIsWorkspaceQuickJumpOpen] = useState(false)
@@ -3230,6 +3232,7 @@ function App() {
 
       const data: CommandEvaluationResponse = await response.json()
       setCommandEvaluationResult(data)
+      scrollToLoadedView(parserEvaluationRef)
       setStatusMessage(
         `Loaded parser evaluation: ${data.passed_cases}/${data.total_cases} cases passed.`,
       )
@@ -5499,69 +5502,14 @@ function App() {
             onDownloadJson={handleDownloadJsonFile}
           />
 
-          {commandEvaluationResult && (
-            <div className="parser-evaluation-panel">
-              <h3>Parser Evaluation Results</h3>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() => {
-                    setCommandEvaluationResult(null)
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear Parser Evaluation View
-                </button>
-              </div>
-
-              <div className="parser-evaluation-summary">
-                <div>
-                  <span>Parser</span>
-                  <strong>{commandEvaluationResult.parser_type}</strong>
-                </div>
-                <div>
-                  <span>Version</span>
-                  <strong>{commandEvaluationResult.parser_version}</strong>
-                </div>
-                <div>
-                  <span>Total cases</span>
-                  <strong>{commandEvaluationResult.total_cases}</strong>
-                </div>
-                <div>
-                  <span>Passed</span>
-                  <strong>{commandEvaluationResult.passed_cases}</strong>
-                </div>
-                <div>
-                  <span>Failed</span>
-                  <strong>{commandEvaluationResult.failed_cases}</strong>
-                </div>
-                <div>
-                  <span>Accuracy</span>
-                  <strong>{(commandEvaluationResult.accuracy * 100).toFixed(1)}%</strong>
-                </div>
-              </div>
-
-              <div className="parser-evaluation-list">
-                {commandEvaluationResult.results.map((result) => (
-                  <div
-                    className={result.passed ? 'evaluation-item passed' : 'evaluation-item failed'}
-                    key={result.command}
-                  >
-                    <div>
-                      <strong>{result.command}</strong>
-                      <p>{result.passed ? 'Passed' : 'Failed'}</p>
-                    </div>
-
-                    <div>
-                      <span>Expected: {result.expected.action}</span>
-                      <span>Actual: {result.actual?.action ?? 'none'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <ParserEvaluationSection
+            commandEvaluationResult={commandEvaluationResult}
+            parserEvaluationRef={parserEvaluationRef}
+            isBusy={isBusy}
+            onClearParserEvaluation={() => {
+              setCommandEvaluationResult(null)
+            }}
+          />
 
           {commandLogSummary && (
             <div className="command-history-summary">
