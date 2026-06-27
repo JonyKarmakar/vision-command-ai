@@ -41,6 +41,7 @@ import { LocalParserAttemptLogsSection } from './features/commands/LocalParserAt
 import { ParserComparisonSection } from './features/commands/ParserComparisonSection'
 import { PlannerComparisonSection } from './features/commands/PlannerComparisonSection'
 import { ParserEvaluationSection } from './features/commands/ParserEvaluationSection'
+import { CommandHistorySummarySection } from './features/commands/CommandHistorySummarySection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -362,6 +363,7 @@ function App() {
   const parserComparisonRef = useRef<HTMLDivElement | null>(null)
   const plannerComparisonRef = useRef<HTMLDivElement | null>(null)
   const parserEvaluationRef = useRef<HTMLDivElement | null>(null)
+  const commandHistorySummaryRef = useRef<HTMLDivElement | null>(null)
   const commandHistoryRef = useRef<HTMLDivElement | null>(null)
   const [activeWorkspaceResultLabel, setActiveWorkspaceResultLabel] = useState<string | null>(null)
   const [isWorkspaceQuickJumpOpen, setIsWorkspaceQuickJumpOpen] = useState(false)
@@ -2866,6 +2868,7 @@ function App() {
 
       const data: CommandLogSummaryResponse = await response.json()
       setCommandLogSummary(data)
+      scrollToLoadedView(commandHistorySummaryRef)
       setStatusMessage(
         `Loaded command history summary with ${data.total_commands} command(s)${
           commandHistoryParserModeFilter !== 'all'
@@ -5511,117 +5514,17 @@ function App() {
             }}
           />
 
-          {commandLogSummary && (
-            <div className="command-history-summary">
-              <h3>Command History Summary</h3>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() => {
-                    setCommandLogSummary(null)
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear Command Summary View
-                </button>
-              </div>
-              <p className="small-note command-summary-filter-note">
-                <strong>Command summary filters:</strong> parser = {commandHistoryParserModeFilter}, result type = {commandHistoryResultTypeFilter}
-              </p>
-
-              <div className="summary-grid">
-                <div className="summary-card">
-                  <span>Total commands</span>
-                  <strong>{commandLogSummary.total_commands}</strong>
-                </div>
-
-                <div className="summary-card">
-                  <span>Parser modes</span>
-                  <strong>{commandLogSummary.by_parser_mode.length}</strong>
-                </div>
-
-                <div className="summary-card">
-                  <span>Result types</span>
-                  <strong>{commandLogSummary.by_result_type.length}</strong>
-                </div>
-              </div>
-
-              {commandLogSummary.total_commands === 0 && (
-                <div className="empty-state command-summary-empty-state">
-                  <strong>No command history summary found for the selected filters.</strong>
-                  <p>
-                    Current filters: parser = {commandHistoryParserModeFilter}, result type = {commandHistoryResultTypeFilter}.
-                  </p>
-                  <p>
-                    Try loading command history, running more commands, or choosing broader filters.
-                  </p>
-                </div>
-              )}
-
-              <div className="summary-columns">
-                <div>
-                  <h4>By parser mode</h4>
-                  <div className="summary-bar-list">
-                    {commandLogSummary.by_parser_mode.map((item) => (
-                      <div key={item.name} className="summary-bar-row">
-                        <div className="summary-bar-meta">
-                          <strong>{item.name}</strong>
-                          <span>{item.count}</span>
-                        </div>
-                        <div className="summary-bar-track">
-                          <div
-                            className="summary-bar-fill"
-                            style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_parser_mode) }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4>By result type</h4>
-                  <div className="summary-bar-list">
-                    {commandLogSummary.by_result_type.map((item) => (
-                      <div key={item.name} className="summary-bar-row">
-                        <div className="summary-bar-meta">
-                          <strong>{item.name}</strong>
-                          <span>{item.count}</span>
-                        </div>
-                        <div className="summary-bar-track">
-                          <div
-                            className="summary-bar-fill"
-                            style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_result_type) }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4>By parsed action</h4>
-                  <div className="summary-bar-list">
-                    {commandLogSummary.by_parsed_action.map((item) => (
-                      <div key={item.name} className="summary-bar-row">
-                        <div className="summary-bar-meta">
-                          <strong>{item.name}</strong>
-                          <span>{item.count}</span>
-                        </div>
-                        <div className="summary-bar-track">
-                          <div
-                            className="summary-bar-fill"
-                            style={{ width: getCommandSummaryBarWidth(item.count, commandLogSummary.by_parsed_action) }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <CommandHistorySummarySection
+            commandLogSummary={commandLogSummary}
+            commandHistorySummaryRef={commandHistorySummaryRef}
+            commandHistoryParserModeFilter={commandHistoryParserModeFilter}
+            commandHistoryResultTypeFilter={commandHistoryResultTypeFilter}
+            isBusy={isBusy}
+            getCommandSummaryBarWidth={getCommandSummaryBarWidth}
+            onClearCommandSummary={() => {
+              setCommandLogSummary(null)
+            }}
+          />
 
           {hasLoadedCommandLogs && (
             <div className="command-history" ref={commandHistoryRef}>
