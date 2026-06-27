@@ -39,6 +39,7 @@ import { DatabaseParserAttemptSummarySection } from './features/commands/Databas
 import { DatabaseParserAttemptLogsSection } from './features/commands/DatabaseParserAttemptLogsSection'
 import { LocalParserAttemptLogsSection } from './features/commands/LocalParserAttemptLogsSection'
 import { ParserComparisonSection } from './features/commands/ParserComparisonSection'
+import { PlannerComparisonSection } from './features/commands/PlannerComparisonSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -5484,99 +5485,19 @@ function App() {
             onDownloadJson={handleDownloadJsonFile}
           />
 
-          {plannerComparisonResult && (
-            <div className="parser-comparison-panel" ref={plannerComparisonRef}>
-              <h3>Planner Comparison Results</h3>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() => {
-                    setPlannerComparisonResult(null)
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear Planner Comparison View
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void handleCopyParserLogJson(
-                      {
-                        source: 'planner_comparison',
-                        copied_at: new Date().toISOString(),
-                        planner_modes: plannerComparisonResult.planner_modes,
-                        total_evaluations: plannerComparisonResult.evaluations.length,
-                        skipped_evaluations: plannerComparisonResult.skipped_evaluations ?? [],
-                        comparison: plannerComparisonResult,
-                      },
-                      'planner-comparison-json',
-                      'Copied Planner Comparison JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy || !plannerComparisonResult}
-                >
-                  {copiedParserLogJsonKey === 'planner-comparison-json'
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === 'planner-comparison-json'
-                      ? 'Copy failed'
-                      : 'Copy Planner Comparison JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    handleDownloadJsonFile(
-                      {
-                        source: 'planner_comparison',
-                        downloaded_at: new Date().toISOString(),
-                        planner_modes: plannerComparisonResult.planner_modes,
-                        total_evaluations: plannerComparisonResult.evaluations.length,
-                        skipped_evaluations: plannerComparisonResult.skipped_evaluations ?? [],
-                        comparison: plannerComparisonResult,
-                      },
-                      `planner_comparison_modes-${plannerComparisonResult.planner_modes.join('-').replace(/[^a-z0-9]+/gi, '-')}.json`,
-                      'Downloaded Planner Comparison JSON.',
-                      'download-planner-comparison-json',
-                    )
-                  }
-                  disabled={isBusy || !plannerComparisonResult}
-                  data-testid="download-planner-comparison-json"
-                >
-                  {downloadedParserLogJsonKey === 'download-planner-comparison-json'
-                    ? 'Downloaded!'
-                    : 'Download Planner Comparison JSON'}
-                </button>
-              </div>
-
-              <div className="parser-comparison-grid">
-                {plannerComparisonResult.evaluations.map((evaluation) => (
-                  <div className="parser-comparison-card" key={evaluation.planner_mode}>
-                    <h4>{evaluation.planner_mode}</h4>
-                    <p><strong>Type:</strong> {evaluation.planner_type}</p>
-                    <p><strong>Version:</strong> {evaluation.planner_version}</p>
-                    <p><strong>Total cases:</strong> {evaluation.total_cases}</p>
-                    <p><strong>Passed:</strong> {evaluation.passed_cases}</p>
-                    <p><strong>Failed:</strong> {evaluation.failed_cases}</p>
-                    <p><strong>Accuracy:</strong> {(evaluation.accuracy * 100).toFixed(1)}%</p>
-                  </div>
-                ))}
-                {plannerComparisonResult.skipped_evaluations &&
-                  plannerComparisonResult.skipped_evaluations.length > 0 && (
-                    <div className="parser-comparison-skipped">
-                      <h4>Skipped planner modes</h4>
-                      {plannerComparisonResult.skipped_evaluations.map((skipped) => (
-                        <div key={skipped.planner_mode} className="parser-comparison-skipped-card">
-                          <strong>{skipped.planner_mode}</strong>
-                          <span>{skipped.reason}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-              </div>
-            </div>
-          )}
+          <PlannerComparisonSection
+            plannerComparisonResult={plannerComparisonResult}
+            plannerComparisonRef={plannerComparisonRef}
+            copiedParserLogJsonKey={copiedParserLogJsonKey}
+            failedParserLogJsonKey={failedParserLogJsonKey}
+            downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+            isBusy={isBusy}
+            onClearPlannerComparison={() => {
+              setPlannerComparisonResult(null)
+            }}
+            onCopyJson={handleCopyParserLogJson}
+            onDownloadJson={handleDownloadJsonFile}
+          />
 
           {commandEvaluationResult && (
             <div className="parser-evaluation-panel">
