@@ -38,6 +38,7 @@ import { LlmOpsDashboardSection } from './features/commands/LlmOpsDashboardSecti
 import { DatabaseParserAttemptSummarySection } from './features/commands/DatabaseParserAttemptSummarySection'
 import { DatabaseParserAttemptLogsSection } from './features/commands/DatabaseParserAttemptLogsSection'
 import { LocalParserAttemptLogsSection } from './features/commands/LocalParserAttemptLogsSection'
+import { ParserComparisonSection } from './features/commands/ParserComparisonSection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
@@ -5469,99 +5470,19 @@ function App() {
             onExportLocalParserAttemptLogs={handleExportLocalParserAttemptLogs}
           />
 
-          {parserComparisonResult && (
-            <div className="parser-comparison-panel" ref={parserComparisonRef}>
-              <h3>Parser Comparison Results</h3>
-
-              <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
-                  onClick={() => {
-                    setParserComparisonResult(null)
-                  }}
-                  disabled={isBusy}
-                >
-                  Clear Parser Comparison View
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void handleCopyParserLogJson(
-                      {
-                        source: 'parser_comparison',
-                        copied_at: new Date().toISOString(),
-                        parser_modes: parserComparisonResult.parser_modes,
-                        total_evaluations: parserComparisonResult.evaluations.length,
-                        skipped_evaluations: parserComparisonResult.skipped_evaluations ?? [],
-                        comparison: parserComparisonResult,
-                      },
-                      'parser-comparison-json',
-                      'Copied Parser Comparison JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy || !parserComparisonResult}
-                >
-                  {copiedParserLogJsonKey === 'parser-comparison-json'
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === 'parser-comparison-json'
-                      ? 'Copy failed'
-                      : 'Copy Parser Comparison JSON'}
-                </button>
-
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    handleDownloadJsonFile(
-                      {
-                        source: 'parser_comparison',
-                        downloaded_at: new Date().toISOString(),
-                        parser_modes: parserComparisonResult.parser_modes,
-                        total_evaluations: parserComparisonResult.evaluations.length,
-                        skipped_evaluations: parserComparisonResult.skipped_evaluations ?? [],
-                        comparison: parserComparisonResult,
-                      },
-                      `parser_comparison_modes-${parserComparisonResult.parser_modes.join('-').replace(/[^a-z0-9]+/gi, '-')}.json`,
-                      'Downloaded Parser Comparison JSON.',
-                      'download-parser-comparison-json',
-                    )
-                  }
-                  disabled={isBusy || !parserComparisonResult}
-                  data-testid="download-parser-comparison-json"
-                >
-                  {downloadedParserLogJsonKey === 'download-parser-comparison-json'
-                    ? 'Downloaded!'
-                    : 'Download Parser Comparison JSON'}
-                </button>
-              </div>
-
-              <div className="parser-comparison-grid">
-                {parserComparisonResult.evaluations.map((evaluation) => (
-                  <div className="parser-comparison-card" key={evaluation.parser_type}>
-                    <h4>{evaluation.parser_type}</h4>
-                    <p><strong>Version:</strong> {evaluation.parser_version}</p>
-                    <p><strong>Total cases:</strong> {evaluation.total_cases}</p>
-                    <p><strong>Passed:</strong> {evaluation.passed_cases}</p>
-                    <p><strong>Failed:</strong> {evaluation.failed_cases}</p>
-                    <p><strong>Accuracy:</strong> {(evaluation.accuracy * 100).toFixed(1)}%</p>
-                  </div>
-                ))}
-              {parserComparisonResult.skipped_evaluations &&
-                parserComparisonResult.skipped_evaluations.length > 0 && (
-                  <div className="parser-comparison-skipped">
-                    <h4>Skipped parser modes</h4>
-                    {parserComparisonResult.skipped_evaluations.map((skipped) => (
-                      <div key={skipped.parser_mode} className="parser-comparison-skipped-card">
-                        <strong>{skipped.parser_mode}</strong>
-                        <span>{skipped.reason}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-              </div>
-            </div>
-          )}
+          <ParserComparisonSection
+            parserComparisonResult={parserComparisonResult}
+            parserComparisonRef={parserComparisonRef}
+            copiedParserLogJsonKey={copiedParserLogJsonKey}
+            failedParserLogJsonKey={failedParserLogJsonKey}
+            downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+            isBusy={isBusy}
+            onClearParserComparison={() => {
+              setParserComparisonResult(null)
+            }}
+            onCopyJson={handleCopyParserLogJson}
+            onDownloadJson={handleDownloadJsonFile}
+          />
 
           {plannerComparisonResult && (
             <div className="parser-comparison-panel" ref={plannerComparisonRef}>
