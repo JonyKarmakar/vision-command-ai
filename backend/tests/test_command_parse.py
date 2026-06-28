@@ -1,6 +1,9 @@
+from fastapi import HTTPException
+import pytest
 from fastapi.testclient import TestClient
 
 from app import main
+from app.services.command_parser import parse_command
 
 
 client = TestClient(main.app)
@@ -209,3 +212,25 @@ def test_parse_command_with_real_llm_mode_not_implemented():
 
     assert response.status_code == 503
     assert "not configured" in response.json()["detail"]
+
+def test_parse_zoom_person_command():
+    assert parse_command("zoom person") == {
+        "action": "zoom_by_class",
+        "class_name": "person",
+    }
+
+
+def test_parse_zoom_person_with_target_scope():
+    assert parse_command("zoom left person") == {
+        "action": "zoom_by_class",
+        "class_name": "person",
+        "target_scope": "left",
+    }
+
+
+def test_parse_zoom_requires_class_name():
+    with pytest.raises(HTTPException) as exc_info:
+        parse_command("zoom")
+
+    assert exc_info.value.status_code == 400
+    assert "Please specify which class to zoom" in exc_info.value.detail
