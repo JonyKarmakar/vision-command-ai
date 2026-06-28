@@ -24,6 +24,7 @@ import { MultiFrameDetectionResultSection } from './features/media/MultiFrameDet
 import { VideoTrackingResultSection } from './features/media/VideoTrackingResultSection'
 import { WorkspaceNavigationSection } from './features/workspace/WorkspaceNavigationSection'
 import { WorkspaceRecoveryPanelsSection } from './features/workspace/WorkspaceRecoveryPanelsSection'
+import { WorkspaceSnapshotImportPanel } from './features/workspace/WorkspaceSnapshotImportPanel'
 import { CommandPresetsSection } from './features/commands/CommandPresetsSection'
 import { CommandInputControlsSection } from './features/commands/CommandInputControlsSection'
 import { CommandModeSelectorsSection } from './features/commands/CommandModeSelectorsSection'
@@ -4678,67 +4679,15 @@ function App() {
           onUndoClearWorkspaceViews={handleUndoClearWorkspaceViews}
         />
 
-      <details className="workspace-snapshot-import-panel">
-        <summary>Import Workspace Snapshot JSON</summary>
-
-        <div className="workspace-snapshot-import-content">
-          <p className="small-note">
-            Restore a previously downloaded VisionCommand workspace snapshot. Restoring replaces the current loaded result views.
-          </p>
-
-          <div className="workspace-snapshot-import-actions">
-            <input
-              className="file-input workspace-snapshot-import-input"
-              type="file"
-              accept="application/json,.json"
-              onChange={(event) => void handleWorkspaceSnapshotImportChange(event)}
-              disabled={isBusy}
-            />
-
-            <button
-              className="secondary-button workspace-snapshot-import-restore-button"
-              onClick={handleRestoreWorkspaceSnapshot}
-              disabled={isBusy || !workspaceSnapshotImportData}
-              type="button"
-            >
-              Restore Workspace
-            </button>
-          </div>
-
-          {workspaceSnapshotImportPreview && (
-            <div className="workspace-snapshot-import-preview">
-              <div>
-                <span>File</span>
-                <strong>{workspaceSnapshotImportPreview.fileName}</strong>
-              </div>
-
-              <div>
-                <span>Contains</span>
-                <strong>{workspaceSnapshotImportPreview.loadedResultCount} result view(s)</strong>
-              </div>
-
-              <div>
-                <span>Active view</span>
-                <strong>{workspaceSnapshotImportPreview.activeResultView ?? 'None'}</strong>
-              </div>
-
-              <div className="workspace-snapshot-import-preview-chips">
-                {workspaceSnapshotImportPreview.resultViews.map((label) => (
-                  <span key={label}>{label}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {workspaceSnapshotImportNotice && (
-            <p className="workspace-snapshot-import-notice">{workspaceSnapshotImportNotice}</p>
-          )}
-
-          {workspaceSnapshotImportError && (
-            <p className="workspace-snapshot-import-error">{workspaceSnapshotImportError}</p>
-          )}
-        </div>
-      </details>
+        <WorkspaceSnapshotImportPanel
+          workspaceSnapshotImportPreview={workspaceSnapshotImportPreview}
+          workspaceSnapshotImportNotice={workspaceSnapshotImportNotice}
+          workspaceSnapshotImportError={workspaceSnapshotImportError}
+          hasWorkspaceSnapshotImportData={Boolean(workspaceSnapshotImportData)}
+          isBusy={isBusy}
+          onWorkspaceSnapshotImportChange={handleWorkspaceSnapshotImportChange}
+          onRestoreWorkspaceSnapshot={handleRestoreWorkspaceSnapshot}
+        />
 
       <details className="workspace-local-backup-panel">
         <summary>Local Workspace Backup</summary>
