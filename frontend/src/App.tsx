@@ -183,6 +183,7 @@ const getErrorMessage = (error: unknown, fallbackMessage: string): string => {
 
 
 function App() {
+  const [isDeveloperMode, setIsDeveloperMode] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
@@ -4678,7 +4679,38 @@ function App() {
     <main className="page">
         <AppHeroStatusSection isBusy={isBusy} statusMessage={statusMessage} />
 
-        <WorkspaceRecoveryPanelsSection
+        <section className="mode-switch-card" aria-label="Application mode">
+          <div>
+            <p className="eyebrow">Workspace Mode</p>
+            <h2>{isDeveloperMode ? 'Developer Mode' : 'User Mode'}</h2>
+            <p>
+              {isDeveloperMode
+                ? 'Advanced parser, planner, database, LLMOps, and debugging tools are visible.'
+                : 'Clean assistant workflow for uploading media, running commands, viewing results, and reviewing outputs.'}
+            </p>
+          </div>
+
+          <div className="mode-switch-actions" role="group" aria-label="Switch workspace mode">
+            <button
+              type="button"
+              className={!isDeveloperMode ? 'mode-switch-button active' : 'mode-switch-button'}
+              onClick={() => setIsDeveloperMode(false)}
+            >
+              User Mode
+            </button>
+            <button
+              type="button"
+              className={isDeveloperMode ? 'mode-switch-button active' : 'mode-switch-button'}
+              onClick={() => setIsDeveloperMode(true)}
+            >
+              Developer Mode
+            </button>
+          </div>
+        </section>
+
+        {isDeveloperMode && (
+          <div className="developer-mode-stack">
+            <WorkspaceRecoveryPanelsSection
           showWorkspaceRecoveryBanner={showWorkspaceRecoveryBanner}
           workspaceLocalBackupPreview={workspaceLocalBackupPreview}
           workspaceClearUndoPreview={workspaceClearUndoSnapshot ? workspaceClearUndoPreview : null}
@@ -4815,6 +4847,9 @@ function App() {
         onDownloadJson={handleDownloadJsonFile}
       />
 
+          </div>
+        )}
+
       <ImageUploadMediaHistorySection
         selectedFile={selectedFile}
         uploadResult={uploadResult}
@@ -4851,7 +4886,9 @@ function App() {
             onSelectCommand={setCommandText}
           />
 
-          <CommandModeSelectorsSection
+          {isDeveloperMode && (
+            <div className="developer-mode-stack">
+              <CommandModeSelectorsSection
             selectedParserMode={selectedParserMode}
             selectedPlannerMode={selectedPlannerMode}
             providerName={llmProviderStatusResult?.provider_name ?? null}
@@ -4885,6 +4922,9 @@ function App() {
             }}
           />
 
+            </div>
+          )}
+
           <CommandInputControlsSection
             commandText={commandText}
             isBusy={isBusy}
@@ -4909,7 +4949,9 @@ function App() {
             onUseMockParser={() => setSelectedParserMode('llm_mock')}
           />
 
-          <div className="button-row command-history-actions">
+          {isDeveloperMode && (
+            <div className="developer-mode-stack">
+              <div className="button-row command-history-actions">
             <CommandHistoryControlsSection
               commandHistoryParserModeFilter={commandHistoryParserModeFilter}
               commandHistoryResultTypeFilter={commandHistoryResultTypeFilter}
@@ -5062,6 +5104,9 @@ function App() {
             }}
           />
 
+            </div>
+          )}
+
           <CommandResultSection
             commandResult={commandResult}
             commandResultRef={commandResultRef}
@@ -5139,7 +5184,9 @@ function App() {
             }}
           />
 
-          <LocalOllamaHelpSection
+          {isDeveloperMode && (
+            <div className="developer-mode-stack">
+              <LocalOllamaHelpSection
             llmProviderStatusResult={llmProviderStatusResult}
           />
 
@@ -5392,6 +5439,8 @@ function App() {
             onCopyJson={handleCopyParserLogJson}
             onDownloadJson={handleDownloadJsonFile}
           />
+            </div>
+          )}
         </CommandCardSection>
       )}
 
