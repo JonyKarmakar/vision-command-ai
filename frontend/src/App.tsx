@@ -26,6 +26,7 @@ import { WorkspaceNavigationSection } from './features/workspace/WorkspaceNaviga
 import { WorkspaceRecoveryPanelsSection } from './features/workspace/WorkspaceRecoveryPanelsSection'
 import { WorkspaceSnapshotImportPanel } from './features/workspace/WorkspaceSnapshotImportPanel'
 import { WorkspaceLocalBackupPanel } from './features/workspace/WorkspaceLocalBackupPanel'
+import { AppHeroStatusSection } from './features/layout/AppHeroStatusSection'
 import { CommandPresetsSection } from './features/commands/CommandPresetsSection'
 import { CommandInputControlsSection } from './features/commands/CommandInputControlsSection'
 import { CommandModeSelectorsSection } from './features/commands/CommandModeSelectorsSection'
@@ -4657,18 +4658,7 @@ function App() {
 
   return (
     <main className="page">
-      <section className="hero">
-        <p className="eyebrow">VisionCommand AI</p>
-        <h1>AI Vision Detection Studio</h1>
-        <p className="subtitle">
-          Upload an image, run YOLO object detection, crop or blur detected objects, and use text or voice commands.
-        </p>
-      </section>
-
-      <section className="status-card">
-        <span className={isBusy ? 'status-dot active' : 'status-dot'} />
-        <p>{statusMessage}</p>
-      </section>
+        <AppHeroStatusSection isBusy={isBusy} statusMessage={statusMessage} />
 
         <WorkspaceRecoveryPanelsSection
           showWorkspaceRecoveryBanner={showWorkspaceRecoveryBanner}
