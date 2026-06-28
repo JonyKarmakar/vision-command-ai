@@ -4893,3 +4893,31 @@ input[type="file"]::file-selector-button:hover {
     justify-content: flex-start;
   }
 }
+
+
+.assistant-card-heading {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.assistant-card-heading h2 {
+  margin: 0;
+}
+
+.assistant-example-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  color: rgba(226, 232, 240, 0.76);
+}
+
+.assistant-example-strip code {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  background: rgba(15, 23, 42, 0.62);
+  color: rgba(226, 232, 240, 0.9);
+}

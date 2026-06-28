@@ -8,6 +8,7 @@ type CommandInputControlsSectionProps = {
   isLoadingPromptPreview: boolean
   isRunningCommand: boolean
   isListening: boolean
+  isDeveloperMode: boolean
   onCommandTextChange: (commandText: string) => void
   onParseCommand: () => void | Promise<void>
   onPlanCommand: () => void | Promise<void>
@@ -29,6 +30,7 @@ export function CommandInputControlsSection({
   isLoadingPromptPreview,
   isRunningCommand,
   isListening,
+  isDeveloperMode,
   onCommandTextChange,
   onParseCommand,
   onPlanCommand,
@@ -46,48 +48,54 @@ export function CommandInputControlsSection({
           className="command-input"
           type="text"
           value={commandText}
-          placeholder="Type a command, for example: crop person or extract frame at 1 second"
+          placeholder={isDeveloperMode
+            ? 'Type a command, for example: crop person or extract frame at 1 second'
+            : 'Ask VisionCommand AI, for example: blur the person or zoom into the left person'}
           onChange={(event) => onCommandTextChange(event.target.value)}
           disabled={isBusy}
         />
 
-        <button
-          className="secondary-button"
-          onClick={() => void onParseCommand()}
-          disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}
-        >
-          {isParsingCommand ? 'Parsing...' : 'Parse Command'}
-        </button>
+        {isDeveloperMode && (
+          <>
+            <button
+              className="secondary-button"
+              onClick={() => void onParseCommand()}
+              disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}
+            >
+              {isParsingCommand ? 'Parsing...' : 'Parse Command'}
+            </button>
 
-        <button
-          className="secondary-button"
-          onClick={() => void onPlanCommand()}
-          disabled={isBusy || !commandText.trim()}
-        >
-          {isPlanningCommand ? 'Planning...' : 'Plan Command'}
-        </button>
+            <button
+              className="secondary-button"
+              onClick={() => void onPlanCommand()}
+              disabled={isBusy || !commandText.trim()}
+            >
+              {isPlanningCommand ? 'Planning...' : 'Plan Command'}
+            </button>
 
-        <button
-          className="secondary-button"
-          onClick={() => void onLoadPlannerPromptPreview()}
-          disabled={isBusy || !commandText.trim()}
-        >
-          {isLoadingPlannerPromptPreview ? 'Loading planner prompt...' : 'Preview Planner Prompt'}
-        </button>
+            <button
+              className="secondary-button"
+              onClick={() => void onLoadPlannerPromptPreview()}
+              disabled={isBusy || !commandText.trim()}
+            >
+              {isLoadingPlannerPromptPreview ? 'Loading planner prompt...' : 'Preview Planner Prompt'}
+            </button>
 
-        <button
-          className="secondary-button"
-          onClick={() => void onLoadPromptPreview()}
-          disabled={isBusy || !commandText.trim()}
-        >
-          {isLoadingPromptPreview ? 'Loading prompt...' : 'Preview LLM Prompt'}
-        </button>
+            <button
+              className="secondary-button"
+              onClick={() => void onLoadPromptPreview()}
+              disabled={isBusy || !commandText.trim()}
+            >
+              {isLoadingPromptPreview ? 'Loading prompt...' : 'Preview LLM Prompt'}
+            </button>
+          </>
+        )}
 
         <button
           onClick={() => void onRunCommand()}
           disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}
         >
-          {isRunningCommand ? 'Running...' : 'Run Command'}
+          {isRunningCommand ? 'Working...' : isDeveloperMode ? 'Run Command' : 'Ask / Run'}
         </button>
 
         <button
@@ -95,7 +103,7 @@ export function CommandInputControlsSection({
           onClick={onVoiceCommand}
           disabled={isBusy}
         >
-          {isListening ? 'Listening...' : 'Voice Command'}
+          {isListening ? 'Listening...' : isDeveloperMode ? 'Voice Command' : 'Speak'}
         </button>
       </div>
 

@@ -4876,7 +4876,7 @@ function App() {
       />
 
       {(uploadResult || videoUploadResult) && (
-        <CommandCardSection>
+        <CommandCardSection isDeveloperMode={isDeveloperMode}>
           <CommandPresetsSection
             generalCommandPresets={generalCommandPresets}
             detectedObjectCommandPresets={detectedObjectCommandPresets}
@@ -4935,6 +4935,7 @@ function App() {
             isLoadingPromptPreview={isLoadingPromptPreview}
             isRunningCommand={isRunningCommand}
             isListening={isListening}
+            isDeveloperMode={isDeveloperMode}
             onCommandTextChange={(nextCommandText) => {
               setCommandText(nextCommandText)
               setCommandParseResult(null)
