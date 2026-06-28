@@ -27,6 +27,7 @@ import { WorkspaceRecoveryPanelsSection } from './features/workspace/WorkspaceRe
 import { WorkspaceSnapshotImportPanel } from './features/workspace/WorkspaceSnapshotImportPanel'
 import { WorkspaceLocalBackupPanel } from './features/workspace/WorkspaceLocalBackupPanel'
 import { AppHeroStatusSection } from './features/layout/AppHeroStatusSection'
+import { CommandCardSection } from './features/commands/CommandCardSection'
 import { CommandPresetsSection } from './features/commands/CommandPresetsSection'
 import { CommandInputControlsSection } from './features/commands/CommandInputControlsSection'
 import { CommandModeSelectorsSection } from './features/commands/CommandModeSelectorsSection'
@@ -4823,12 +4824,7 @@ function App() {
       />
 
       {(uploadResult || videoUploadResult) && (
-        <section className="card command-card">
-          <h2>Command Box</h2>
-          <p className="small-note">
-            Use preset buttons or type commands manually. Object-specific presets appear after YOLO detects classes.
-          </p>
-
+        <CommandCardSection>
           <CommandPresetsSection
             generalCommandPresets={generalCommandPresets}
             detectedObjectCommandPresets={detectedObjectCommandPresets}
@@ -5379,7 +5375,7 @@ function App() {
             onCopyJson={handleCopyParserLogJson}
             onDownloadJson={handleDownloadJsonFile}
           />
-        </section>
+        </CommandCardSection>
       )}
 
       <VideoUploadFoundationSection
