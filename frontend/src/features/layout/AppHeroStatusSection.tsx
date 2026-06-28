@@ -8,9 +8,9 @@ export function AppHeroStatusSection({ isBusy, statusMessage }: AppHeroStatusSec
     <>
       <section className="hero">
         <p className="eyebrow">VisionCommand AI</p>
-        <h1>AI Vision Detection Studio</h1>
+        <h1>VisionCommand AI Assistant</h1>
         <p className="subtitle">
-          Upload an image, run YOLO object detection, crop or blur detected objects, and use text or voice commands.
+          Upload images or videos, ask with text or voice, and run AI-powered detection, editing, and workflow tools from one assistant workspace.
         </p>
       </section>
 
