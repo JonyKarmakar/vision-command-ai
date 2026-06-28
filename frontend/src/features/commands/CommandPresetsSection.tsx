@@ -29,9 +29,9 @@ export function CommandPresetsSection({
   return (
     <div className="smart-command-presets">
       <div className="command-preset-group">
-        <h3>General commands</h3>
+        <h3>Suggested actions</h3>
         <p className="small-note">
-          These commands work after uploading the required media type.
+          Quick assistant actions for the current workspace.
         </p>
 
         <div className="preset-button-grid">
@@ -59,9 +59,9 @@ export function CommandPresetsSection({
       </div>
 
       <div className="command-preset-group">
-        <h3>Detected object commands</h3>
+        <h3>Object-aware suggestions</h3>
         <p className="small-note">
-          These presets are generated from detected object classes. Run detection first.
+          Suggestions generated from detected object classes. Run detection first.
         </p>
 
         {detectedObjectCommandPresets.length > 0 ? (
