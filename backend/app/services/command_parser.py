@@ -242,11 +242,55 @@ def parse_command(command: str):
             "class_name": normalize_supported_requested_class_name(" ".join(class_words)),
         }
 
+    if "zoom" in normalized_command:
+        target_scope = None
+        scope_words = {"best", "largest", "left", "right", "center", "single"}
+
+        ignored_words = {
+            "zoom",
+            "in",
+            "on",
+            "into",
+            "the",
+            "a",
+            "an",
+            "object",
+            "objects",
+            "detected",
+        }
+
+        class_words = []
+        for word in words:
+            if word in scope_words:
+                target_scope = word
+                continue
+
+            if word not in ignored_words:
+                class_words.append(word)
+
+        if not class_words:
+            raise HTTPException(
+                status_code=400,
+                detail="Please specify which class to zoom, for example: zoom person",
+            )
+
+        parsed_command = {
+            "action": "zoom_by_class",
+            "class_name": normalize_supported_requested_class_name(" ".join(class_words)),
+        }
+
+        if target_scope:
+            parsed_command["target_scope"] = target_scope
+
+        return parsed_command
+
+
     supported_examples = [
         "detect objects",
         "crop person",
         "crop bottle",
         "blur person",
+        "zoom person",
         "extract frame at 1 second",
         "extract frames from 0 to 3 seconds",
         "detect frames from 0 to 3 seconds",
