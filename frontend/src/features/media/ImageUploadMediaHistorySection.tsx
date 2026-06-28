@@ -53,7 +53,11 @@ export function ImageUploadMediaHistorySection({
   return (
     <>
       <section className="card">
-        <h2>1. Upload Image</h2>
+        <p className="eyebrow">Start workspace</p>
+        <h2>Upload an image</h2>
+        <p className="small-note">
+          Start with an image, then ask VisionCommand AI to detect, edit, zoom, blur, crop, or inspect it.
+        </p>
 
         <input
           className="file-input"
@@ -71,7 +75,7 @@ export function ImageUploadMediaHistorySection({
 
         <div className="button-row">
           <button onClick={onUpload} disabled={isBusy || !selectedFile}>
-            {isUploading ? 'Uploading...' : 'Upload Image'}
+            {isUploading ? 'Uploading...' : 'Upload image'}
           </button>
 
           <button
@@ -79,7 +83,7 @@ export function ImageUploadMediaHistorySection({
             onClick={onDetection}
             disabled={!uploadResult || isBusy}
           >
-            {isDetecting ? 'Detecting...' : 'Run YOLO Detection'}
+            {isDetecting ? 'Detecting...' : 'Detect objects'}
           </button>
         </div>
 
@@ -89,7 +93,7 @@ export function ImageUploadMediaHistorySection({
             onClick={onLoadMediaFiles}
             disabled={isBusy}
           >
-            {isLoadingMediaFiles ? 'Loading media history...' : 'Load Uploaded Media History'}
+            {isLoadingMediaFiles ? 'Loading media history...' : 'Load recent uploads'}
           </button>
         </div>
 

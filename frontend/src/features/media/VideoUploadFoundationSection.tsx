@@ -55,9 +55,10 @@ export function VideoUploadFoundationSection({
   return (
     <>
       <section className="card">
-        <h2>Video Upload Foundation</h2>
+        <p className="eyebrow">Video workspace</p>
+        <h2>Or upload a video</h2>
         <p className="small-note">
-          Upload a video file and preview it from the backend. Video detection and trimming will come later.
+          Add a video to preview, trim, extract frames, run detection, and prepare video analysis workflows.
         </p>
 
         <input
@@ -76,7 +77,7 @@ export function VideoUploadFoundationSection({
 
         <div className="button-row">
           <button onClick={onVideoUpload} disabled={isBusy || !selectedVideoFile}>
-            {isUploadingVideo ? 'Uploading video...' : 'Upload Video'}
+            {isUploadingVideo ? 'Uploading video...' : 'Upload video'}
           </button>
         </div>
       </section>
