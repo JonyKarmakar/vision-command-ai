@@ -143,10 +143,20 @@ const formatBackendErrorDetail = (detail: unknown, fallbackMessage: string): str
   return fallbackMessage
 }
 
+const BACKEND_OFFLINE_MESSAGE =
+  'Backend is not reachable. Please start the FastAPI server on localhost:8000.'
+
 const getBackendErrorMessage = async (
   response: Response,
   fallbackMessage: string,
 ): Promise<string> => {
+  const contentType = response.headers.get('content-type') ?? ''
+  const isJsonResponse = contentType.toLowerCase().includes('application/json')
+
+  if (!isJsonResponse && response.status >= 500) {
+    return BACKEND_OFFLINE_MESSAGE
+  }
+
   try {
     const errorData: unknown = await response.json()
 
@@ -163,8 +173,13 @@ const getBackendErrorMessage = async (
   }
 }
 
-const getErrorMessage = (error: unknown, fallbackMessage: string): string =>
-  error instanceof Error && error.message ? error.message : fallbackMessage
+const getErrorMessage = (error: unknown, fallbackMessage: string): string => {
+  if (error instanceof TypeError) {
+    return BACKEND_OFFLINE_MESSAGE
+  }
+
+  return error instanceof Error && error.message ? error.message : fallbackMessage
+}
 
 
 function App() {
@@ -1474,8 +1489,8 @@ function App() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Video upload failed')
+        const errorMessage = await getBackendErrorMessage(response, 'Video upload failed')
+        throw new Error(errorMessage)
       }
 
       const data: VideoUploadResponse = await response.json()
@@ -1483,8 +1498,9 @@ function App() {
       scrollToLoadedView(videoUploadResultRef)
       setStatusMessage('Video upload complete. You can preview or download it.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
-      setStatusMessage('Video upload failed.')
+      const errorMessage = getErrorMessage(err, 'Video upload failed')
+      setError(errorMessage)
+      setStatusMessage(errorMessage)
     } finally {
       setIsUploadingVideo(false)
     }
@@ -1860,8 +1876,8 @@ function App() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Upload failed')
+        const errorMessage = await getBackendErrorMessage(response, 'Upload failed')
+        throw new Error(errorMessage)
       }
 
       const data: UploadResponse = await response.json()
@@ -1869,8 +1885,9 @@ function App() {
       scrollToLoadedView(uploadResultRef)
       setStatusMessage('Upload complete. You can now run YOLO detection or type a command.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
-      setStatusMessage('Upload failed.')
+      const errorMessage = getErrorMessage(err, 'Upload failed')
+      setError(errorMessage)
+      setStatusMessage(errorMessage)
     } finally {
       setIsUploading(false)
     }
