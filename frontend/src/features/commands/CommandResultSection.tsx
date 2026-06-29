@@ -41,6 +41,7 @@ type CommandResultSectionProps = {
   failedParserLogJsonKey: string
   downloadedParserLogJsonKey: string
   isBusy: boolean
+  isDeveloperMode: boolean
   onCopyJson: (
     data: unknown,
     key: string,
@@ -64,6 +65,7 @@ export function CommandResultSection({
   failedParserLogJsonKey,
   downloadedParserLogJsonKey,
   isBusy,
+  isDeveloperMode,
   onCopyJson,
   onDownloadJson,
   onClearCommandResult,
@@ -78,8 +80,10 @@ export function CommandResultSection({
       <h3>Assistant result</h3>
 
       <div className="loaded-panel-actions">
-        <button
-          className="secondary-button"
+        {isDeveloperMode && (
+          <>
+            <button
+              className="secondary-button"
           onClick={() =>
             void onCopyJson(
               {
@@ -132,6 +136,9 @@ export function CommandResultSection({
             : 'Download Command Result JSON'}
         </button>
 
+          </>
+        )}
+
         <button
           className="secondary-button view-clear-button"
           onClick={onClearCommandResult}
@@ -141,18 +148,22 @@ export function CommandResultSection({
         </button>
       </div>
 
-      <p><strong>Parser mode:</strong> {commandResult.parser_mode}</p>
-      {commandResult.parser_type && (
-        <p><strong>Parser type:</strong> {commandResult.parser_type}</p>
+      {isDeveloperMode && (
+        <>
+          <p><strong>Parser mode:</strong> {commandResult.parser_mode}</p>
+          {commandResult.parser_type && (
+            <p><strong>Parser type:</strong> {commandResult.parser_type}</p>
+          )}
+          {commandResult.parser_version && (
+            <p><strong>Parser version:</strong> {commandResult.parser_version}</p>
+          )}
+          <p><strong>Parsed action:</strong> {commandResult.parsed_command.action}</p>
+          {commandResult.parsed_command.class_name && (
+            <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
+          )}
+          <p><strong>Result type:</strong> {commandResult.result_type}</p>
+        </>
       )}
-      {commandResult.parser_version && (
-        <p><strong>Parser version:</strong> {commandResult.parser_version}</p>
-      )}
-      <p><strong>Parsed action:</strong> {commandResult.parsed_command.action}</p>
-      {commandResult.parsed_command.class_name && (
-        <p><strong>Parsed class:</strong> {commandResult.parsed_command.class_name}</p>
-      )}
-      <p><strong>Result type:</strong> {commandResult.result_type}</p>
 
       {commandResult.result_type === 'zoom_by_class' && (
         <div className="command-result-output">
@@ -168,18 +179,24 @@ export function CommandResultSection({
 
             return (
               <>
-                <p><strong>Zoomed file:</strong> {result.zoomed_filename}</p>
-                <p>
-                  <strong>Zoom box:</strong>{' '}
-                  x1={Math.round(result.zoom_box.x1)}, y1={Math.round(result.zoom_box.y1)},{' '}
-                  x2={Math.round(result.zoom_box.x2)}, y2={Math.round(result.zoom_box.y2)}
-                </p>
-                <p>
-                  <strong>Output size:</strong>{' '}
-                  {result.output_size.width} × {result.output_size.height}
-                </p>
+                <p><strong>Zoomed object:</strong> {result.class_name}</p>
                 {result.target_scope && (
-                  <p><strong>Target scope:</strong> {result.target_scope}</p>
+                  <p><strong>Target:</strong> {result.target_scope}</p>
+                )}
+
+                {isDeveloperMode && (
+                  <>
+                    <p><strong>Zoomed file:</strong> {result.zoomed_filename}</p>
+                    <p>
+                      <strong>Zoom box:</strong>{' '}
+                      x1={Math.round(result.zoom_box.x1)}, y1={Math.round(result.zoom_box.y1)},{' '}
+                      x2={Math.round(result.zoom_box.x2)}, y2={Math.round(result.zoom_box.y2)}
+                    </p>
+                    <p>
+                      <strong>Output size:</strong>{' '}
+                      {result.output_size.width} × {result.output_size.height}
+                    </p>
+                  </>
                 )}
 
                 <div className="loaded-panel-actions">

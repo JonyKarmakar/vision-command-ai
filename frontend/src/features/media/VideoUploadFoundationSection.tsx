@@ -12,6 +12,7 @@ type VideoUploadFoundationSectionProps = {
   isBusy: boolean
   isUploadingVideo: boolean
   isTrimmingVideo: boolean
+  isDeveloperMode: boolean
   copiedParserLogJsonKey: string
   failedParserLogJsonKey: string
   downloadedParserLogJsonKey: string
@@ -40,6 +41,7 @@ export function VideoUploadFoundationSection({
   isBusy,
   isUploadingVideo,
   isTrimmingVideo,
+  isDeveloperMode,
   copiedParserLogJsonKey,
   failedParserLogJsonKey,
   downloadedParserLogJsonKey,
@@ -89,8 +91,10 @@ export function VideoUploadFoundationSection({
               <h2>Video workspace ready</h2>
 
               <div className="loaded-panel-actions">
-                <button
-                  className="secondary-button"
+                {isDeveloperMode && (
+                  <>
+                    <button
+                      className="secondary-button"
                   onClick={() =>
                     void onCopyJson(
                       {
@@ -143,6 +147,9 @@ export function VideoUploadFoundationSection({
                     : 'Download Video Upload Result JSON'}
                 </button>
 
+                  </>
+                )}
+
                 <button
                   className="secondary-button view-clear-button"
                   onClick={onClearVideoUploadResult}
@@ -153,16 +160,20 @@ export function VideoUploadFoundationSection({
               </div>
 
               <div className="metadata-list">
-                <p><strong>Original filename:</strong> {videoUploadResult.original_filename}</p>
-                <p><strong>Stored filename:</strong> {videoUploadResult.stored_filename}</p>
-                <p><strong>Content type:</strong> {videoUploadResult.content_type}</p>
-                <p><strong>File size:</strong> {videoUploadResult.file_size_bytes} bytes</p>
-                <p><strong>Readable:</strong> {videoUploadResult.metadata.is_readable ? 'Yes' : 'No'}</p>
-                <p><strong>Width:</strong> {videoUploadResult.metadata.width ?? 'Unknown'}</p>
-                <p><strong>Height:</strong> {videoUploadResult.metadata.height ?? 'Unknown'}</p>
-                <p><strong>FPS:</strong> {videoUploadResult.metadata.fps ?? 'Unknown'}</p>
-                <p><strong>Frame count:</strong> {videoUploadResult.metadata.frame_count ?? 'Unknown'}</p>
+                <p><strong>Video:</strong> {videoUploadResult.original_filename}</p>
                 <p><strong>Duration:</strong> {videoUploadResult.metadata.duration_seconds ? `${videoUploadResult.metadata.duration_seconds}s` : 'Unknown'}</p>
+                <p><strong>Resolution:</strong> {videoUploadResult.metadata.width ?? 'Unknown'} × {videoUploadResult.metadata.height ?? 'Unknown'}</p>
+                <p><strong>FPS:</strong> {videoUploadResult.metadata.fps ?? 'Unknown'}</p>
+
+                {isDeveloperMode && (
+                  <>
+                    <p><strong>Stored filename:</strong> {videoUploadResult.stored_filename}</p>
+                    <p><strong>Content type:</strong> {videoUploadResult.content_type}</p>
+                    <p><strong>File size:</strong> {videoUploadResult.file_size_bytes} bytes</p>
+                    <p><strong>Readable:</strong> {videoUploadResult.metadata.is_readable ? 'Yes' : 'No'}</p>
+                    <p><strong>Frame count:</strong> {videoUploadResult.metadata.frame_count ?? 'Unknown'}</p>
+                  </>
+                )}
               </div>
             </div>
 

@@ -7,6 +7,7 @@ type BlurResultSectionProps = {
   blurResultRef: RefObject<HTMLElement | null>
   blurredImageUrl: string | null
   isBusy: boolean
+  isDeveloperMode: boolean
   copiedParserLogJsonKey: string
   failedParserLogJsonKey: string
   downloadedParserLogJsonKey: string
@@ -25,6 +26,7 @@ export function BlurResultSection({
   blurResultRef,
   blurredImageUrl,
   isBusy,
+  isDeveloperMode,
   copiedParserLogJsonKey,
   failedParserLogJsonKey,
   downloadedParserLogJsonKey,
@@ -42,8 +44,10 @@ export function BlurResultSection({
         <h2>Privacy edit ready</h2>
 
         <div className="loaded-panel-actions">
-          <button
-            className="secondary-button"
+          {isDeveloperMode && (
+            <>
+              <button
+                className="secondary-button"
             onClick={() =>
               void onCopyJson(
                 {
@@ -90,6 +94,9 @@ export function BlurResultSection({
               : 'Download Blur Result JSON'}
           </button>
 
+            </>
+          )}
+
           <button
             className="secondary-button view-clear-button"
             onClick={onClearBlurResult}
@@ -100,10 +107,16 @@ export function BlurResultSection({
         </div>
 
         <div className="summary-box">
-          <p><strong>Blurred filename:</strong> {blurResult.blurred_filename}</p>
-          <p>
-            <strong>Blur box:</strong> x1 {blurResult.blur_box.x1}, y1 {blurResult.blur_box.y1}, x2 {blurResult.blur_box.x2}, y2 {blurResult.blur_box.y2}
-          </p>
+          <p><strong>Privacy edit:</strong> blur applied to the selected region.</p>
+
+          {isDeveloperMode && (
+            <>
+              <p><strong>Blurred filename:</strong> {blurResult.blurred_filename}</p>
+              <p>
+                <strong>Blur box:</strong> x1 {blurResult.blur_box.x1}, y1 {blurResult.blur_box.y1}, x2 {blurResult.blur_box.x2}, y2 {blurResult.blur_box.y2}
+              </p>
+            </>
+          )}
         </div>
       </div>
 

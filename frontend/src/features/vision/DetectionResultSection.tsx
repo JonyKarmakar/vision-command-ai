@@ -14,6 +14,7 @@ type DetectionResultSectionProps = {
   isBusy: boolean
   isCropping: boolean
   isBlurring: boolean
+  isDeveloperMode: boolean
   copiedParserLogJsonKey: string
   failedParserLogJsonKey: string
   downloadedParserLogJsonKey: string
@@ -44,6 +45,7 @@ export function DetectionResultSection({
   isBusy,
   isCropping,
   isBlurring,
+  isDeveloperMode,
   copiedParserLogJsonKey,
   failedParserLogJsonKey,
   downloadedParserLogJsonKey,
@@ -66,8 +68,10 @@ export function DetectionResultSection({
         <h2 ref={detectionResultRef}>Detected objects</h2>
 
         <div className="loaded-panel-actions">
-          <button
-            className="secondary-button"
+          {isDeveloperMode && (
+            <>
+              <button
+                className="secondary-button"
             onClick={() =>
               void onCopyJson(
                 {
@@ -122,6 +126,9 @@ export function DetectionResultSection({
               : 'Download Detection Result JSON'}
           </button>
 
+            </>
+          )}
+
           <button
             className="secondary-button view-clear-button"
             onClick={onClearDetectionResult}
@@ -134,7 +141,10 @@ export function DetectionResultSection({
         <div className="summary-box">
           <p><strong>Total detections:</strong> {detectionResult.detection_count}</p>
           <p><strong>Visible after filter:</strong> {filteredDetections.length}</p>
-          <p><strong>Annotated filename:</strong> {detectionResult.annotated_filename}</p>
+
+          {isDeveloperMode && (
+            <p><strong>Annotated filename:</strong> {detectionResult.annotated_filename}</p>
+          )}
         </div>
 
         <div className="filter-box">
@@ -204,9 +214,11 @@ export function DetectionResultSection({
                     {(detection.confidence * 100).toFixed(1)}%
                   </span>
                 </div>
-                <span>
-                  Box: x1 {detection.bbox.x1}, y1 {detection.bbox.y1}, x2 {detection.bbox.x2}, y2 {detection.bbox.y2}
-                </span>
+                {isDeveloperMode && (
+                  <span>
+                    Box: x1 {detection.bbox.x1}, y1 {detection.bbox.y1}, x2 {detection.bbox.x2}, y2 {detection.bbox.y2}
+                  </span>
+                )}
                 <div className="detection-actions">
                   <button
                     className="crop-button"
