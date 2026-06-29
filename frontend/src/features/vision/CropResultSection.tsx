@@ -7,6 +7,7 @@ type CropResultSectionProps = {
   cropResultRef: RefObject<HTMLElement | null>
   croppedImageUrl: string | null
   isBusy: boolean
+  isDeveloperMode: boolean
   copiedParserLogJsonKey: string
   failedParserLogJsonKey: string
   downloadedParserLogJsonKey: string
@@ -25,6 +26,7 @@ export function CropResultSection({
   cropResultRef,
   croppedImageUrl,
   isBusy,
+  isDeveloperMode,
   copiedParserLogJsonKey,
   failedParserLogJsonKey,
   downloadedParserLogJsonKey,
@@ -42,8 +44,10 @@ export function CropResultSection({
         <h2>Cropped image ready</h2>
 
         <div className="loaded-panel-actions">
-          <button
-            className="secondary-button"
+          {isDeveloperMode && (
+            <>
+              <button
+                className="secondary-button"
             onClick={() =>
               void onCopyJson(
                 {
@@ -94,6 +98,9 @@ export function CropResultSection({
               : 'Download Crop Result JSON'}
           </button>
 
+            </>
+          )}
+
           <button
             className="secondary-button view-clear-button"
             onClick={onClearCropResult}
@@ -104,9 +111,12 @@ export function CropResultSection({
         </div>
 
         <div className="summary-box">
-          {cropResult.class_name && (
-            <p><strong>Crop by class:</strong> {cropResult.class_name}</p>
-          )}
+          <p>
+            <strong>Crop:</strong>{' '}
+            {cropResult.class_name
+              ? `focused on ${cropResult.class_name}`
+              : 'created from the selected region'}
+          </p>
 
           {cropResult.selected_detection && (
             <p>
@@ -114,10 +124,14 @@ export function CropResultSection({
             </p>
           )}
 
-          <p><strong>Cropped filename:</strong> {cropResult.cropped_filename}</p>
-          <p>
-            <strong>Crop box:</strong> x1 {cropResult.crop_box.x1}, y1 {cropResult.crop_box.y1}, x2 {cropResult.crop_box.x2}, y2 {cropResult.crop_box.y2}
-          </p>
+          {isDeveloperMode && (
+            <>
+              <p><strong>Cropped filename:</strong> {cropResult.cropped_filename}</p>
+              <p>
+                <strong>Crop box:</strong> x1 {cropResult.crop_box.x1}, y1 {cropResult.crop_box.y1}, x2 {cropResult.crop_box.x2}, y2 {cropResult.crop_box.y2}
+              </p>
+            </>
+          )}
         </div>
       </div>
 

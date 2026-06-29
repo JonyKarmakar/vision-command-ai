@@ -7,6 +7,7 @@ type ImageUploadResultSectionProps = {
   uploadedImageUrl: string | null
   uploadResultRef: RefObject<HTMLElement | null>
   isBusy: boolean
+  isDeveloperMode: boolean
   copiedParserLogJsonKey: string
   failedParserLogJsonKey: string
   downloadedParserLogJsonKey: string
@@ -25,6 +26,7 @@ export function ImageUploadResultSection({
   uploadedImageUrl,
   uploadResultRef,
   isBusy,
+  isDeveloperMode,
   copiedParserLogJsonKey,
   failedParserLogJsonKey,
   downloadedParserLogJsonKey,
@@ -42,8 +44,10 @@ export function ImageUploadResultSection({
         <h2>Image workspace ready</h2>
 
         <div className="loaded-panel-actions">
-          <button
-            className="secondary-button"
+          {isDeveloperMode && (
+            <>
+              <button
+                className="secondary-button"
             onClick={() =>
               void onCopyJson(
                 {
@@ -98,6 +102,9 @@ export function ImageUploadResultSection({
               : 'Download Image Upload Result JSON'}
           </button>
 
+            </>
+          )}
+
           <button
             className="secondary-button view-clear-button"
             onClick={onClearUploadResult}
@@ -108,11 +115,15 @@ export function ImageUploadResultSection({
         </div>
 
         <div className="metadata-list">
-          <p><strong>Original filename:</strong> {uploadResult.original_filename}</p>
-          <p><strong>Stored filename:</strong> {uploadResult.stored_filename}</p>
-          <p><strong>Content type:</strong> {uploadResult.content_type}</p>
-          <p><strong>Width:</strong> {uploadResult.width}px</p>
-          <p><strong>Height:</strong> {uploadResult.height}px</p>
+          <p><strong>Image:</strong> {uploadResult.original_filename}</p>
+          <p><strong>Size:</strong> {uploadResult.width}px × {uploadResult.height}px</p>
+
+          {isDeveloperMode && (
+            <>
+              <p><strong>Stored filename:</strong> {uploadResult.stored_filename}</p>
+              <p><strong>Content type:</strong> {uploadResult.content_type}</p>
+            </>
+          )}
         </div>
       </div>
 

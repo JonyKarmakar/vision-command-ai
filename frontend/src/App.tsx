@@ -5109,6 +5109,7 @@ function App() {
           )}
 
           <CommandResultSection
+        isDeveloperMode={isDeveloperMode}
             commandResult={commandResult}
             commandResultRef={commandResultRef}
             activeGeneratedImageFilename={activeGeneratedImageSource?.filename ?? null}
@@ -5446,6 +5447,7 @@ function App() {
       )}
 
       <VideoUploadFoundationSection
+        isDeveloperMode={isDeveloperMode}
         selectedVideoFile={selectedVideoFile}
         videoUploadResult={videoUploadResult}
         uploadedVideoUrl={uploadedVideoUrl}
@@ -5472,6 +5474,7 @@ function App() {
       />
 
       <ImageUploadResultSection
+        isDeveloperMode={isDeveloperMode}
         uploadResult={uploadResult}
         uploadedImageUrl={uploadedImageUrl}
         uploadResultRef={uploadResultRef}
@@ -5557,6 +5560,7 @@ function App() {
       />
 
       <DetectionResultSection
+        isDeveloperMode={isDeveloperMode}
         detectionResult={detectionResult}
         detectionResultRef={detectionResultRef}
         annotatedImageUrl={annotatedImageUrl}
@@ -5585,6 +5589,7 @@ function App() {
       />
 
       <CropResultSection
+        isDeveloperMode={isDeveloperMode}
         cropResult={cropResult}
         cropResultRef={cropResultRef}
         croppedImageUrl={croppedImageUrl}
@@ -5601,6 +5606,7 @@ function App() {
       />
 
       <BlurResultSection
+        isDeveloperMode={isDeveloperMode}
         blurResult={blurResult}
         blurResultRef={blurResultRef}
         blurredImageUrl={blurredImageUrl}
