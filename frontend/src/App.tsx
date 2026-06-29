@@ -4708,6 +4708,45 @@ function App() {
           </div>
         </section>
 
+        {!isDeveloperMode && (
+          <WorkspaceNavigationSection
+            workspaceResultNavigatorItems={workspaceResultNavigatorItems}
+            isWorkspaceQuickJumpOpen={isWorkspaceQuickJumpOpen}
+            activeWorkspaceResultLabel={activeWorkspaceResultLabel}
+            workspaceSnapshotFileName={workspaceSnapshotFileName}
+            workspaceSnapshotEstimatedSize={workspaceSnapshotEstimatedSize}
+            copiedParserLogJsonKey={copiedParserLogJsonKey}
+            failedParserLogJsonKey={failedParserLogJsonKey}
+            downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+            isBusy={isBusy}
+            showWorkspaceSnapshotPanel={false}
+            onToggleQuickJump={() => setIsWorkspaceQuickJumpOpen((isOpen) => !isOpen)}
+            onCollapseQuickJump={() => setIsWorkspaceQuickJumpOpen(false)}
+            onSelectWorkspaceResult={(item) => {
+              handleWorkspaceResultNavigatorClick(item)
+              setIsWorkspaceQuickJumpOpen(false)
+            }}
+            onCopyWorkspaceSnapshot={() => {
+              void handleCopyParserLogJson(
+                workspaceSnapshot,
+                'workspace-snapshot-json',
+              )
+            }}
+            onDownloadWorkspaceSnapshot={() => {
+              handleDownloadJsonFile(
+                workspaceSnapshot,
+                workspaceSnapshotFileName,
+                'download-workspace-snapshot-json',
+              )
+              setDownloadedParserLogJsonKey('download-workspace-snapshot-json')
+
+              window.setTimeout(() => {
+                setDownloadedParserLogJsonKey('')
+              }, 2000)
+            }}
+          />
+        )}
+
         {isDeveloperMode && (
           <div className="developer-mode-stack">
             <WorkspaceRecoveryPanelsSection
