@@ -63,7 +63,7 @@ export function DetectionResultSection({
   return (
     <section className="result-grid">
       <div className="card">
-        <h2 ref={detectionResultRef}>3. Detection Result</h2>
+        <h2 ref={detectionResultRef}>Detected objects</h2>
 
         <div className="loaded-panel-actions">
           <button
@@ -157,7 +157,7 @@ export function DetectionResultSection({
 
           {filtersChangedAfterDetection && (
             <p className="rerun-hint">
-              Filter changed. Run YOLO Detection again to update the annotated image.
+              Filter changed. Detect objects again to update the annotated image.
             </p>
           )}
         </div>
@@ -233,9 +233,9 @@ export function DetectionResultSection({
       </div>
 
       <div className="card">
-        <h2>Annotated Output</h2>
+        <h2>Detection preview</h2>
         <p className="small-note">
-          The annotated image is generated using the selected confidence threshold and class filter.
+          This preview shows the detected objects using the selected confidence threshold and class filter.
         </p>
         {annotatedImageUrl && detectionResult && (
           <>

@@ -86,7 +86,7 @@ export function VideoUploadFoundationSection({
         <>
           <section className="result-grid" ref={videoUploadResultRef}>
             <div className="card">
-              <h2>Video Upload Result</h2>
+              <h2>Video workspace ready</h2>
 
               <div className="loaded-panel-actions">
                 <button
@@ -167,7 +167,7 @@ export function VideoUploadFoundationSection({
             </div>
 
             <div className="card">
-              <h2>Video Preview</h2>
+              <h2>Current video</h2>
               {uploadedVideoUrl && videoUploadResult && (
                 <>
                   <video className="preview-video" src={uploadedVideoUrl} controls />

@@ -39,7 +39,7 @@ export function ImageUploadResultSection({
   return (
     <section className="result-grid" ref={uploadResultRef}>
       <div className="card">
-        <h2>2. Upload Result</h2>
+        <h2>Image workspace ready</h2>
 
         <div className="loaded-panel-actions">
           <button
@@ -117,7 +117,7 @@ export function ImageUploadResultSection({
       </div>
 
       <div className="card">
-        <h2>Original Preview</h2>
+        <h2>Current image</h2>
         {uploadedImageUrl && (
           <>
             <img

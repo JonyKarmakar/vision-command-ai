@@ -75,7 +75,7 @@ export function CommandResultSection({
 
   return (
     <div className="command-result" ref={commandResultRef}>
-      <h3>Command Result</h3>
+      <h3>Assistant result</h3>
 
       <div className="loaded-panel-actions">
         <button
@@ -189,7 +189,7 @@ export function CommandResultSection({
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Open Zoomed Image
+                    Open zoomed image
                   </a>
 
                   <a
@@ -197,7 +197,7 @@ export function CommandResultSection({
                     href={result.zoomed_file_url}
                     download={result.zoomed_filename}
                   >
-                    Download Zoomed Image
+                    Download zoomed image
                   </a>
 
                   <button
@@ -205,7 +205,7 @@ export function CommandResultSection({
                     className="secondary-button zoom-image-action-link"
                     onClick={() => void onDetectZoomedImage(result)}
                   >
-                    Run YOLO on Zoomed Image
+                    Detect objects in zoomed image
                   </button>
                 </div>
 
