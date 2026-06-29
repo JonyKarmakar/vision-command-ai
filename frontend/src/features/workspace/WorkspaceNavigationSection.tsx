@@ -8,6 +8,7 @@ type WorkspaceNavigationSectionProps = {
   failedParserLogJsonKey: string
   downloadedParserLogJsonKey: string
   isBusy: boolean
+  showWorkspaceSnapshotPanel?: boolean
   onToggleQuickJump: () => void
   onCollapseQuickJump: () => void
   onSelectWorkspaceResult: (item: string) => void
@@ -25,6 +26,7 @@ export function WorkspaceNavigationSection({
   failedParserLogJsonKey,
   downloadedParserLogJsonKey,
   isBusy,
+  showWorkspaceSnapshotPanel = true,
   onToggleQuickJump,
   onCollapseQuickJump,
   onSelectWorkspaceResult,
@@ -103,7 +105,8 @@ export function WorkspaceNavigationSection({
         )}
       </div>
 
-      <section className="workspace-snapshot-panel" aria-label="Workspace snapshot export">
+      {showWorkspaceSnapshotPanel && (
+        <section className="workspace-snapshot-panel" aria-label="Workspace snapshot export">
         <div className="workspace-snapshot-compact" aria-label="Workspace snapshot summary">
           <span>
             Snapshot: <strong>{workspaceResultNavigatorItems.length}</strong> view(s)
@@ -162,7 +165,8 @@ export function WorkspaceNavigationSection({
               : 'Download Workspace Snapshot JSON'}
           </button>
         </div>
-      </section>
+        </section>
+      )}
     </>
   )
 }
