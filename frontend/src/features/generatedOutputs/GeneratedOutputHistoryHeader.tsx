@@ -4,6 +4,7 @@ type GeneratedOutputHistoryHeaderProps = {
   activeGeneratedImageSource: GeneratedOutputHistoryItem | null
   autoUseLatestGeneratedOutputAsActive: boolean
   generatedOutputHistoryCount: number
+  isDeveloperMode: boolean
   isBusy: boolean
   isLoadingGeneratedOutputHistory: boolean
   isWorkflowJsonDownloaded: boolean
@@ -19,6 +20,7 @@ export function GeneratedOutputHistoryHeader({
   activeGeneratedImageSource,
   autoUseLatestGeneratedOutputAsActive,
   generatedOutputHistoryCount,
+  isDeveloperMode,
   isBusy,
   isLoadingGeneratedOutputHistory,
   isWorkflowJsonDownloaded,
@@ -33,10 +35,11 @@ export function GeneratedOutputHistoryHeader({
     <div className="generated-output-history-header">
       <div>
         <p className="section-eyebrow">Generated Outputs</p>
-        <h2>Output History</h2>
+        <h2>{isDeveloperMode ? 'Output History' : 'Generated outputs'}</h2>
         <p className="small-note">
-          Session trace of generated images from detection, zoom, crop, and blur actions.
-          Clearing this history does not remove active result panels.
+          {isDeveloperMode
+            ? 'Session trace of generated images from detection, zoom, crop, and blur actions. Clearing this history does not remove active result panels.'
+            : 'Review images created from assistant actions such as detection, zoom, crop, and blur.'}
         </p>
 
         {activeGeneratedImageSource && (
@@ -64,33 +67,43 @@ export function GeneratedOutputHistoryHeader({
           onClick={onLoadSavedHistory}
           disabled={isBusy || isLoadingGeneratedOutputHistory}
         >
-          {isLoadingGeneratedOutputHistory ? 'Loading Saved History...' : 'Load Saved History'}
+          {isLoadingGeneratedOutputHistory
+            ? isDeveloperMode
+              ? 'Loading Saved History...'
+              : 'Loading saved outputs...'
+            : isDeveloperMode
+              ? 'Load Saved History'
+              : 'Load saved outputs'}
         </button>
 
-        <button
-          className="secondary-button"
-          onClick={onExportWorkflowJson}
-          disabled={isBusy}
-          data-testid="download-generated-output-workflow-json"
-        >
-          {isWorkflowJsonDownloaded ? 'Downloaded' : 'Export Workflow JSON'}
-        </button>
+        {isDeveloperMode && (
+          <>
+            <button
+              className="secondary-button"
+              onClick={onExportWorkflowJson}
+              disabled={isBusy}
+              data-testid="download-generated-output-workflow-json"
+            >
+              {isWorkflowJsonDownloaded ? 'Downloaded' : 'Export Workflow JSON'}
+            </button>
 
-        <button
-          className="secondary-button"
-          onClick={onDownloadWorkflowReport}
-          disabled={isBusy || generatedOutputHistoryCount === 0}
-          data-testid="download-generated-output-workflow-report"
-        >
-          {isWorkflowReportDownloaded ? 'Downloaded' : 'Download Workflow Report'}
-        </button>
+            <button
+              className="secondary-button"
+              onClick={onDownloadWorkflowReport}
+              disabled={isBusy || generatedOutputHistoryCount === 0}
+              data-testid="download-generated-output-workflow-report"
+            >
+              {isWorkflowReportDownloaded ? 'Downloaded' : 'Download Workflow Report'}
+            </button>
+          </>
+        )}
 
         <button
           className="secondary-button view-clear-button"
           onClick={onClearOutputHistory}
           disabled={isBusy || isLoadingGeneratedOutputHistory}
         >
-          Clear Output History
+          {isDeveloperMode ? 'Clear Output History' : 'Clear outputs'}
         </button>
       </div>
     </div>

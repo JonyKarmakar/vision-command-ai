@@ -312,6 +312,7 @@ function App() {
   const [commandHistoryResetNotice, setCommandHistoryResetNotice] = useState('')
   const [commandHistoryExportNotice, setCommandHistoryExportNotice] = useState('')
   const [mediaFiles, setMediaFiles] = useState<MediaFileLog[]>([])
+  const [hasLoadedMediaHistory, setHasLoadedMediaHistory] = useState(false)
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null)
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
   const [modelClasses, setModelClasses] = useState<ModelClassesResponse | null>(null)
@@ -2432,6 +2433,7 @@ function App() {
 
       const data: { count: number; media_files: MediaFileLog[] } = await response.json()
       setMediaFiles(data.media_files)
+      setHasLoadedMediaHistory(true)
       setStatusMessage(`Loaded ${data.count} uploaded media file(s).`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -4890,9 +4892,11 @@ function App() {
         )}
 
       <ImageUploadMediaHistorySection
+        isDeveloperMode={isDeveloperMode}
         selectedFile={selectedFile}
         uploadResult={uploadResult}
         mediaFiles={mediaFiles}
+        hasLoadedMediaHistory={hasLoadedMediaHistory}
         isBusy={isBusy}
         isUploading={isUploading}
         isDetecting={isDetecting}
@@ -4907,7 +4911,8 @@ function App() {
         onLoadMediaFiles={handleLoadMediaFiles}
         onClearMediaHistory={() => {
           setMediaFiles([])
-          setStatusMessage('Uploaded Media History view cleared.')
+          setHasLoadedMediaHistory(false)
+          setStatusMessage('Recent uploads view cleared.')
         }}
         onCopyJson={handleCopyParserLogJson}
         onDownloadJson={handleDownloadJsonFile}
@@ -5530,6 +5535,7 @@ function App() {
       />
 
       <GeneratedOutputHistorySection
+        isDeveloperMode={isDeveloperMode}
         isVisible={generatedOutputHistory.length > 0 || isGeneratedOutputHistoryPanelVisible}
         sectionRef={generatedOutputHistoryRef}
         activeGeneratedImageSource={activeGeneratedImageSource}

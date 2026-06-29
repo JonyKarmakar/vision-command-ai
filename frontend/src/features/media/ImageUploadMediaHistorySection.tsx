@@ -7,10 +7,12 @@ type ImageUploadMediaHistorySectionProps = {
   selectedFile: File | null
   uploadResult: UploadResponse | null
   mediaFiles: MediaFileLog[]
+  hasLoadedMediaHistory: boolean
   isBusy: boolean
   isUploading: boolean
   isDetecting: boolean
   isLoadingMediaFiles: boolean
+  isDeveloperMode: boolean
   error: string | null
   copiedParserLogJsonKey: string
   failedParserLogJsonKey: string
@@ -34,10 +36,12 @@ export function ImageUploadMediaHistorySection({
   selectedFile,
   uploadResult,
   mediaFiles,
+  hasLoadedMediaHistory,
   isBusy,
   isUploading,
   isDetecting,
   isLoadingMediaFiles,
+  isDeveloperMode,
   error,
   copiedParserLogJsonKey,
   failedParserLogJsonKey,
@@ -132,10 +136,13 @@ export function ImageUploadMediaHistorySection({
         {error && <p className="error">{error}</p>}
       </section>
 
-      {mediaFiles.length > 0 && (
+      {hasLoadedMediaHistory && (
         <section className="card media-history">
           <div className="view-panel-header">
-            <h2>Uploaded Media History</h2>
+            <div>
+              <p className="eyebrow">Workspace history</p>
+              <h2>Recent uploads</h2>
+            </div>
             <button
               className="secondary-button view-clear-button"
               onClick={onClearMediaHistory}
@@ -145,9 +152,10 @@ export function ImageUploadMediaHistorySection({
             </button>
           </div>
 
-          <div className="loaded-panel-actions">
-            <button
-              className="secondary-button"
+          {isDeveloperMode && mediaFiles.length > 0 && (
+            <div className="loaded-panel-actions">
+              <button
+                className="secondary-button"
               onClick={() =>
                 void onCopyJson(
                   {
@@ -211,7 +219,17 @@ export function ImageUploadMediaHistorySection({
                 ? 'Downloaded!'
                 : 'Download Uploaded Media History JSON'}
             </button>
-          </div>
+            </div>
+          )}
+
+          {mediaFiles.length === 0 && (
+            <div className="empty-state-panel">
+              <strong>No recent uploads found.</strong>
+              <p>
+                Upload an image first, or connect the database to load saved media history.
+              </p>
+            </div>
+          )}
 
           {mediaFiles.map((mediaFile) => {
             const mediaUrl = `/api${mediaFile.file_url}`
@@ -222,9 +240,13 @@ export function ImageUploadMediaHistorySection({
                   <strong>{mediaFile.original_filename}</strong>
                   <p>{new Date(mediaFile.created_at).toLocaleString()}</p>
                   <p>
-                    {mediaFile.width}px × {mediaFile.height}px · {mediaFile.content_type}
+                    {mediaFile.width}px × {mediaFile.height}px
+                    {isDeveloperMode ? ` · ${mediaFile.content_type}` : ''}
                   </p>
-                  <p className="stored-name">{mediaFile.stored_filename}</p>
+
+                  {isDeveloperMode && (
+                    <p className="stored-name">{mediaFile.stored_filename}</p>
+                  )}
                 </div>
 
                 <div className="output-actions">
