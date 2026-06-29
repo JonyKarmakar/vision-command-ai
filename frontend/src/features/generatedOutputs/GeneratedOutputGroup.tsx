@@ -5,6 +5,7 @@ import { GeneratedOutputWorkflowDetailPanel } from './GeneratedOutputWorkflowDet
 type GeneratedOutputGroupProps = {
   groupKey: string
   items: GeneratedOutputHistoryItem[]
+  isDeveloperMode: boolean
   selectedWorkflowSource: string | null
   activeGeneratedImageSourceId: string | null
   expandedGeneratedOutputDetails: ReadonlySet<string>
@@ -20,6 +21,7 @@ type GeneratedOutputGroupProps = {
 export function GeneratedOutputGroup({
   groupKey,
   items,
+  isDeveloperMode,
   selectedWorkflowSource,
   activeGeneratedImageSourceId,
   expandedGeneratedOutputDetails,
@@ -37,25 +39,27 @@ export function GeneratedOutputGroup({
     <div className="generated-output-group">
       <div className="generated-output-group-header">
         <div className="generated-output-group-title">
-          <span>Workflow source</span>
-          <strong>{groupKey}</strong>
+          <span>{isDeveloperMode ? 'Workflow source' : 'Output group'}</span>
+          <strong>{isDeveloperMode ? groupKey : 'Current image workflow'}</strong>
           <small>
             {items.length} generated output
             {items.length === 1 ? '' : 's'}
           </small>
         </div>
 
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={() => onToggleWorkflowDetails(groupKey)}
-          disabled={isBusy}
-        >
-          {isWorkflowDetailsVisible ? 'Hide Workflow Details' : 'View Workflow Details'}
-        </button>
+        {isDeveloperMode && (
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => onToggleWorkflowDetails(groupKey)}
+            disabled={isBusy}
+          >
+            {isWorkflowDetailsVisible ? 'Hide Workflow Details' : 'View Workflow Details'}
+          </button>
+        )}
       </div>
 
-      {isWorkflowDetailsVisible && (
+      {isDeveloperMode && isWorkflowDetailsVisible && (
         <GeneratedOutputWorkflowDetailPanel groupKey={groupKey} items={items} />
       )}
 
@@ -65,6 +69,7 @@ export function GeneratedOutputGroup({
             key={item.id}
             item={item}
             isActive={activeGeneratedImageSourceId === item.id}
+            isDeveloperMode={isDeveloperMode}
             isDetailsExpanded={expandedGeneratedOutputDetails.has(item.id)}
             isBusy={isBusy}
             isLoadingGeneratedOutputHistory={isLoadingGeneratedOutputHistory}

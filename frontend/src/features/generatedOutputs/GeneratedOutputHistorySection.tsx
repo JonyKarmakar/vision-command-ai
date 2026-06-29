@@ -11,6 +11,7 @@ import type {
 } from './generatedOutputTypes'
 
 type GeneratedOutputHistorySectionProps = {
+  isDeveloperMode: boolean
   isVisible: boolean
   sectionRef: RefObject<HTMLElement | null>
   activeGeneratedImageSource: GeneratedOutputHistoryItem | null
@@ -49,6 +50,7 @@ type GeneratedOutputHistorySectionProps = {
 }
 
 export function GeneratedOutputHistorySection({
+  isDeveloperMode,
   isVisible,
   sectionRef,
   activeGeneratedImageSource,
@@ -95,6 +97,7 @@ export function GeneratedOutputHistorySection({
         activeGeneratedImageSource={activeGeneratedImageSource}
         autoUseLatestGeneratedOutputAsActive={autoUseLatestGeneratedOutputAsActive}
         generatedOutputHistoryCount={generatedOutputHistory.length}
+        isDeveloperMode={isDeveloperMode}
         isBusy={isBusy}
         isLoadingGeneratedOutputHistory={isLoadingGeneratedOutputHistory}
         isWorkflowJsonDownloaded={isWorkflowJsonDownloaded}
@@ -106,8 +109,9 @@ export function GeneratedOutputHistorySection({
         onClearOutputHistory={onClearOutputHistory}
       />
 
-      <GeneratedOutputHistoryFilters
-        search={filters.search}
+      {isDeveloperMode && (
+        <GeneratedOutputHistoryFilters
+          search={filters.search}
         actionFilter={filters.actionFilter}
         sourceFilter={filters.sourceFilter}
         createdByFilter={filters.createdByFilter}
@@ -125,10 +129,11 @@ export function GeneratedOutputHistorySection({
         onCreatedByFilterChange={onCreatedByFilterChange}
         onParserFilterChange={onParserFilterChange}
         onPlannerFilterChange={onPlannerFilterChange}
-        onClearFilters={onClearFilters}
-      />
+          onClearFilters={onClearFilters}
+        />
+      )}
 
-      {generatedOutputHistory.length > 0 && (
+      {isDeveloperMode && generatedOutputHistory.length > 0 && (
         <GeneratedOutputWorkflowAnalyticsPanel
           analytics={analytics}
           hasFilters={hasFilters}
@@ -137,7 +142,9 @@ export function GeneratedOutputHistorySection({
 
       {filteredGeneratedOutputHistory.length === 0 && (
         <div className="generated-output-empty-filter-state">
-          No generated outputs match the current filters.
+          {generatedOutputHistory.length === 0
+            ? 'No generated outputs yet.'
+            : 'No generated outputs match the current filters.'}
         </div>
       )}
 
@@ -147,6 +154,7 @@ export function GeneratedOutputHistorySection({
             key={groupKey}
             groupKey={groupKey}
             items={groupItems}
+            isDeveloperMode={isDeveloperMode}
             selectedWorkflowSource={selectedWorkflowSource}
             activeGeneratedImageSourceId={activeGeneratedImageSource?.id ?? null}
             expandedGeneratedOutputDetails={expandedGeneratedOutputDetails}

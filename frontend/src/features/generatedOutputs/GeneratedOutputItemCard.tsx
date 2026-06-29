@@ -3,6 +3,7 @@ import type { GeneratedOutputHistoryItem } from './generatedOutputTypes'
 type GeneratedOutputItemCardProps = {
   item: GeneratedOutputHistoryItem
   isActive: boolean
+  isDeveloperMode: boolean
   isDetailsExpanded: boolean
   isBusy: boolean
   isLoadingGeneratedOutputHistory: boolean
@@ -15,6 +16,7 @@ type GeneratedOutputItemCardProps = {
 export function GeneratedOutputItemCard({
   item,
   isActive,
+  isDeveloperMode,
   isDetailsExpanded,
   isBusy,
   isLoadingGeneratedOutputHistory,
@@ -42,19 +44,22 @@ export function GeneratedOutputItemCard({
           {item.action.replace(/_/g, ' ')}
         </span>
         <strong>{item.label}</strong>
-        <p className="generated-output-filename">{item.filename}</p>
+
+        {isDeveloperMode && (
+          <p className="generated-output-filename">{item.filename}</p>
+        )}
+
         <p className="generated-output-summary">
-          {item.created_by ?? 'Unknown'}
-          {item.command_text ? ` · ${item.command_text}` : ''}
-          {' · '}
-          {new Date(item.created_at).toLocaleTimeString()}
+          {isDeveloperMode
+            ? `${item.created_by ?? 'Unknown'}${item.command_text ? ` · ${item.command_text}` : ''} · ${new Date(item.created_at).toLocaleTimeString()}`
+            : `Created ${new Date(item.created_at).toLocaleTimeString()}${item.command_text ? ` from "${item.command_text}"` : ''}`}
         </p>
 
         {isActive && (
           <p className="generated-output-active-note">Active image source for commands</p>
         )}
 
-        {isDetailsExpanded && (
+        {isDeveloperMode && isDetailsExpanded && (
           <div className="generated-output-extra-details">
             <p className="small-note">
               Source: {item.source ?? 'unknown'}
@@ -112,7 +117,7 @@ export function GeneratedOutputItemCard({
           onClick={() => onUseAsActiveImage(item)}
           disabled={isBusy}
         >
-          Use as Active Image
+          Use as active image
         </button>
 
         <button
@@ -121,17 +126,19 @@ export function GeneratedOutputItemCard({
           onClick={() => onRunYolo(item)}
           disabled={isBusy}
         >
-          Run YOLO
+          Detect objects
         </button>
 
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={() => onToggleDetails(item.id)}
-          disabled={isBusy}
-        >
-          {isDetailsExpanded ? 'Hide details' : 'Details'}
-        </button>
+        {isDeveloperMode && (
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => onToggleDetails(item.id)}
+            disabled={isBusy}
+          >
+            {isDetailsExpanded ? 'Hide details' : 'Details'}
+          </button>
+        )}
 
         <button
           type="button"
