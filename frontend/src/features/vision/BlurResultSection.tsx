@@ -43,7 +43,7 @@ export function BlurResultSection({
       <div className="card">
         <h2>Privacy edit ready</h2>
 
-        <div className="loaded-panel-actions">
+        <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
           {isDeveloperMode && (
             <>
               <button
@@ -102,7 +102,7 @@ export function BlurResultSection({
             onClick={onClearBlurResult}
             disabled={isBusy}
           >
-            Clear View
+            {isDeveloperMode ? 'Clear View' : 'Clear result'}
           </button>
         </div>
 
@@ -130,7 +130,7 @@ export function BlurResultSection({
               alt="Blurred object output"
             />
 
-            <div className="output-actions">
+            <div className={isDeveloperMode ? 'output-actions' : 'output-actions result-output-actions'}>
               <a href={blurredImageUrl} target="_blank" rel="noreferrer">
                 Open blurred
               </a>

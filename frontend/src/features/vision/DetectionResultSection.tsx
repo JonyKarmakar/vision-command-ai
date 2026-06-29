@@ -67,7 +67,7 @@ export function DetectionResultSection({
       <div className="card">
         <h2 ref={detectionResultRef}>Detected objects</h2>
 
-        <div className="loaded-panel-actions">
+        <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
           {isDeveloperMode && (
             <>
               <button
@@ -134,7 +134,7 @@ export function DetectionResultSection({
             onClick={onClearDetectionResult}
             disabled={isBusy}
           >
-            Clear View
+            {isDeveloperMode ? 'Clear View' : 'Clear result'}
           </button>
         </div>
 
@@ -194,7 +194,11 @@ export function DetectionResultSection({
             onClick={() => void onCropByClass()}
             disabled={isBusy || selectedClass === 'all'}
           >
-            {isCropping ? 'Cropping...' : 'Crop best selected class'}
+            {isCropping
+              ? 'Cropping...'
+              : isDeveloperMode
+                ? 'Crop best selected class'
+                : 'Crop selected class'}
           </button>
 
           {selectedClass === 'all' && (
@@ -219,13 +223,17 @@ export function DetectionResultSection({
                     Box: x1 {detection.bbox.x1}, y1 {detection.bbox.y1}, x2 {detection.bbox.x2}, y2 {detection.bbox.y2}
                   </span>
                 )}
-                <div className="detection-actions">
+                <div className="detection-actions result-item-actions">
                   <button
                     className="crop-button"
                     onClick={() => void onCropDetection(detection)}
                     disabled={isBusy}
                   >
-                    {isCropping ? 'Cropping...' : 'Crop this object'}
+                    {isCropping
+                      ? 'Cropping...'
+                      : isDeveloperMode
+                        ? 'Crop this object'
+                        : 'Crop object'}
                   </button>
 
                   <button
@@ -233,7 +241,11 @@ export function DetectionResultSection({
                     onClick={() => void onBlurDetection(detection)}
                     disabled={isBusy}
                   >
-                    {isBlurring ? 'Blurring...' : 'Blur this object'}
+                    {isBlurring
+                      ? 'Blurring...'
+                      : isDeveloperMode
+                        ? 'Blur this object'
+                        : 'Blur object'}
                   </button>
                 </div>
               </div>
@@ -257,12 +269,12 @@ export function DetectionResultSection({
               alt="YOLO annotated output"
             />
 
-            <div className="output-actions">
+            <div className={isDeveloperMode ? 'output-actions' : 'output-actions result-output-actions'}>
               <a href={annotatedImageUrl} target="_blank" rel="noreferrer">
-                Open annotated
+                {isDeveloperMode ? 'Open annotated' : 'Open detection preview'}
               </a>
               <a href={annotatedImageUrl} download={detectionResult.annotated_filename}>
-                Download annotated
+                {isDeveloperMode ? 'Download annotated' : 'Download detection preview'}
               </a>
             </div>
           </>

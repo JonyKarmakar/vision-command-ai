@@ -43,7 +43,7 @@ export function CropResultSection({
       <div className="card">
         <h2>Cropped image ready</h2>
 
-        <div className="loaded-panel-actions">
+        <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
           {isDeveloperMode && (
             <>
               <button
@@ -106,7 +106,7 @@ export function CropResultSection({
             onClick={onClearCropResult}
             disabled={isBusy}
           >
-            Clear View
+            {isDeveloperMode ? 'Clear View' : 'Clear result'}
           </button>
         </div>
 
@@ -145,7 +145,7 @@ export function CropResultSection({
               alt="Cropped object output"
             />
 
-            <div className="output-actions">
+            <div className={isDeveloperMode ? 'output-actions' : 'output-actions result-output-actions'}>
               <a href={croppedImageUrl} target="_blank" rel="noreferrer">
                 Open crop
               </a>
