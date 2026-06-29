@@ -79,7 +79,7 @@ export function CommandResultSection({
     <div className="command-result" ref={commandResultRef}>
       <h3>Assistant result</h3>
 
-      <div className="loaded-panel-actions">
+      <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
         {isDeveloperMode && (
           <>
             <button
@@ -144,7 +144,7 @@ export function CommandResultSection({
           onClick={onClearCommandResult}
           disabled={isBusy}
         >
-          Clear View
+          {isDeveloperMode ? 'Clear View' : 'Clear result'}
         </button>
       </div>
 
@@ -199,7 +199,7 @@ export function CommandResultSection({
                   </>
                 )}
 
-                <div className="loaded-panel-actions">
+                <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-output-actions'}>
                   <a
                     className="secondary-button zoom-image-action-link"
                     href={result.zoomed_file_url}
@@ -222,7 +222,7 @@ export function CommandResultSection({
                     className="secondary-button zoom-image-action-link"
                     onClick={() => void onDetectZoomedImage(result)}
                   >
-                    Detect objects in zoomed image
+                    {isDeveloperMode ? 'Detect objects in zoomed image' : 'Detect objects'}
                   </button>
                 </div>
 

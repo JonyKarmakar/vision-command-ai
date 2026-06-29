@@ -5106,3 +5106,40 @@ input[type="file"]::file-selector-button:hover {
     justify-content: flex-start;
   }
 }
+
+
+.result-management-actions {
+  margin-bottom: 1rem;
+  gap: 0.6rem;
+}
+
+.result-output-actions {
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.result-output-actions a,
+.result-output-actions .secondary-button {
+  min-height: 2.35rem;
+}
+
+.result-item-actions {
+  gap: 0.5rem;
+}
+
+@media (max-width: 720px) {
+  .result-output-actions,
+  .result-management-actions,
+  .result-item-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .result-output-actions a,
+  .result-output-actions .secondary-button,
+  .result-management-actions .secondary-button,
+  .result-item-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}

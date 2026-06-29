@@ -103,7 +103,7 @@ export function GeneratedOutputItemCard({
         )}
       </div>
 
-      <div className="output-actions generated-output-actions">
+      <div className="output-actions generated-output-actions result-output-actions">
         <a href={outputUrl} target="_blank" rel="noreferrer">
           Open
         </a>

@@ -43,7 +43,7 @@ export function ImageUploadResultSection({
       <div className="card">
         <h2>Image workspace ready</h2>
 
-        <div className="loaded-panel-actions">
+        <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
           {isDeveloperMode && (
             <>
               <button
@@ -110,7 +110,7 @@ export function ImageUploadResultSection({
             onClick={onClearUploadResult}
             disabled={isBusy}
           >
-            Clear View
+            {isDeveloperMode ? 'Clear View' : 'Clear result'}
           </button>
         </div>
 
@@ -137,12 +137,12 @@ export function ImageUploadResultSection({
               alt={uploadResult.original_filename}
             />
 
-            <div className="output-actions">
+            <div className={isDeveloperMode ? 'output-actions' : 'output-actions result-output-actions'}>
               <a href={uploadedImageUrl} target="_blank" rel="noreferrer">
-                Open original
+                {isDeveloperMode ? 'Open original' : 'Open image'}
               </a>
               <a href={uploadedImageUrl} download={uploadResult.original_filename}>
-                Download original
+                {isDeveloperMode ? 'Download original' : 'Download image'}
               </a>
             </div>
           </>
