@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from 'react'
 import type { ChangeEvent } from 'react'
 
 import type { MediaFileLog, UploadResponse } from '../../types/apiTypes'
@@ -50,6 +51,19 @@ export function ImageUploadMediaHistorySection({
   onDownloadJson,
   onUseMediaFile,
 }: ImageUploadMediaHistorySectionProps) {
+  const selectedImagePreviewUrl = useMemo(
+    () => (selectedFile ? URL.createObjectURL(selectedFile) : null),
+    [selectedFile],
+  )
+
+  useEffect(() => {
+    return () => {
+      if (selectedImagePreviewUrl) {
+        URL.revokeObjectURL(selectedImagePreviewUrl)
+      }
+    }
+  }, [selectedImagePreviewUrl])
+
   return (
     <>
       <section className="card">
@@ -59,19 +73,37 @@ export function ImageUploadMediaHistorySection({
           Start with an image, then ask VisionCommand AI to detect, edit, zoom, blur, crop, or inspect it.
         </p>
 
-        <input
-          className="file-input"
-          type="file"
-          accept="image/*"
-          onChange={onFileChange}
-          disabled={isBusy}
-        />
+        <div className="file-picker-panel">
+          <input
+            id="image-upload-input"
+            className="visually-hidden-file-input"
+            type="file"
+            accept="image/*"
+            onChange={onFileChange}
+            disabled={isBusy}
+          />
 
-        {selectedFile && (
-          <p className="selected-file">
-            Selected: <strong>{selectedFile.name}</strong>
-          </p>
-        )}
+          <label
+            className={isBusy ? 'file-picker-button disabled' : 'file-picker-button'}
+            htmlFor="image-upload-input"
+            aria-disabled={isBusy}
+          >
+            Choose image
+          </label>
+
+          <div className="file-picker-copy">
+            <span>{selectedFile ? 'Selected image' : 'No image selected yet'}</span>
+            <strong>{selectedFile ? selectedFile.name : 'Choose an image to start'}</strong>
+          </div>
+
+          {selectedImagePreviewUrl && (
+            <img
+              className="file-picker-preview-image"
+              src={selectedImagePreviewUrl}
+              alt={`Selected preview for ${selectedFile?.name ?? 'image'}`}
+            />
+          )}
+        </div>
 
         <div className="button-row">
           <button onClick={onUpload} disabled={isBusy || !selectedFile}>

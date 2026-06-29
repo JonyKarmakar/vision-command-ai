@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from 'react'
 import type { ChangeEvent, RefObject } from 'react'
 
 import type { VideoUploadResponse } from '../../types/apiTypes'
@@ -54,6 +55,19 @@ export function VideoUploadFoundationSection({
   onCopyJson,
   onDownloadJson,
 }: VideoUploadFoundationSectionProps) {
+  const selectedVideoPreviewUrl = useMemo(
+    () => (selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : null),
+    [selectedVideoFile],
+  )
+
+  useEffect(() => {
+    return () => {
+      if (selectedVideoPreviewUrl) {
+        URL.revokeObjectURL(selectedVideoPreviewUrl)
+      }
+    }
+  }, [selectedVideoPreviewUrl])
+
   return (
     <>
       <section className="card">
@@ -63,19 +77,38 @@ export function VideoUploadFoundationSection({
           Add a video to preview, trim, extract frames, run detection, and prepare video analysis workflows.
         </p>
 
-        <input
-          className="file-input"
-          type="file"
-          accept="video/*"
-          onChange={onVideoFileChange}
-          disabled={isBusy}
-        />
+        <div className="file-picker-panel">
+          <input
+            id="video-upload-input"
+            className="visually-hidden-file-input"
+            type="file"
+            accept="video/*"
+            onChange={onVideoFileChange}
+            disabled={isBusy}
+          />
 
-        {selectedVideoFile && (
-          <p className="selected-file">
-            Selected video: <strong>{selectedVideoFile.name}</strong>
-          </p>
-        )}
+          <label
+            className={isBusy ? 'file-picker-button disabled' : 'file-picker-button'}
+            htmlFor="video-upload-input"
+            aria-disabled={isBusy}
+          >
+            Choose video
+          </label>
+
+          <div className="file-picker-copy">
+            <span>{selectedVideoFile ? 'Selected video' : 'No video selected yet'}</span>
+            <strong>{selectedVideoFile ? selectedVideoFile.name : 'Choose a video to start'}</strong>
+          </div>
+
+          {selectedVideoPreviewUrl && (
+            <video
+              className="file-picker-preview-video"
+              src={selectedVideoPreviewUrl}
+              muted
+              controls
+            />
+          )}
+        </div>
 
         <div className="button-row">
           <button onClick={onVideoUpload} disabled={isBusy || !selectedVideoFile}>
