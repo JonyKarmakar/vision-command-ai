@@ -7,7 +7,11 @@ type CommandCardSectionProps = {
 
 export function CommandCardSection({ children, isDeveloperMode }: CommandCardSectionProps) {
   return (
-    <section className="card command-card">
+    <section
+      className={`card command-card ${
+        isDeveloperMode ? 'developer-command-card' : 'assistant-command-card'
+      }`}
+    >
       <div className="assistant-card-heading">
         <p className="eyebrow">
           {isDeveloperMode ? 'Command Workspace' : 'AI Assistant'}
@@ -16,18 +20,26 @@ export function CommandCardSection({ children, isDeveloperMode }: CommandCardSec
         <p className="section-description">
           {isDeveloperMode
             ? 'Use presets, typed commands, voice input, planner tools, parser diagnostics, and command history from one workspace.'
-            : 'Describe what you want to do with the uploaded media. Use natural commands or voice input to edit, inspect, or prepare outputs.'}
+            : 'Tell the assistant what to do with the current image or video. Type naturally, use voice, or choose a quick action.'}
         </p>
       </div>
 
       {!isDeveloperMode && (
-        <div className="assistant-example-strip" aria-label="Example assistant commands">
-          <span>Try:</span>
-          <code>detect objects</code>
-          <code>blur person</code>
-          <code>zoom left person</code>
-          <code>extract frame at 1 second</code>
-        </div>
+        <>
+          <div className="assistant-flow-hints" aria-label="Assistant workflow">
+            <span>1. Current media is ready</span>
+            <span>2. Ask or speak a command</span>
+            <span>3. Review the result</span>
+          </div>
+
+          <div className="assistant-example-strip" aria-label="Example assistant commands">
+            <span>Try:</span>
+            <code>detect objects</code>
+            <code>blur person</code>
+            <code>zoom left person</code>
+            <code>extract frame at 1 second</code>
+          </div>
+        </>
       )}
 
       {children}

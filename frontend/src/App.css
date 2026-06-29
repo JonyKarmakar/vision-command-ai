@@ -5031,3 +5031,78 @@ input[type="file"]::file-selector-button:hover {
     max-height: 180px;
   }
 }
+
+
+.assistant-command-card {
+  gap: 1rem;
+}
+
+.assistant-flow-hints {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.assistant-flow-hints span {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  padding: 0.75rem 0.85rem;
+  background: rgba(15, 23, 42, 0.44);
+  color: rgba(226, 232, 240, 0.86);
+  font-size: 0.88rem;
+}
+
+.assistant-command-composer {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 20px;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.38);
+}
+
+.assistant-command-copy {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.assistant-command-copy label {
+  color: rgba(248, 250, 252, 0.94);
+  font-weight: 700;
+}
+
+.assistant-command-copy p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.9rem;
+}
+
+.assistant-command-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.assistant-command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.assistant-command-presets {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  padding-top: 1rem;
+}
+
+@media (max-width: 820px) {
+  .assistant-flow-hints,
+  .assistant-command-row {
+    grid-template-columns: 1fr;
+  }
+
+  .assistant-command-actions {
+    justify-content: flex-start;
+  }
+}

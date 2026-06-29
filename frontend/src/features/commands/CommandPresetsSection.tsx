@@ -10,6 +10,7 @@ type DetectedObjectCommandPreset = {
 }
 
 type CommandPresetsSectionProps = {
+  isDeveloperMode: boolean
   generalCommandPresets: GeneralCommandPreset[]
   detectedObjectCommandPresets: DetectedObjectCommandPreset[]
   hasUploadResult: boolean
@@ -19,6 +20,7 @@ type CommandPresetsSectionProps = {
 }
 
 export function CommandPresetsSection({
+  isDeveloperMode,
   generalCommandPresets,
   detectedObjectCommandPresets,
   hasUploadResult,
@@ -27,11 +29,15 @@ export function CommandPresetsSection({
   onSelectCommand,
 }: CommandPresetsSectionProps) {
   return (
-    <div className="smart-command-presets">
+    <div className={`smart-command-presets ${
+      isDeveloperMode ? 'developer-command-presets' : 'assistant-command-presets'
+    }`}>
       <div className="command-preset-group">
-        <h3>Suggested actions</h3>
+        <h3>{isDeveloperMode ? 'Suggested actions' : 'Quick actions'}</h3>
         <p className="small-note">
-          Quick assistant actions for the current workspace.
+          {isDeveloperMode
+            ? 'Quick assistant actions for the current workspace.'
+            : 'Choose an action to fill the assistant box, then run it.'}
         </p>
 
         <div className="preset-button-grid">
@@ -59,9 +65,11 @@ export function CommandPresetsSection({
       </div>
 
       <div className="command-preset-group">
-        <h3>Object-aware suggestions</h3>
+        <h3>{isDeveloperMode ? 'Object-aware suggestions' : 'Detected object actions'}</h3>
         <p className="small-note">
-          Suggestions generated from detected object classes. Run detection first.
+          {isDeveloperMode
+            ? 'Suggestions generated from detected object classes. Run detection first.'
+            : 'Use detected objects as targets for crop, blur, or zoom commands.'}
         </p>
 
         {detectedObjectCommandPresets.length > 0 ? (
@@ -80,7 +88,9 @@ export function CommandPresetsSection({
           </div>
         ) : (
           <p className="empty-preset-note">
-            No detected classes yet. Upload an image and run YOLO detection to generate object presets.
+            {isDeveloperMode
+              ? 'No detected classes yet. Upload an image and run YOLO detection to generate object presets.'
+              : 'Run Detect objects first to unlock object-specific actions.'}
           </p>
         )}
       </div>

@@ -41,71 +41,99 @@ export function CommandInputControlsSection({
   onUseRuleBasedParser,
   onUseMockParser,
 }: CommandInputControlsSectionProps) {
+  const commandInput = (
+    <input
+      id="vision-command-input"
+      className="command-input"
+      type="text"
+      value={commandText}
+      placeholder={isDeveloperMode
+        ? 'Type a command, for example: crop person or extract frame at 1 second'
+        : 'Ask VisionCommand AI, for example: blur the person or zoom into the left person'}
+      onChange={(event) => onCommandTextChange(event.target.value)}
+      disabled={isBusy}
+    />
+  )
+
+  const runButton = (
+    <button
+      onClick={() => void onRunCommand()}
+      disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}
+    >
+      {isRunningCommand ? 'Working...' : isDeveloperMode ? 'Run Command' : 'Ask / Run'}
+    </button>
+  )
+
+  const voiceButton = (
+    <button
+      className="voice-button"
+      onClick={onVoiceCommand}
+      disabled={isBusy}
+    >
+      {isListening ? 'Listening...' : isDeveloperMode ? 'Voice Command' : 'Speak'}
+    </button>
+  )
+
   return (
     <>
-      <div className="command-row">
-        <input
-          className="command-input"
-          type="text"
-          value={commandText}
-          placeholder={isDeveloperMode
-            ? 'Type a command, for example: crop person or extract frame at 1 second'
-            : 'Ask VisionCommand AI, for example: blur the person or zoom into the left person'}
-          onChange={(event) => onCommandTextChange(event.target.value)}
-          disabled={isBusy}
-        />
+      {isDeveloperMode ? (
+        <div className="command-row">
+          {commandInput}
 
-        {isDeveloperMode && (
-          <>
-            <button
-              className="secondary-button"
-              onClick={() => void onParseCommand()}
-              disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}
-            >
-              {isParsingCommand ? 'Parsing...' : 'Parse Command'}
-            </button>
+          <button
+            className="secondary-button"
+            onClick={() => void onParseCommand()}
+            disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}
+          >
+            {isParsingCommand ? 'Parsing...' : 'Parse Command'}
+          </button>
 
-            <button
-              className="secondary-button"
-              onClick={() => void onPlanCommand()}
-              disabled={isBusy || !commandText.trim()}
-            >
-              {isPlanningCommand ? 'Planning...' : 'Plan Command'}
-            </button>
+          <button
+            className="secondary-button"
+            onClick={() => void onPlanCommand()}
+            disabled={isBusy || !commandText.trim()}
+          >
+            {isPlanningCommand ? 'Planning...' : 'Plan Command'}
+          </button>
 
-            <button
-              className="secondary-button"
-              onClick={() => void onLoadPlannerPromptPreview()}
-              disabled={isBusy || !commandText.trim()}
-            >
-              {isLoadingPlannerPromptPreview ? 'Loading planner prompt...' : 'Preview Planner Prompt'}
-            </button>
+          <button
+            className="secondary-button"
+            onClick={() => void onLoadPlannerPromptPreview()}
+            disabled={isBusy || !commandText.trim()}
+          >
+            {isLoadingPlannerPromptPreview ? 'Loading planner prompt...' : 'Preview Planner Prompt'}
+          </button>
 
-            <button
-              className="secondary-button"
-              onClick={() => void onLoadPromptPreview()}
-              disabled={isBusy || !commandText.trim()}
-            >
-              {isLoadingPromptPreview ? 'Loading prompt...' : 'Preview LLM Prompt'}
-            </button>
-          </>
-        )}
+          <button
+            className="secondary-button"
+            onClick={() => void onLoadPromptPreview()}
+            disabled={isBusy || !commandText.trim()}
+          >
+            {isLoadingPromptPreview ? 'Loading prompt...' : 'Preview LLM Prompt'}
+          </button>
 
-        <button
-          onClick={() => void onRunCommand()}
-          disabled={isBusy || !commandText.trim() || isRealLlmActionBlocked}
-        >
-          {isRunningCommand ? 'Working...' : isDeveloperMode ? 'Run Command' : 'Ask / Run'}
-        </button>
+          {runButton}
+          {voiceButton}
+        </div>
+      ) : (
+        <div className="assistant-command-composer">
+          <div className="assistant-command-copy">
+            <label htmlFor="vision-command-input">What should VisionCommand do?</label>
+            <p>
+              Write a simple command, then run it. You can also speak the command instead.
+            </p>
+          </div>
 
-        <button
-          className="voice-button"
-          onClick={onVoiceCommand}
-          disabled={isBusy}
-        >
-          {isListening ? 'Listening...' : isDeveloperMode ? 'Voice Command' : 'Speak'}
-        </button>
-      </div>
+          <div className="assistant-command-row">
+            {commandInput}
+
+            <div className="assistant-command-actions">
+              {runButton}
+              {voiceButton}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isRealLlmActionBlocked && (
         <div className="real-llm-warning">

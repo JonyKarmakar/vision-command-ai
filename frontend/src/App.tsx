@@ -4922,6 +4922,7 @@ function App() {
       {(uploadResult || videoUploadResult) && (
         <CommandCardSection isDeveloperMode={isDeveloperMode}>
           <CommandPresetsSection
+            isDeveloperMode={isDeveloperMode}
             generalCommandPresets={generalCommandPresets}
             detectedObjectCommandPresets={detectedObjectCommandPresets}
             hasUploadResult={Boolean(uploadResult)}
