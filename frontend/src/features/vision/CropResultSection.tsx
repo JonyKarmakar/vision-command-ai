@@ -39,7 +39,7 @@ export function CropResultSection({
   return (
     <section className="result-grid" ref={cropResultRef}>
       <div className="card">
-        <h2>4. Crop Result</h2>
+        <h2>Cropped image ready</h2>
 
         <div className="loaded-panel-actions">
           <button
@@ -122,7 +122,7 @@ export function CropResultSection({
       </div>
 
       <div className="card">
-        <h2>Cropped Output</h2>
+        <h2>Cropped preview</h2>
         {croppedImageUrl && cropResult && (
           <>
             <img

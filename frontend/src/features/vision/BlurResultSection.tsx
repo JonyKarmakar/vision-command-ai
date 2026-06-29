@@ -39,7 +39,7 @@ export function BlurResultSection({
   return (
     <section className="result-grid" ref={blurResultRef}>
       <div className="card">
-        <h2>5. Blur Result</h2>
+        <h2>Privacy edit ready</h2>
 
         <div className="loaded-panel-actions">
           <button
@@ -108,7 +108,7 @@ export function BlurResultSection({
       </div>
 
       <div className="card">
-        <h2>Blurred Output</h2>
+        <h2>Blurred preview</h2>
         {blurredImageUrl && blurResult && (
           <>
             <img
