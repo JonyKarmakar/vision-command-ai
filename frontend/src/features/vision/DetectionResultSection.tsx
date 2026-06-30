@@ -202,7 +202,7 @@ export function DetectionResultSection({
           </button>
 
           {selectedClass === 'all' && (
-            <p className="small-note">
+            <p className="small-note crop-selected-class-note">
               Select a specific class to crop the best object of that class.
             </p>
           )}

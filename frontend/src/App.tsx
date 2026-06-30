@@ -5153,83 +5153,6 @@ function App() {
             </div>
           )}
 
-          <CommandResultSection
-        isDeveloperMode={isDeveloperMode}
-            commandResult={commandResult}
-            commandResultRef={commandResultRef}
-            activeGeneratedImageFilename={activeGeneratedImageSource?.filename ?? null}
-            copiedParserLogJsonKey={copiedParserLogJsonKey}
-            failedParserLogJsonKey={failedParserLogJsonKey}
-            downloadedParserLogJsonKey={downloadedParserLogJsonKey}
-            isBusy={isBusy}
-            onCopyJson={handleCopyParserLogJson}
-            onDownloadJson={handleDownloadJsonFile}
-            onClearCommandResult={() => {
-              setCommandResult(null)
-              setStatusMessage('Command Result view cleared.')
-            }}
-            onDetectZoomedImage={async (result) => {
-              try {
-                setStatusMessage('Running YOLO on zoomed image...')
-
-                const normalizedDetectionThreshold =
-                  confidenceThreshold > 1 ? confidenceThreshold / 100 : confidenceThreshold
-
-                const response = await fetch(
-                  `/api/vision/detect-output/${encodeURIComponent(result.zoomed_filename)}/annotated?confidence_threshold=${normalizedDetectionThreshold}`,
-                  {
-                    method: 'POST',
-                  },
-                )
-
-                if (!response.ok) {
-                  const errorData = await response.json().catch(() => null)
-                  throw new Error(errorData?.detail ?? 'Failed to run YOLO on zoomed image.')
-                }
-
-                const detectionData = await response.json() as DetectionResponse
-
-                setDetectionResult(detectionData)
-                addGeneratedOutputHistoryItem({
-                  action: 'annotated_detection',
-                  label: detectionData.source === 'outputs'
-                    ? 'YOLO on generated output'
-                    : 'Annotated detection output',
-                  filename: detectionData.annotated_filename,
-                  file_url: detectionData.annotated_file_url,
-                  source: detectionData.source ?? 'uploads',
-                  source_filename: detectionData.filename,
-                })
-                setSelectedClass('all')
-                setLastDetectionThreshold(normalizedDetectionThreshold)
-                setLastDetectionClass('all')
-
-                window.setTimeout(() => {
-                  detectionResultRef.current?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start',
-                  })
-                }, 100)
-
-                setClassOptions((previousClasses) =>
-                  Array.from(
-                    new Set([
-                      ...previousClasses,
-                      ...detectionData.detections.map((detection) => detection.class_name),
-                    ]),
-                  ).sort(),
-                )
-
-                setStatusMessage('Object detection completed on zoomed image.')
-              } catch (error) {
-                setStatusMessage(
-                  error instanceof Error
-                    ? error.message
-                    : 'Failed to detect objects on zoomed image.',
-                )
-              }
-            }}
-          />
 
           {isDeveloperMode && (
             <div className="developer-mode-stack">
@@ -5666,6 +5589,84 @@ function App() {
         }}
         onCopyJson={handleCopyParserLogJson}
         onDownloadJson={handleDownloadJsonFile}
+      />
+
+      <CommandResultSection
+    isDeveloperMode={isDeveloperMode}
+        commandResult={commandResult}
+        commandResultRef={commandResultRef}
+        activeGeneratedImageFilename={activeGeneratedImageSource?.filename ?? null}
+        copiedParserLogJsonKey={copiedParserLogJsonKey}
+        failedParserLogJsonKey={failedParserLogJsonKey}
+        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+        isBusy={isBusy}
+        onCopyJson={handleCopyParserLogJson}
+        onDownloadJson={handleDownloadJsonFile}
+        onClearCommandResult={() => {
+          setCommandResult(null)
+          setStatusMessage('Command Result view cleared.')
+        }}
+        onDetectZoomedImage={async (result) => {
+          try {
+            setStatusMessage('Running YOLO on zoomed image...')
+
+            const normalizedDetectionThreshold =
+              confidenceThreshold > 1 ? confidenceThreshold / 100 : confidenceThreshold
+
+            const response = await fetch(
+              `/api/vision/detect-output/${encodeURIComponent(result.zoomed_filename)}/annotated?confidence_threshold=${normalizedDetectionThreshold}`,
+              {
+                method: 'POST',
+              },
+            )
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => null)
+              throw new Error(errorData?.detail ?? 'Failed to run YOLO on zoomed image.')
+            }
+
+            const detectionData = await response.json() as DetectionResponse
+
+            setDetectionResult(detectionData)
+            addGeneratedOutputHistoryItem({
+              action: 'annotated_detection',
+              label: detectionData.source === 'outputs'
+                ? 'YOLO on generated output'
+                : 'Annotated detection output',
+              filename: detectionData.annotated_filename,
+              file_url: detectionData.annotated_file_url,
+              source: detectionData.source ?? 'uploads',
+              source_filename: detectionData.filename,
+            })
+            setSelectedClass('all')
+            setLastDetectionThreshold(normalizedDetectionThreshold)
+            setLastDetectionClass('all')
+
+            window.setTimeout(() => {
+              detectionResultRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              })
+            }, 100)
+
+            setClassOptions((previousClasses) =>
+              Array.from(
+                new Set([
+                  ...previousClasses,
+                  ...detectionData.detections.map((detection) => detection.class_name),
+                ]),
+              ).sort(),
+            )
+
+            setStatusMessage('Object detection completed on zoomed image.')
+          } catch (error) {
+            setStatusMessage(
+              error instanceof Error
+                ? error.message
+                : 'Failed to detect objects on zoomed image.',
+            )
+          }
+        }}
       />
       <VideoFrameToolsSection
         videoUploadResult={videoUploadResult}
