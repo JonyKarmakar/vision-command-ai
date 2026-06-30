@@ -519,7 +519,7 @@ function App() {
     setSelectedGeneratedOutputWorkflowSource(null)
     setActiveGeneratedImageSource(null)
     setExpandedGeneratedOutputDetails(new Set())
-    setStatusMessage('Generated Output History cleared.')
+    setStatusMessage('Generated outputs cleared.')
 
     await clearPersistedGeneratedOutputHistory()
   }
@@ -727,7 +727,7 @@ function App() {
     try {
       setIsGeneratedOutputHistoryDetecting(true)
       setError(null)
-      setStatusMessage(`Running YOLO on generated output: ${item.label}...`)
+      setStatusMessage(`Detecting objects in generated output: ${item.label}...`)
 
       const normalizedDetectionThreshold =
         confidenceThreshold > 1 ? confidenceThreshold / 100 : confidenceThreshold
@@ -743,7 +743,7 @@ function App() {
         throw new Error(
           await getBackendErrorMessage(
             response,
-            `Failed to run YOLO on generated output: ${item.label}.`,
+            `Failed to detect objects in generated output: ${item.label}.`,
           ),
         )
       }
@@ -778,11 +778,11 @@ function App() {
         })
       }, 100)
 
-      setStatusMessage(`YOLO detection completed for generated output: ${item.label}.`)
+      setStatusMessage(`Object detection completed for generated output: ${item.label}.`)
     } catch (err) {
       const message = getErrorMessage(
         err,
-        `Failed to run YOLO on generated output: ${item.label}.`,
+        `Failed to detect objects in generated output: ${item.label}.`,
       )
 
       setError(message)
@@ -1612,7 +1612,7 @@ function App() {
     try {
       setIsDetectingFrame(true)
       setError(null)
-      setStatusMessage('Running YOLO detection on extracted frame...')
+      setStatusMessage('Detecting objects in the extracted frame...')
 
       const response = await fetch(
         `/api/video/detect-frame/${videoFrameResult.frame_filename}/annotated?confidence_threshold=${confidenceThreshold / 100}`,
@@ -1704,7 +1704,7 @@ function App() {
     try {
       setIsDetectingMultipleFrames(true)
       setError(null)
-      setStatusMessage('Running YOLO detection on extracted video frames...')
+      setStatusMessage('Detecting objects in the extracted video frames...')
 
       const response = await fetch('/api/video/detect-frames/annotated', {
         method: 'POST',
@@ -1885,7 +1885,7 @@ function App() {
       const data: UploadResponse = await response.json()
       setUploadResult(data)
       scrollToLoadedView(uploadResultRef)
-      setStatusMessage('Upload complete. You can now run YOLO detection or type a command.')
+      setStatusMessage('Upload complete. You can now detect objects or ask the assistant.')
     } catch (err) {
       const errorMessage = getErrorMessage(err, 'Upload failed')
       setError(errorMessage)
@@ -1907,7 +1907,7 @@ function App() {
       setCropResult(null)
       setBlurResult(null)
       setCommandResult(null)
-      setStatusMessage('Running YOLO detection. This may take a few seconds...')
+      setStatusMessage('Detecting objects. This may take a few seconds...')
 
       const backendThreshold = confidenceThreshold / 100
       const queryParams = new URLSearchParams({
@@ -2599,7 +2599,7 @@ function App() {
     setGeneratedOutputHistoryCreatedByFilter('all')
     setGeneratedOutputHistoryParserFilter('all')
     setGeneratedOutputHistoryPlannerFilter('all')
-    setStatusMessage('Generated Output History filters cleared.')
+    setStatusMessage('Generated output filters cleared.')
   }
 
   const handleDownloadGeneratedOutputWorkflowJson = () => {
@@ -5220,12 +5220,12 @@ function App() {
                   ).sort(),
                 )
 
-                setStatusMessage('YOLO detection completed on zoomed image.')
+                setStatusMessage('Object detection completed on zoomed image.')
               } catch (error) {
                 setStatusMessage(
                   error instanceof Error
                     ? error.message
-                    : 'Failed to run YOLO on zoomed image.',
+                    : 'Failed to detect objects on zoomed image.',
                 )
               }
             }}

@@ -26,6 +26,14 @@ export function GeneratedOutputItemCard({
   onRemove,
 }: GeneratedOutputItemCardProps) {
   const outputUrl = `/api${item.file_url}`
+  const displayLabel =
+    !isDeveloperMode && item.label === 'YOLO on generated output'
+      ? 'Object detection result'
+      : item.label
+  const displayAction =
+    !isDeveloperMode && item.action.toLowerCase().includes('yolo')
+      ? 'object detection'
+      : item.action.replace(/_/g, ' ')
 
   return (
     <div className="generated-output-item">
@@ -34,16 +42,16 @@ export function GeneratedOutputItemCard({
         href={outputUrl}
         target="_blank"
         rel="noreferrer"
-        aria-label={`Open ${item.label}`}
+        aria-label={`Open ${displayLabel}`}
       >
-        <img src={outputUrl} alt={item.label} loading="lazy" />
+        <img src={outputUrl} alt={displayLabel} loading="lazy" />
       </a>
 
       <div className="generated-output-details">
         <span className="generated-output-action">
-          {item.action.replace(/_/g, ' ')}
+          {displayAction}
         </span>
-        <strong>{item.label}</strong>
+        <strong>{displayLabel}</strong>
 
         {isDeveloperMode && (
           <p className="generated-output-filename">{item.filename}</p>
