@@ -5143,3 +5143,13 @@ input[type="file"]::file-selector-button:hover {
     justify-content: center;
   }
 }
+
+
+.loaded-panel-actions:empty {
+  display: none;
+}
+
+.video-workflow-note {
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.9rem;
+}

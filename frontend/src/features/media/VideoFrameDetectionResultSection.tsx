@@ -7,6 +7,7 @@ type VideoFrameDetectionResultSectionProps = {
   videoFrameDetectionResultRef: RefObject<HTMLElement | null>
   annotatedFrameUrl: string | null
   isBusy: boolean
+  isDeveloperMode: boolean
   copiedParserLogJsonKey: string
   failedParserLogJsonKey: string
   downloadedParserLogJsonKey: string
@@ -25,6 +26,7 @@ export function VideoFrameDetectionResultSection({
   videoFrameDetectionResultRef,
   annotatedFrameUrl,
   isBusy,
+  isDeveloperMode,
   copiedParserLogJsonKey,
   failedParserLogJsonKey,
   downloadedParserLogJsonKey,
@@ -39,69 +41,73 @@ export function VideoFrameDetectionResultSection({
   return (
     <section className="result-grid" ref={videoFrameDetectionResultRef}>
       <div className="card">
-        <h2>Video Frame Detection Result</h2>
+        <h2>{isDeveloperMode ? 'Video Frame Detection Result' : 'Frame detection ready'}</h2>
 
-        <div className="loaded-panel-actions">
-          <button
-            className="secondary-button"
-            onClick={() =>
-              void onCopyJson(
-                {
-                  source: 'video_frame_detection_result',
-                  copied_at: new Date().toISOString(),
-                  frame_filename: videoFrameDetectionResult.frame_filename,
-                  detection_count: videoFrameDetectionResult.detection_count,
-                  annotated_frame_filename: videoFrameDetectionResult.annotated_frame_filename,
-                  annotated_frame_file_url: videoFrameDetectionResult.annotated_frame_file_url,
-                  detections: videoFrameDetectionResult.detections,
-                  result: videoFrameDetectionResult,
-                },
-                'video-frame-detection-result-json',
-                'Copied Video Frame Detection Result JSON to clipboard.',
-              )
-            }
-            disabled={isBusy || !videoFrameDetectionResult}
-          >
-            {copiedParserLogJsonKey === 'video-frame-detection-result-json'
-              ? 'Copied!'
-              : failedParserLogJsonKey === 'video-frame-detection-result-json'
-                ? 'Copy failed'
-                : 'Copy Video Frame Detection Result JSON'}
-          </button>
+        <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
+          {isDeveloperMode && (
+            <button
+              className="secondary-button"
+              onClick={() =>
+                void onCopyJson(
+                  {
+                    source: 'video_frame_detection_result',
+                    copied_at: new Date().toISOString(),
+                    frame_filename: videoFrameDetectionResult.frame_filename,
+                    detection_count: videoFrameDetectionResult.detection_count,
+                    annotated_frame_filename: videoFrameDetectionResult.annotated_frame_filename,
+                    annotated_frame_file_url: videoFrameDetectionResult.annotated_frame_file_url,
+                    detections: videoFrameDetectionResult.detections,
+                    result: videoFrameDetectionResult,
+                  },
+                  'video-frame-detection-result-json',
+                  'Copied Video Frame Detection Result JSON to clipboard.',
+                )
+              }
+              disabled={isBusy || !videoFrameDetectionResult}
+            >
+              {copiedParserLogJsonKey === 'video-frame-detection-result-json'
+                ? 'Copied!'
+                : failedParserLogJsonKey === 'video-frame-detection-result-json'
+                  ? 'Copy failed'
+                  : 'Copy Video Frame Detection Result JSON'}
+            </button>
+          )}
 
-          <button
-            className="secondary-button"
-            onClick={() =>
-              onDownloadJson(
-                {
-                  source: 'video_frame_detection_result',
-                  downloaded_at: new Date().toISOString(),
-                  frame_filename: videoFrameDetectionResult.frame_filename,
-                  detection_count: videoFrameDetectionResult.detection_count,
-                  annotated_frame_filename: videoFrameDetectionResult.annotated_frame_filename,
-                  annotated_frame_file_url: videoFrameDetectionResult.annotated_frame_file_url,
-                  detections: videoFrameDetectionResult.detections,
-                  result: videoFrameDetectionResult,
-                },
-                `video_frame_detection_result_file-${videoFrameDetectionResult.frame_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                'Downloaded Video Frame Detection Result JSON.',
-                'download-video-frame-detection-result-json',
-              )
-            }
-            disabled={isBusy || !videoFrameDetectionResult}
-            data-testid="download-video-frame-detection-result-json"
-          >
-            {downloadedParserLogJsonKey === 'download-video-frame-detection-result-json'
-              ? 'Downloaded!'
-              : 'Download Video Frame Detection Result JSON'}
-          </button>
+          {isDeveloperMode && (
+            <button
+              className="secondary-button"
+              onClick={() =>
+                onDownloadJson(
+                  {
+                    source: 'video_frame_detection_result',
+                    downloaded_at: new Date().toISOString(),
+                    frame_filename: videoFrameDetectionResult.frame_filename,
+                    detection_count: videoFrameDetectionResult.detection_count,
+                    annotated_frame_filename: videoFrameDetectionResult.annotated_frame_filename,
+                    annotated_frame_file_url: videoFrameDetectionResult.annotated_frame_file_url,
+                    detections: videoFrameDetectionResult.detections,
+                    result: videoFrameDetectionResult,
+                  },
+                  `video_frame_detection_result_file-${videoFrameDetectionResult.frame_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                  'Downloaded Video Frame Detection Result JSON.',
+                  'download-video-frame-detection-result-json',
+                )
+              }
+              disabled={isBusy || !videoFrameDetectionResult}
+              data-testid="download-video-frame-detection-result-json"
+            >
+              {downloadedParserLogJsonKey === 'download-video-frame-detection-result-json'
+                ? 'Downloaded!'
+                : 'Download Video Frame Detection Result JSON'}
+            </button>
+          )}
 
           <button
             className="secondary-button view-clear-button"
             onClick={onClearVideoFrameDetectionResult}
             disabled={isBusy}
           >
-            Clear View
+            {isDeveloperMode ? 'Clear View' : 'Clear result'}
           </button>
         </div>
 
@@ -142,12 +148,12 @@ export function VideoFrameDetectionResultSection({
               alt="Annotated extracted video frame"
             />
 
-            <div className="output-actions">
+            <div className={isDeveloperMode ? 'output-actions' : 'output-actions result-output-actions'}>
               <a href={annotatedFrameUrl} target="_blank" rel="noreferrer">
-                Open annotated frame
+                {isDeveloperMode ? 'Open annotated frame' : 'Open detection frame'}
               </a>
               <a href={annotatedFrameUrl} download={videoFrameDetectionResult.annotated_frame_filename}>
-                Download annotated frame
+                {isDeveloperMode ? 'Download annotated frame' : 'Download detection frame'}
               </a>
             </div>
           </>

@@ -5685,6 +5685,7 @@ function App() {
       />
 
       <VideoTrimResultSection
+        isDeveloperMode={isDeveloperMode}
         videoTrimResult={videoTrimResult}
         videoTrimResultRef={videoTrimResultRef}
         trimmedVideoUrl={trimmedVideoUrl}
@@ -5701,6 +5702,7 @@ function App() {
       />
 
       <ExtractedFrameResultSection
+        isDeveloperMode={isDeveloperMode}
         videoFrameResult={videoFrameResult}
         videoFrameResultRef={videoFrameResultRef}
         extractedFrameUrl={extractedFrameUrl}
@@ -5719,6 +5721,7 @@ function App() {
       />
 
       <VideoFrameDetectionResultSection
+        isDeveloperMode={isDeveloperMode}
         videoFrameDetectionResult={videoFrameDetectionResult}
         videoFrameDetectionResultRef={videoFrameDetectionResultRef}
         annotatedFrameUrl={annotatedFrameUrl}
@@ -5735,6 +5738,7 @@ function App() {
       />
 
       <SampledVideoSection
+        isDeveloperMode={isDeveloperMode}
         videoUploadResult={videoUploadResult}
         videoSampledDetectionResult={videoSampledDetectionResult}
         videoSampledDetectionResultRef={videoSampledDetectionResultRef}
@@ -5765,6 +5769,7 @@ function App() {
       />
 
       <MultiFrameExtractionResultSection
+        isDeveloperMode={isDeveloperMode}
         videoMultiFrameResult={videoMultiFrameResult}
         videoMultiFrameResultRef={videoMultiFrameResultRef}
         isBusy={isBusy}
@@ -5782,6 +5787,7 @@ function App() {
       />
 
       <MultiFrameDetectionResultSection
+        isDeveloperMode={isDeveloperMode}
         videoMultiFrameDetectionResult={videoMultiFrameDetectionResult}
         videoMultiFrameDetectionResultRef={videoMultiFrameDetectionResultRef}
         isBusy={isBusy}
@@ -5799,6 +5805,7 @@ function App() {
       />
 
       <VideoTrackingResultSection
+        isDeveloperMode={isDeveloperMode}
         videoTrackingResult={videoTrackingResult}
         videoTrackingResultRef={videoTrackingResultRef}
         isBusy={isBusy}

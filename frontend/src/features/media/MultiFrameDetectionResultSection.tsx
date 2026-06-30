@@ -8,6 +8,7 @@ type MultiFrameDetectionResultSectionProps = {
   videoMultiFrameDetectionResult: VideoMultiFrameDetectionResponse | null
   videoMultiFrameDetectionResultRef: RefObject<HTMLElement | null>
   isBusy: boolean
+  isDeveloperMode: boolean
   copiedParserLogJsonKey: string
   failedParserLogJsonKey: string
   downloadedParserLogJsonKey: string
@@ -34,6 +35,7 @@ export function MultiFrameDetectionResultSection({
   videoMultiFrameDetectionResult,
   videoMultiFrameDetectionResultRef,
   isBusy,
+  isDeveloperMode,
   copiedParserLogJsonKey,
   failedParserLogJsonKey,
   downloadedParserLogJsonKey,
@@ -49,67 +51,71 @@ export function MultiFrameDetectionResultSection({
 
   return (
     <section className="card" ref={videoMultiFrameDetectionResultRef}>
-      <h2>Multi-Frame Detection Result</h2>
+      <h2>{isDeveloperMode ? 'Multi-Frame Detection Result' : 'Frame detection results'}</h2>
 
-      <div className="loaded-panel-actions">
-        <button
-          className="secondary-button"
-          onClick={() =>
-            void onCopyJson(
-              {
-                source: 'multi_frame_detection_result',
-                copied_at: new Date().toISOString(),
-                frame_count: videoMultiFrameDetectionResult.frame_count,
-                confidence_threshold: videoMultiFrameDetectionResult.confidence_threshold,
-                class_filter: videoMultiFrameDetectionResult.class_filter,
-                frames: videoMultiFrameDetectionResult.frames,
-                result: videoMultiFrameDetectionResult,
-              },
-              'multi-frame-detection-result-json',
-              'Copied Multi-Frame Detection Result JSON to clipboard.',
-            )
-          }
-          disabled={isBusy || !videoMultiFrameDetectionResult}
-        >
-          {copiedParserLogJsonKey === 'multi-frame-detection-result-json'
-            ? 'Copied!'
-            : failedParserLogJsonKey === 'multi-frame-detection-result-json'
-              ? 'Copy failed'
-              : 'Copy Multi-Frame Detection Result JSON'}
-        </button>
+      <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
+        {isDeveloperMode && (
+          <button
+            className="secondary-button"
+            onClick={() =>
+              void onCopyJson(
+                {
+                  source: 'multi_frame_detection_result',
+                  copied_at: new Date().toISOString(),
+                  frame_count: videoMultiFrameDetectionResult.frame_count,
+                  confidence_threshold: videoMultiFrameDetectionResult.confidence_threshold,
+                  class_filter: videoMultiFrameDetectionResult.class_filter,
+                  frames: videoMultiFrameDetectionResult.frames,
+                  result: videoMultiFrameDetectionResult,
+                },
+                'multi-frame-detection-result-json',
+                'Copied Multi-Frame Detection Result JSON to clipboard.',
+              )
+            }
+            disabled={isBusy || !videoMultiFrameDetectionResult}
+          >
+            {copiedParserLogJsonKey === 'multi-frame-detection-result-json'
+              ? 'Copied!'
+              : failedParserLogJsonKey === 'multi-frame-detection-result-json'
+                ? 'Copy failed'
+                : 'Copy Multi-Frame Detection Result JSON'}
+          </button>
+        )}
 
-        <button
-          className="secondary-button"
-          onClick={() =>
-            onDownloadJson(
-              {
-                source: 'multi_frame_detection_result',
-                downloaded_at: new Date().toISOString(),
-                frame_count: videoMultiFrameDetectionResult.frame_count,
-                confidence_threshold: videoMultiFrameDetectionResult.confidence_threshold,
-                class_filter: videoMultiFrameDetectionResult.class_filter,
-                frames: videoMultiFrameDetectionResult.frames,
-                result: videoMultiFrameDetectionResult,
-              },
-              `multi_frame_detection_result_frames-${videoMultiFrameDetectionResult.frame_count}.json`,
-              'Downloaded Multi-Frame Detection Result JSON.',
-              'download-multi-frame-detection-result-json',
-            )
-          }
-          disabled={isBusy || !videoMultiFrameDetectionResult}
-          data-testid="download-multi-frame-detection-result-json"
-        >
-          {downloadedParserLogJsonKey === 'download-multi-frame-detection-result-json'
-            ? 'Downloaded!'
-            : 'Download Multi-Frame Detection Result JSON'}
-        </button>
+        {isDeveloperMode && (
+          <button
+            className="secondary-button"
+            onClick={() =>
+              onDownloadJson(
+                {
+                  source: 'multi_frame_detection_result',
+                  downloaded_at: new Date().toISOString(),
+                  frame_count: videoMultiFrameDetectionResult.frame_count,
+                  confidence_threshold: videoMultiFrameDetectionResult.confidence_threshold,
+                  class_filter: videoMultiFrameDetectionResult.class_filter,
+                  frames: videoMultiFrameDetectionResult.frames,
+                  result: videoMultiFrameDetectionResult,
+                },
+                `multi_frame_detection_result_frames-${videoMultiFrameDetectionResult.frame_count}.json`,
+                'Downloaded Multi-Frame Detection Result JSON.',
+                'download-multi-frame-detection-result-json',
+              )
+            }
+            disabled={isBusy || !videoMultiFrameDetectionResult}
+            data-testid="download-multi-frame-detection-result-json"
+          >
+            {downloadedParserLogJsonKey === 'download-multi-frame-detection-result-json'
+              ? 'Downloaded!'
+              : 'Download Multi-Frame Detection Result JSON'}
+          </button>
+        )}
 
         <button
           className="secondary-button view-clear-button"
           onClick={onClearVideoMultiFrameDetectionResult}
           disabled={isBusy}
         >
-          Clear View
+          {isDeveloperMode ? 'Clear View' : 'Clear result'}
         </button>
       </div>
 
@@ -120,7 +126,7 @@ export function MultiFrameDetectionResultSection({
       </div>
 
       <div className="video-timeline">
-        <h3>Video Detection Timeline</h3>
+        <h3>{isDeveloperMode ? 'Video Detection Timeline' : 'Detection timeline'}</h3>
 
         {videoMultiFrameDetectionResult.frames.map((frame, index) => (
           <div className="timeline-item" key={`${frame.frame_filename}-timeline`}>
@@ -153,7 +159,9 @@ export function MultiFrameDetectionResultSection({
               />
 
               <div className="metadata-list">
-                <p><strong>Frame:</strong> {frame.frame_filename}</p>
+                {isDeveloperMode && (
+                  <p><strong>Frame:</strong> {frame.frame_filename}</p>
+                )}
                 <p><strong>Detections:</strong> {frame.detection_count}</p>
               </div>
 
@@ -174,68 +182,72 @@ export function MultiFrameDetectionResultSection({
                 <p>No objects detected in this frame.</p>
               )}
 
-              <div className="output-actions">
+              <div className={isDeveloperMode ? 'output-actions' : 'output-actions result-output-actions'}>
                 <a href={annotatedFrameUrl} target="_blank" rel="noreferrer">
-                  Open annotated frame
+                  {isDeveloperMode ? 'Open annotated frame' : 'Open detection frame'}
                 </a>
                 <a href={annotatedFrameUrl} download={frame.annotated_frame_filename}>
-                  Download annotated frame
+                  {isDeveloperMode ? 'Download annotated frame' : 'Download detection frame'}
                 </a>
 
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    void onCopyJson(
-                      {
-                        source: 'multi_frame_detection_gallery_item',
-                        copied_at: new Date().toISOString(),
-                        frame_filename: frame.frame_filename,
-                        detection_count: frame.detection_count,
-                        class_summary: buildFrameClassSummary(frame),
-                        detections: frame.detections,
-                        annotated_frame_filename: frame.annotated_frame_filename,
-                        annotated_frame_file_url: frame.annotated_frame_file_url,
-                        frame,
-                      },
-                      `multi-frame-detection-frame-json-${frame.frame_filename}`,
-                      'Copied Detection Frame JSON to clipboard.',
-                    )
-                  }
-                  disabled={isBusy}
-                >
-                  {copiedParserLogJsonKey === `multi-frame-detection-frame-json-${frame.frame_filename}`
-                    ? 'Copied!'
-                    : failedParserLogJsonKey === `multi-frame-detection-frame-json-${frame.frame_filename}`
-                      ? 'Copy failed'
-                      : 'Copy Frame JSON'}
-                </button>
+                {isDeveloperMode && (
+                  <button
+                    className="secondary-button"
+                    onClick={() =>
+                      void onCopyJson(
+                        {
+                          source: 'multi_frame_detection_gallery_item',
+                          copied_at: new Date().toISOString(),
+                          frame_filename: frame.frame_filename,
+                          detection_count: frame.detection_count,
+                          class_summary: buildFrameClassSummary(frame),
+                          detections: frame.detections,
+                          annotated_frame_filename: frame.annotated_frame_filename,
+                          annotated_frame_file_url: frame.annotated_frame_file_url,
+                          frame,
+                        },
+                        `multi-frame-detection-frame-json-${frame.frame_filename}`,
+                        'Copied Detection Frame JSON to clipboard.',
+                      )
+                    }
+                    disabled={isBusy}
+                  >
+                    {copiedParserLogJsonKey === `multi-frame-detection-frame-json-${frame.frame_filename}`
+                      ? 'Copied!'
+                      : failedParserLogJsonKey === `multi-frame-detection-frame-json-${frame.frame_filename}`
+                        ? 'Copy failed'
+                        : 'Copy Frame JSON'}
+                  </button>
+                )}
 
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    onDownloadJson(
-                      {
-                        source: 'multi_frame_detection_gallery_item',
-                        downloaded_at: new Date().toISOString(),
-                        frame_filename: frame.frame_filename,
-                        detection_count: frame.detection_count,
-                        class_summary: buildFrameClassSummary(frame),
-                        detections: frame.detections,
-                        annotated_frame_filename: frame.annotated_frame_filename,
-                        annotated_frame_file_url: frame.annotated_frame_file_url,
-                        frame,
-                      },
-                      `multi_frame_detection_frame_json-${frame.frame_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                      'Downloaded Detection Frame JSON.',
-                      `download-multi-frame-detection-frame-json-${frame.frame_filename}`,
-                    )
-                  }
-                  disabled={isBusy}
-                >
-                  {downloadedParserLogJsonKey === `download-multi-frame-detection-frame-json-${frame.frame_filename}`
-                    ? 'Downloaded!'
-                    : 'Download Frame JSON'}
-                </button>
+                {isDeveloperMode && (
+                  <button
+                    className="secondary-button"
+                    onClick={() =>
+                      onDownloadJson(
+                        {
+                          source: 'multi_frame_detection_gallery_item',
+                          downloaded_at: new Date().toISOString(),
+                          frame_filename: frame.frame_filename,
+                          detection_count: frame.detection_count,
+                          class_summary: buildFrameClassSummary(frame),
+                          detections: frame.detections,
+                          annotated_frame_filename: frame.annotated_frame_filename,
+                          annotated_frame_file_url: frame.annotated_frame_file_url,
+                          frame,
+                        },
+                        `multi_frame_detection_frame_json-${frame.frame_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                        'Downloaded Detection Frame JSON.',
+                        `download-multi-frame-detection-frame-json-${frame.frame_filename}`,
+                      )
+                    }
+                    disabled={isBusy}
+                  >
+                    {downloadedParserLogJsonKey === `download-multi-frame-detection-frame-json-${frame.frame_filename}`
+                      ? 'Downloaded!'
+                      : 'Download Frame JSON'}
+                  </button>
+                )}
               </div>
             </div>
           )
