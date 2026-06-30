@@ -15,6 +15,7 @@ type SampledVideoSectionProps = {
   trackingIntervalSeconds: number
   trackingMaxDistancePixels: number
   isBusy: boolean
+  isDeveloperMode: boolean
   isDetectingSampledVideo: boolean
   isTrackingVideo: boolean
   copiedParserLogJsonKey: string
@@ -47,6 +48,7 @@ export function SampledVideoSection({
   trackingIntervalSeconds,
   trackingMaxDistancePixels,
   isBusy,
+  isDeveloperMode,
   isDetectingSampledVideo,
   isTrackingVideo,
   copiedParserLogJsonKey,
@@ -163,73 +165,77 @@ export function SampledVideoSection({
         <>
           <h3 ref={videoSampledDetectionResultRef}>Sampled Video Detection Result</h3>
 
-          <div className="loaded-panel-actions">
-            <button
-              className="secondary-button"
-              onClick={() =>
-                void onCopyJson(
-                  {
-                    source: 'sampled_video_detection_result',
-                    copied_at: new Date().toISOString(),
-                    filename: videoSampledDetectionResult.filename,
-                    interval_seconds: videoSampledDetectionResult.interval_seconds,
-                    confidence_threshold: videoSampledDetectionResult.confidence_threshold,
-                    class_filter: videoSampledDetectionResult.class_filter,
-                    extracted_frame_count: videoSampledDetectionResult.extracted_frames.frame_count,
-                    detected_frame_count: videoSampledDetectionResult.detection.frame_count,
-                    extracted_frames: videoSampledDetectionResult.extracted_frames,
-                    detection: videoSampledDetectionResult.detection,
-                    result: videoSampledDetectionResult,
-                  },
-                  'sampled-video-detection-result-json',
-                  'Copied Sampled Video Detection Result JSON to clipboard.',
-                )
-              }
-              disabled={isBusy || !videoSampledDetectionResult}
-            >
-              {copiedParserLogJsonKey === 'sampled-video-detection-result-json'
-                ? 'Copied!'
-                : failedParserLogJsonKey === 'sampled-video-detection-result-json'
-                  ? 'Copy failed'
-                  : 'Copy Sampled Video Detection Result JSON'}
-            </button>
+          <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
+            {isDeveloperMode && (
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  void onCopyJson(
+                    {
+                      source: 'sampled_video_detection_result',
+                      copied_at: new Date().toISOString(),
+                      filename: videoSampledDetectionResult.filename,
+                      interval_seconds: videoSampledDetectionResult.interval_seconds,
+                      confidence_threshold: videoSampledDetectionResult.confidence_threshold,
+                      class_filter: videoSampledDetectionResult.class_filter,
+                      extracted_frame_count: videoSampledDetectionResult.extracted_frames.frame_count,
+                      detected_frame_count: videoSampledDetectionResult.detection.frame_count,
+                      extracted_frames: videoSampledDetectionResult.extracted_frames,
+                      detection: videoSampledDetectionResult.detection,
+                      result: videoSampledDetectionResult,
+                    },
+                    'sampled-video-detection-result-json',
+                    'Copied Sampled Video Detection Result JSON to clipboard.',
+                  )
+                }
+                disabled={isBusy || !videoSampledDetectionResult}
+              >
+                {copiedParserLogJsonKey === 'sampled-video-detection-result-json'
+                  ? 'Copied!'
+                  : failedParserLogJsonKey === 'sampled-video-detection-result-json'
+                    ? 'Copy failed'
+                    : 'Copy Sampled Video Detection Result JSON'}
+              </button>
+            )}
 
-            <button
-              className="secondary-button"
-              onClick={() =>
-                onDownloadJson(
-                  {
-                    source: 'sampled_video_detection_result',
-                    downloaded_at: new Date().toISOString(),
-                    filename: videoSampledDetectionResult.filename,
-                    interval_seconds: videoSampledDetectionResult.interval_seconds,
-                    confidence_threshold: videoSampledDetectionResult.confidence_threshold,
-                    class_filter: videoSampledDetectionResult.class_filter,
-                    extracted_frame_count: videoSampledDetectionResult.extracted_frames.frame_count,
-                    detected_frame_count: videoSampledDetectionResult.detection.frame_count,
-                    extracted_frames: videoSampledDetectionResult.extracted_frames,
-                    detection: videoSampledDetectionResult.detection,
-                    result: videoSampledDetectionResult,
-                  },
-                  `sampled_video_detection_result_file-${videoSampledDetectionResult.filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                  'Downloaded Sampled Video Detection Result JSON.',
-                  'download-sampled-video-detection-result-json',
-                )
-              }
-              disabled={isBusy || !videoSampledDetectionResult}
-              data-testid="download-sampled-video-detection-result-json"
-            >
-              {downloadedParserLogJsonKey === 'download-sampled-video-detection-result-json'
-                ? 'Downloaded!'
-                : 'Download Sampled Video Detection Result JSON'}
-            </button>
+            {isDeveloperMode && (
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  onDownloadJson(
+                    {
+                      source: 'sampled_video_detection_result',
+                      downloaded_at: new Date().toISOString(),
+                      filename: videoSampledDetectionResult.filename,
+                      interval_seconds: videoSampledDetectionResult.interval_seconds,
+                      confidence_threshold: videoSampledDetectionResult.confidence_threshold,
+                      class_filter: videoSampledDetectionResult.class_filter,
+                      extracted_frame_count: videoSampledDetectionResult.extracted_frames.frame_count,
+                      detected_frame_count: videoSampledDetectionResult.detection.frame_count,
+                      extracted_frames: videoSampledDetectionResult.extracted_frames,
+                      detection: videoSampledDetectionResult.detection,
+                      result: videoSampledDetectionResult,
+                    },
+                    `sampled_video_detection_result_file-${videoSampledDetectionResult.filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                    'Downloaded Sampled Video Detection Result JSON.',
+                    'download-sampled-video-detection-result-json',
+                  )
+                }
+                disabled={isBusy || !videoSampledDetectionResult}
+                data-testid="download-sampled-video-detection-result-json"
+              >
+                {downloadedParserLogJsonKey === 'download-sampled-video-detection-result-json'
+                  ? 'Downloaded!'
+                  : 'Download Sampled Video Detection Result JSON'}
+              </button>
+            )}
 
             <button
               className="secondary-button view-clear-button"
               onClick={onClearVideoSampledDetectionResult}
               disabled={isBusy}
             >
-              Clear View
+              {isDeveloperMode ? 'Clear View' : 'Clear result'}
             </button>
           </div>
 

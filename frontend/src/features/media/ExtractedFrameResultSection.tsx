@@ -7,6 +7,7 @@ type ExtractedFrameResultSectionProps = {
   videoFrameResultRef: RefObject<HTMLElement | null>
   extractedFrameUrl: string | null
   isBusy: boolean
+  isDeveloperMode: boolean
   isDetectingFrame: boolean
   copiedParserLogJsonKey: string
   failedParserLogJsonKey: string
@@ -27,6 +28,7 @@ export function ExtractedFrameResultSection({
   videoFrameResultRef,
   extractedFrameUrl,
   isBusy,
+  isDeveloperMode,
   isDetectingFrame,
   copiedParserLogJsonKey,
   failedParserLogJsonKey,
@@ -43,86 +45,98 @@ export function ExtractedFrameResultSection({
   return (
     <section className="result-grid" ref={videoFrameResultRef}>
       <div className="card">
-        <h2>Extracted Frame Result</h2>
+        <h2>{isDeveloperMode ? 'Extracted Frame Result' : 'Extracted frame ready'}</h2>
 
-        <div className="loaded-panel-actions">
-          <button
-            className="secondary-button"
-            onClick={() =>
-              void onCopyJson(
-                {
-                  source: 'extracted_frame_result',
-                  copied_at: new Date().toISOString(),
-                  original_filename: videoFrameResult.filename,
-                  frame_filename: videoFrameResult.frame_filename,
-                  timestamp_seconds: videoFrameResult.timestamp_seconds,
-                  frame_index: videoFrameResult.frame_index,
-                  fps: videoFrameResult.fps,
-                  video_duration_seconds: videoFrameResult.video_duration_seconds,
-                  result: videoFrameResult,
-                },
-                'extracted-frame-result-json',
-                'Copied Extracted Frame Result JSON to clipboard.',
-              )
-            }
-            disabled={isBusy || !videoFrameResult}
-          >
-            {copiedParserLogJsonKey === 'extracted-frame-result-json'
-              ? 'Copied!'
-              : failedParserLogJsonKey === 'extracted-frame-result-json'
-                ? 'Copy failed'
-                : 'Copy Extracted Frame Result JSON'}
-          </button>
+        <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
+          {isDeveloperMode && (
+            <button
+              className="secondary-button"
+              onClick={() =>
+                void onCopyJson(
+                  {
+                    source: 'extracted_frame_result',
+                    copied_at: new Date().toISOString(),
+                    original_filename: videoFrameResult.filename,
+                    frame_filename: videoFrameResult.frame_filename,
+                    timestamp_seconds: videoFrameResult.timestamp_seconds,
+                    frame_index: videoFrameResult.frame_index,
+                    fps: videoFrameResult.fps,
+                    video_duration_seconds: videoFrameResult.video_duration_seconds,
+                    result: videoFrameResult,
+                  },
+                  'extracted-frame-result-json',
+                  'Copied Extracted Frame Result JSON to clipboard.',
+                )
+              }
+              disabled={isBusy || !videoFrameResult}
+            >
+              {copiedParserLogJsonKey === 'extracted-frame-result-json'
+                ? 'Copied!'
+                : failedParserLogJsonKey === 'extracted-frame-result-json'
+                  ? 'Copy failed'
+                  : 'Copy Extracted Frame Result JSON'}
+            </button>
+          )}
 
-          <button
-            className="secondary-button"
-            onClick={() =>
-              onDownloadJson(
-                {
-                  source: 'extracted_frame_result',
-                  downloaded_at: new Date().toISOString(),
-                  original_filename: videoFrameResult.filename,
-                  frame_filename: videoFrameResult.frame_filename,
-                  timestamp_seconds: videoFrameResult.timestamp_seconds,
-                  frame_index: videoFrameResult.frame_index,
-                  fps: videoFrameResult.fps,
-                  video_duration_seconds: videoFrameResult.video_duration_seconds,
-                  result: videoFrameResult,
-                },
-                `extracted_frame_result_file-${videoFrameResult.frame_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
-                'Downloaded Extracted Frame Result JSON.',
-                'download-extracted-frame-result-json',
-              )
-            }
-            disabled={isBusy || !videoFrameResult}
-            data-testid="download-extracted-frame-result-json"
-          >
-            {downloadedParserLogJsonKey === 'download-extracted-frame-result-json'
-              ? 'Downloaded!'
-              : 'Download Extracted Frame Result JSON'}
-          </button>
+          {isDeveloperMode && (
+            <button
+              className="secondary-button"
+              onClick={() =>
+                onDownloadJson(
+                  {
+                    source: 'extracted_frame_result',
+                    downloaded_at: new Date().toISOString(),
+                    original_filename: videoFrameResult.filename,
+                    frame_filename: videoFrameResult.frame_filename,
+                    timestamp_seconds: videoFrameResult.timestamp_seconds,
+                    frame_index: videoFrameResult.frame_index,
+                    fps: videoFrameResult.fps,
+                    video_duration_seconds: videoFrameResult.video_duration_seconds,
+                    result: videoFrameResult,
+                  },
+                  `extracted_frame_result_file-${videoFrameResult.frame_filename.replace(/[^a-z0-9]+/gi, '-')}.json`,
+                  'Downloaded Extracted Frame Result JSON.',
+                  'download-extracted-frame-result-json',
+                )
+              }
+              disabled={isBusy || !videoFrameResult}
+              data-testid="download-extracted-frame-result-json"
+            >
+              {downloadedParserLogJsonKey === 'download-extracted-frame-result-json'
+                ? 'Downloaded!'
+                : 'Download Extracted Frame Result JSON'}
+            </button>
+          )}
 
           <button
             className="secondary-button view-clear-button"
             onClick={onClearVideoFrameResult}
             disabled={isBusy}
           >
-            Clear View
+            {isDeveloperMode ? 'Clear View' : 'Clear result'}
           </button>
         </div>
 
         <div className="metadata-list">
-          <p><strong>Original filename:</strong> {videoFrameResult.filename}</p>
-          <p><strong>Frame filename:</strong> {videoFrameResult.frame_filename}</p>
+          {isDeveloperMode && (
+            <>
+              <p><strong>Original filename:</strong> {videoFrameResult.filename}</p>
+              <p><strong>Frame filename:</strong> {videoFrameResult.frame_filename}</p>
+            </>
+          )}
           <p><strong>Timestamp:</strong> {videoFrameResult.timestamp_seconds}s</p>
-          <p><strong>Frame index:</strong> {videoFrameResult.frame_index}</p>
-          <p><strong>FPS:</strong> {videoFrameResult.fps}</p>
+          {isDeveloperMode && (
+            <>
+              <p><strong>Frame index:</strong> {videoFrameResult.frame_index}</p>
+              <p><strong>FPS:</strong> {videoFrameResult.fps}</p>
+            </>
+          )}
           <p><strong>Video duration:</strong> {videoFrameResult.video_duration_seconds}s</p>
         </div>
       </div>
 
       <div className="card">
-        <h2>Extracted Frame Preview</h2>
+        <h2>{isDeveloperMode ? 'Extracted Frame Preview' : 'Frame preview'}</h2>
         {extractedFrameUrl && videoFrameResult && (
           <>
             <img
@@ -131,7 +145,7 @@ export function ExtractedFrameResultSection({
               alt="Extracted video frame"
             />
 
-            <div className="output-actions">
+            <div className={isDeveloperMode ? 'output-actions' : 'output-actions result-output-actions'}>
               <a href={extractedFrameUrl} target="_blank" rel="noreferrer">
                 Open frame
               </a>
@@ -145,7 +159,7 @@ export function ExtractedFrameResultSection({
               onClick={() => void onDetectExtractedFrame()}
               disabled={isBusy || !videoFrameResult}
             >
-              {isDetectingFrame ? 'Detecting frame...' : 'Run YOLO on Frame'}
+              {isDetectingFrame ? 'Detecting frame...' : isDeveloperMode ? 'Run YOLO on Frame' : 'Detect objects'}
             </button>
           </>
         )}

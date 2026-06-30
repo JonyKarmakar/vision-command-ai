@@ -188,7 +188,7 @@ export function VideoUploadFoundationSection({
                   onClick={onClearVideoUploadResult}
                   disabled={isBusy}
                 >
-                  Clear View
+                  {isDeveloperMode ? 'Clear View' : 'Clear result'}
                 </button>
               </div>
 
@@ -216,7 +216,7 @@ export function VideoUploadFoundationSection({
                 <>
                   <video className="preview-video" src={uploadedVideoUrl} controls />
 
-                  <div className="output-actions">
+                  <div className={isDeveloperMode ? 'output-actions' : 'output-actions result-output-actions'}>
                     <a href={uploadedVideoUrl} target="_blank" rel="noreferrer">
                       Open video
                     </a>
