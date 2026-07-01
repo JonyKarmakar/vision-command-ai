@@ -4517,6 +4517,110 @@ function App() {
 
   const extractedFrameUrl = videoFrameResult ? `/api${videoFrameResult.frame_file_url}` : null
 
+  const videoWorkflowHistoryItems = [
+    videoUploadResult
+      ? {
+          key: 'video-upload',
+          step: 'Upload',
+          title: 'Video workspace ready',
+          description: 'Uploaded video is ready for trimming, frame extraction, detection, and tracking.',
+        }
+      : null,
+    videoTrimResult
+      ? {
+          key: 'video-trim',
+          step: 'Trim',
+          title: 'Trimmed video ready',
+          description: 'A trimmed video was created from the current video.',
+        }
+      : null,
+    videoFrameResult
+      ? {
+          key: 'video-frame',
+          step: 'Frame',
+          title: 'Extracted frame ready',
+          description: 'A still frame was extracted from the current video.',
+        }
+      : null,
+    videoMultiFrameResult
+      ? {
+          key: 'video-frames',
+          step: 'Frames',
+          title: 'Extracted frames ready',
+          description: 'A frame gallery was extracted from the selected video range.',
+        }
+      : null,
+    videoSampledDetectionResult
+      ? {
+          key: 'video-sampled-detection',
+          step: 'Detect',
+          title: 'Sampled detection results',
+          description: 'Objects were detected across sampled frames from the video.',
+        }
+      : null,
+    videoMultiFrameDetectionResult
+      ? {
+          key: 'video-frame-detection',
+          step: 'Detect',
+          title: 'Frame detection results',
+          description: 'Objects were detected across extracted video frames.',
+        }
+      : null,
+    videoTrackingResult
+      ? {
+          key: 'video-tracking',
+          step: 'Track',
+          title: 'Object tracking results',
+          description: 'Detected objects were tracked across the selected video range.',
+        }
+      : null,
+  ].filter(
+    (
+      item,
+    ): item is {
+      key: string
+      step: string
+      title: string
+      description: string
+    } => item !== null,
+  )
+
+  const handleOpenVideoWorkflowHistoryItem = (key: string) => {
+    if (key === 'video-upload') {
+      scrollToLoadedView(videoUploadResultRef)
+      return
+    }
+
+    if (key === 'video-trim') {
+      scrollToLoadedView(videoTrimResultRef)
+      return
+    }
+
+    if (key === 'video-frame') {
+      scrollToLoadedView(videoFrameResultRef)
+      return
+    }
+
+    if (key === 'video-frames') {
+      scrollToLoadedView(videoMultiFrameResultRef)
+      return
+    }
+
+    if (key === 'video-sampled-detection') {
+      scrollToLoadedView(videoSampledDetectionResultRef)
+      return
+    }
+
+    if (key === 'video-frame-detection') {
+      scrollToLoadedView(videoMultiFrameDetectionResultRef)
+      return
+    }
+
+    if (key === 'video-tracking') {
+      scrollToLoadedView(videoTrackingResultRef)
+    }
+  }
+
   const annotatedFrameUrl = videoFrameDetectionResult
     ? `/api${videoFrameDetectionResult.annotated_frame_file_url}`
     : null
@@ -5440,6 +5544,40 @@ function App() {
             </div>
           )}
         </CommandCardSection>
+      )}
+
+      {videoWorkflowHistoryItems.length > 0 && (
+        <section className="card video-workflow-history-card">
+          <div>
+            <p className="eyebrow">Video workflow</p>
+            <h2>Video command history</h2>
+            <p className="small-note">
+              Review completed video actions from this session and jump back to each result.
+            </p>
+          </div>
+
+          <div className="video-workflow-history-list">
+            {videoWorkflowHistoryItems.map((item, index) => (
+              <div className="video-workflow-history-item" key={item.key}>
+                <span>{index + 1}</span>
+
+                <div>
+                  <strong>{item.title}</strong>
+                  <p>{item.description}</p>
+                </div>
+
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => handleOpenVideoWorkflowHistoryItem(item.key)}
+                  disabled={isBusy}
+                >
+                  View result
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       <VideoUploadFoundationSection
