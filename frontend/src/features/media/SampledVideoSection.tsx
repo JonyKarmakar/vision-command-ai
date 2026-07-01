@@ -70,37 +70,51 @@ export function SampledVideoSection({
   }
 
   return (
-    <section className="card video-sampled-detection-card">
-      <h2>Detect Sampled Video</h2>
-      <p className="small-note">
-        Sample frames across the full video and run YOLO detection on each sampled frame.
-      </p>
+    <>
+      <section className="card video-sampled-detection-card">
+        <h2>{isDeveloperMode ? 'Detect Sampled Video' : 'Detect objects across video'}</h2>
+        <p className="small-note">
+          {isDeveloperMode
+            ? 'Sample frames across the full video and run YOLO detection on each sampled frame.'
+            : 'Sample frames across the video and detect objects in each sampled frame.'}
+        </p>
 
-      <div className="trim-input-grid">
-        <label>
-          Sampling interval seconds
-          <input
-            type="number"
-            min="0.1"
-            step="0.1"
-            value={sampledVideoIntervalSeconds}
-            onChange={(event) => onSampledVideoIntervalSecondsChange(Number(event.target.value))}
-            disabled={isBusy}
-          />
-        </label>
-      </div>
+        <div className="trim-input-grid">
+          <label>
+            Sampling interval seconds
+            <input
+              type="number"
+              min="0.1"
+              step="0.1"
+              value={sampledVideoIntervalSeconds}
+              onChange={(event) => onSampledVideoIntervalSecondsChange(Number(event.target.value))}
+              disabled={isBusy}
+            />
+          </label>
+        </div>
 
-      <button
-        onClick={() => void onDetectSampledVideo()}
-        disabled={isBusy || !videoUploadResult}
-      >
-        {isDetectingSampledVideo ? 'Detecting sampled video...' : 'Detect Sampled Video'}
-      </button>
+        <div className="sampled-video-action-row">
+          <button
+            onClick={() => void onDetectSampledVideo()}
+            disabled={isBusy || !videoUploadResult}
+          >
+            {isDetectingSampledVideo
+              ? isDeveloperMode
+                ? 'Detecting sampled video...'
+                : 'Detecting objects...'
+              : isDeveloperMode
+                ? 'Detect Sampled Video'
+                : 'Detect objects in video'}
+          </button>
+        </div>
+      </section>
 
       <section className="card video-tracking-card">
-        <h2>Track Sampled Video</h2>
+        <h2>{isDeveloperMode ? 'Track Sampled Video' : 'Track objects across video'}</h2>
         <p className="small-note">
-          Track detected objects across sampled video frames using simple centroid-based matching.
+          {isDeveloperMode
+            ? 'Track detected objects across sampled video frames using simple centroid-based matching.'
+            : 'Track detected objects across the selected video range.'}
         </p>
 
         <div className="trim-input-grid">
@@ -153,17 +167,25 @@ export function SampledVideoSection({
           </label>
         </div>
 
-        <button
-          onClick={() => void onTrackSampledVideo()}
-          disabled={isBusy || !videoUploadResult}
-        >
-          {isTrackingVideo ? 'Tracking video...' : 'Track Sampled Video'}
-        </button>
+        <div className="sampled-video-action-row">
+          <button
+            onClick={() => void onTrackSampledVideo()}
+            disabled={isBusy || !videoUploadResult}
+          >
+            {isTrackingVideo
+              ? 'Tracking video...'
+              : isDeveloperMode
+                ? 'Track Sampled Video'
+                : 'Track objects'}
+          </button>
+        </div>
       </section>
 
       {videoSampledDetectionResult && (
-        <>
-          <h3 ref={videoSampledDetectionResultRef}>Sampled Video Detection Result</h3>
+        <section className="card video-sampled-result-card">
+          <h3 ref={videoSampledDetectionResultRef}>
+            {isDeveloperMode ? 'Sampled Video Detection Result' : 'Sampled detection results'}
+          </h3>
 
           <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
             {isDeveloperMode && (
@@ -240,15 +262,17 @@ export function SampledVideoSection({
           </div>
 
           <div className="summary-box sampled-video-summary">
-            <p><strong>Video:</strong> {videoSampledDetectionResult.filename}</p>
+            {isDeveloperMode && (
+              <p><strong>Video:</strong> {videoSampledDetectionResult.filename}</p>
+            )}
             <p><strong>Interval:</strong> {videoSampledDetectionResult.interval_seconds}s</p>
             <p><strong>Confidence threshold:</strong> {(videoSampledDetectionResult.confidence_threshold * 100).toFixed(0)}%</p>
             <p><strong>Class filter:</strong> {videoSampledDetectionResult.class_filter ?? 'All classes'}</p>
             <p><strong>Extracted frames:</strong> {videoSampledDetectionResult.extracted_frames.frame_count}</p>
             <p><strong>Detected frames:</strong> {videoSampledDetectionResult.detection.frame_count}</p>
           </div>
-        </>
+        </section>
       )}
-    </section>
+    </>
   )
 }

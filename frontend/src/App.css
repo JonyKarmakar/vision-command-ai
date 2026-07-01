@@ -5158,3 +5158,18 @@ input[type="file"]::file-selector-button:hover {
 .crop-selected-class-note {
   margin-top: 0.75rem;
 }
+
+
+.sampled-video-action-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.video-sampled-result-card {
+  margin-top: 1rem;
+}
+
+.video-tracking-card {
+  margin-top: 1rem;
+}
