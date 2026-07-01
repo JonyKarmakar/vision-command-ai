@@ -4919,6 +4919,34 @@ function App() {
         onUseMediaFile={handleUseMediaFile}
       />
 
+      <VideoUploadFoundationSection
+        isDeveloperMode={isDeveloperMode}
+        showWorkspacePanels={false}
+        selectedVideoFile={selectedVideoFile}
+        videoUploadResult={videoUploadResult}
+        uploadedVideoUrl={uploadedVideoUrl}
+        videoUploadResultRef={videoUploadResultRef}
+        trimStartSeconds={trimStartSeconds}
+        trimEndSeconds={trimEndSeconds}
+        isBusy={isBusy}
+        isUploadingVideo={isUploadingVideo}
+        isTrimmingVideo={isTrimmingVideo}
+        copiedParserLogJsonKey={copiedParserLogJsonKey}
+        failedParserLogJsonKey={failedParserLogJsonKey}
+        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+        onVideoFileChange={handleVideoFileChange}
+        onVideoUpload={handleVideoUpload}
+        onVideoTrim={handleVideoTrim}
+        onTrimStartSecondsChange={setTrimStartSeconds}
+        onTrimEndSecondsChange={setTrimEndSeconds}
+        onClearVideoUploadResult={() => {
+          setVideoUploadResult(null)
+          setStatusMessage('Video Upload Result view cleared.')
+        }}
+        onCopyJson={handleCopyParserLogJson}
+        onDownloadJson={handleDownloadJsonFile}
+      />
+
       {(uploadResult || videoUploadResult) && (
         <CommandCardSection isDeveloperMode={isDeveloperMode}>
           <CommandPresetsSection
@@ -5416,6 +5444,7 @@ function App() {
 
       <VideoUploadFoundationSection
         isDeveloperMode={isDeveloperMode}
+        showUploadCard={false}
         selectedVideoFile={selectedVideoFile}
         videoUploadResult={videoUploadResult}
         uploadedVideoUrl={uploadedVideoUrl}
@@ -5685,6 +5714,40 @@ function App() {
         onExtractMultipleVideoFrames={handleExtractMultipleVideoFrames}
       />
 
+
+
+
+      <SampledVideoSection
+        isDeveloperMode={isDeveloperMode}
+        videoUploadResult={videoUploadResult}
+        videoSampledDetectionResult={videoSampledDetectionResult}
+        videoSampledDetectionResultRef={videoSampledDetectionResultRef}
+        sampledVideoIntervalSeconds={sampledVideoIntervalSeconds}
+        trackingStartSeconds={trackingStartSeconds}
+        trackingEndSeconds={trackingEndSeconds}
+        trackingIntervalSeconds={trackingIntervalSeconds}
+        trackingMaxDistancePixels={trackingMaxDistancePixels}
+        isBusy={isBusy}
+        isDetectingSampledVideo={isDetectingSampledVideo}
+        isTrackingVideo={isTrackingVideo}
+        copiedParserLogJsonKey={copiedParserLogJsonKey}
+        failedParserLogJsonKey={failedParserLogJsonKey}
+        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+        onSampledVideoIntervalSecondsChange={setSampledVideoIntervalSeconds}
+        onTrackingStartSecondsChange={setTrackingStartSeconds}
+        onTrackingEndSecondsChange={setTrackingEndSeconds}
+        onTrackingIntervalSecondsChange={setTrackingIntervalSeconds}
+        onTrackingMaxDistancePixelsChange={setTrackingMaxDistancePixels}
+        onDetectSampledVideo={handleDetectSampledVideo}
+        onTrackSampledVideo={handleTrackSampledVideo}
+        onClearVideoSampledDetectionResult={() => {
+          setVideoSampledDetectionResult(null)
+          setStatusMessage('Sampled Video Detection Result view cleared.')
+        }}
+        onCopyJson={handleCopyParserLogJson}
+        onDownloadJson={handleDownloadJsonFile}
+      />
+
       <VideoTrimResultSection
         isDeveloperMode={isDeveloperMode}
         videoTrimResult={videoTrimResult}
@@ -5733,37 +5796,6 @@ function App() {
         onClearVideoFrameDetectionResult={() => {
           setVideoFrameDetectionResult(null)
           setStatusMessage('Video Frame Detection Result view cleared.')
-        }}
-        onCopyJson={handleCopyParserLogJson}
-        onDownloadJson={handleDownloadJsonFile}
-      />
-
-      <SampledVideoSection
-        isDeveloperMode={isDeveloperMode}
-        videoUploadResult={videoUploadResult}
-        videoSampledDetectionResult={videoSampledDetectionResult}
-        videoSampledDetectionResultRef={videoSampledDetectionResultRef}
-        sampledVideoIntervalSeconds={sampledVideoIntervalSeconds}
-        trackingStartSeconds={trackingStartSeconds}
-        trackingEndSeconds={trackingEndSeconds}
-        trackingIntervalSeconds={trackingIntervalSeconds}
-        trackingMaxDistancePixels={trackingMaxDistancePixels}
-        isBusy={isBusy}
-        isDetectingSampledVideo={isDetectingSampledVideo}
-        isTrackingVideo={isTrackingVideo}
-        copiedParserLogJsonKey={copiedParserLogJsonKey}
-        failedParserLogJsonKey={failedParserLogJsonKey}
-        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
-        onSampledVideoIntervalSecondsChange={setSampledVideoIntervalSeconds}
-        onTrackingStartSecondsChange={setTrackingStartSeconds}
-        onTrackingEndSecondsChange={setTrackingEndSeconds}
-        onTrackingIntervalSecondsChange={setTrackingIntervalSeconds}
-        onTrackingMaxDistancePixelsChange={setTrackingMaxDistancePixels}
-        onDetectSampledVideo={handleDetectSampledVideo}
-        onTrackSampledVideo={handleTrackSampledVideo}
-        onClearVideoSampledDetectionResult={() => {
-          setVideoSampledDetectionResult(null)
-          setStatusMessage('Sampled Video Detection Result view cleared.')
         }}
         onCopyJson={handleCopyParserLogJson}
         onDownloadJson={handleDownloadJsonFile}

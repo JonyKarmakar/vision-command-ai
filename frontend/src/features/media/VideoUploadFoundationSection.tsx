@@ -14,6 +14,8 @@ type VideoUploadFoundationSectionProps = {
   isUploadingVideo: boolean
   isTrimmingVideo: boolean
   isDeveloperMode: boolean
+  showUploadCard?: boolean
+  showWorkspacePanels?: boolean
   copiedParserLogJsonKey: string
   failedParserLogJsonKey: string
   downloadedParserLogJsonKey: string
@@ -43,6 +45,8 @@ export function VideoUploadFoundationSection({
   isUploadingVideo,
   isTrimmingVideo,
   isDeveloperMode,
+  showUploadCard = true,
+  showWorkspacePanels = true,
   copiedParserLogJsonKey,
   failedParserLogJsonKey,
   downloadedParserLogJsonKey,
@@ -56,8 +60,8 @@ export function VideoUploadFoundationSection({
   onDownloadJson,
 }: VideoUploadFoundationSectionProps) {
   const selectedVideoPreviewUrl = useMemo(
-    () => (selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : null),
-    [selectedVideoFile],
+    () => (showUploadCard && selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : null),
+    [selectedVideoFile, showUploadCard],
   )
 
   useEffect(() => {
@@ -70,7 +74,8 @@ export function VideoUploadFoundationSection({
 
   return (
     <>
-      <section className="card">
+      {showUploadCard && (
+        <section className="card">
         <p className="eyebrow">Video workspace</p>
         <h2>Or upload a video</h2>
         <p className="small-note">
@@ -115,9 +120,10 @@ export function VideoUploadFoundationSection({
             {isUploadingVideo ? 'Uploading video...' : 'Upload video'}
           </button>
         </div>
-      </section>
+        </section>
+      )}
 
-      {videoUploadResult && (
+      {showWorkspacePanels && videoUploadResult && (
         <>
           <section className="result-grid" ref={videoUploadResultRef}>
             <div className="card">
