@@ -300,6 +300,27 @@ This document defines the assets that should support the flow.
 
 ## Current Status
 
+Placeholder documentation asset folders are now committed.
+
 No final screenshot or sample media set is committed yet.
 
 This document defines the standard for adding those assets later in a controlled and professional way.
+
+---
+
+## Current Asset Folder Structure
+
+The repository now includes placeholder folders for future documentation assets.
+
+```text
+docs/assets/
+├── README.md
+├── screenshots/
+├── sample-inputs/
+├── sample-outputs/
+└── diagrams/
+```
+
+These folders are intentionally lightweight. They prepare the project for future screenshots, sample inputs, sample outputs, and rendered diagrams without committing large media files.
+
+---
