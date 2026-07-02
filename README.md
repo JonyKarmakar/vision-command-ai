@@ -390,6 +390,7 @@ Detailed documentation is available in the `docs/` folder.
 Important docs include:
 
 ```text
+docs/README.md
 docs/api-and-feature-reference.md
 docs/product-walkthrough.md
 docs/architecture-overview.md
