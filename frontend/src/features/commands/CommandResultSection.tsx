@@ -75,9 +75,14 @@ export function CommandResultSection({
     return null
   }
 
+  const commandResultTitle =
+    !isDeveloperMode && commandResult.result_type === 'zoom_by_class'
+      ? 'Zoomed image ready'
+      : 'Assistant result'
+
   return (
     <div className="command-result" ref={commandResultRef}>
-      <h3>Assistant result</h3>
+      <h3>{commandResultTitle}</h3>
 
       <div className={isDeveloperMode ? 'loaded-panel-actions' : 'loaded-panel-actions result-management-actions'}>
         {isDeveloperMode && (
