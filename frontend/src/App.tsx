@@ -18,7 +18,7 @@ import { VideoFrameToolsSection } from './features/media/VideoFrameToolsSection'
 import { VideoTrimResultSection } from './features/media/VideoTrimResultSection'
 import { ExtractedFrameResultSection } from './features/media/ExtractedFrameResultSection'
 import { VideoFrameDetectionResultSection } from './features/media/VideoFrameDetectionResultSection'
-import { SampledVideoSection } from './features/media/SampledVideoSection'
+import { SampledVideoDetectionResultSection, SampledVideoSection } from './features/media/SampledVideoSection'
 import { MultiFrameExtractionResultSection } from './features/media/MultiFrameExtractionResultSection'
 import { MultiFrameDetectionResultSection } from './features/media/MultiFrameDetectionResultSection'
 import { VideoTrackingResultSection } from './features/media/VideoTrackingResultSection'
@@ -182,6 +182,33 @@ const getErrorMessage = (error: unknown, fallbackMessage: string): string => {
 }
 
 
+type VideoResultPanelKey =
+  | 'trim_video'
+  | 'extract_frame'
+  | 'frame_detection'
+  | 'extract_frames'
+  | 'detect_frames'
+  | 'sampled_detection'
+  | 'track_video'
+
+const VIDEO_RESULT_PANEL_FALLBACK_ORDER: VideoResultPanelKey[] = [
+  'trim_video',
+  'extract_frame',
+  'frame_detection',
+  'extract_frames',
+  'detect_frames',
+  'sampled_detection',
+  'track_video',
+]
+
+const VIDEO_COMMAND_RESULT_TYPES = new Set<string>([
+  'trim_video',
+  'extract_frame',
+  'extract_frames',
+  'detect_frames',
+  'track_video',
+])
+
 function App() {
   const [isDeveloperMode, setIsDeveloperMode] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -194,6 +221,14 @@ function App() {
   const [videoMultiFrameDetectionResult, setVideoMultiFrameDetectionResult] = useState<VideoMultiFrameDetectionResponse | null>(null)
   const [videoSampledDetectionResult, setVideoSampledDetectionResult] = useState<VideoSampledDetectionResponse | null>(null)
   const [videoTrackingResult, setVideoTrackingResult] = useState<VideoTrackingResponse | null>(null)
+  const [videoResultOrder, setVideoResultOrder] = useState<VideoResultPanelKey[]>([])
+
+  const rememberVideoResultPanels = (...panelKeys: VideoResultPanelKey[]) => {
+    setVideoResultOrder((currentOrder) => [
+      ...currentOrder.filter((key) => !panelKeys.includes(key)),
+      ...panelKeys,
+    ])
+  }
   const [videoFrameDetectionResult, setVideoFrameDetectionResult] = useState<VideoFrameDetectionResponse | null>(null)
   const [trimStartSeconds, setTrimStartSeconds] = useState(0)
   const [trimEndSeconds, setTrimEndSeconds] = useState(2)
@@ -1545,6 +1580,7 @@ function App() {
 
       const data: VideoTrimResponse = await response.json()
       setVideoTrimResult(data)
+      rememberVideoResultPanels('trim_video')
       scrollToLoadedView(videoTrimResultRef)
       setStatusMessage('Video trim complete. Trimmed video is ready.')
     } catch (err) {
@@ -1591,6 +1627,7 @@ function App() {
 
       const data: VideoFrameExtractResponse = await response.json()
       setVideoFrameResult(data)
+      rememberVideoResultPanels('extract_frame')
       scrollToLoadedView(videoFrameResultRef)
       setVideoMultiFrameResult(null)
       setVideoFrameDetectionResult(null)
@@ -1684,6 +1721,7 @@ function App() {
 
       const data: VideoMultiFrameExtractResponse = await response.json()
       setVideoMultiFrameResult(data)
+      rememberVideoResultPanels('extract_frames')
       scrollToLoadedView(videoMultiFrameResultRef)
       setVideoMultiFrameDetectionResult(null)
       setStatusMessage(`Extracted ${data.frame_count} frame(s) from the video.`)
@@ -1725,6 +1763,7 @@ function App() {
 
       const data: VideoMultiFrameDetectionResponse = await response.json()
       setVideoMultiFrameDetectionResult(data)
+      rememberVideoResultPanels('detect_frames')
       scrollToLoadedView(videoMultiFrameDetectionResultRef)
       setStatusMessage(`Detected objects on ${data.frame_count} extracted frame(s).`)
     } catch (err) {
@@ -1778,10 +1817,11 @@ function App() {
       const data: VideoSampledDetectionResponse = await response.json()
 
       setVideoSampledDetectionResult(data)
-      scrollToLoadedView(videoSampledDetectionResultRef)
       setVideoTrackingResult(null)
       setVideoMultiFrameResult(data.extracted_frames)
       setVideoMultiFrameDetectionResult(data.detection)
+      rememberVideoResultPanels('sampled_detection', 'extract_frames', 'detect_frames')
+      scrollToLoadedView(videoSampledDetectionResultRef)
 
       setStatusMessage(
         `Sampled video detection complete. Processed ${data.detection.frame_count} frame(s).`,
@@ -1840,6 +1880,7 @@ function App() {
 
       const data: VideoTrackingResponse = await response.json()
       setVideoTrackingResult(data)
+      rememberVideoResultPanels('track_video')
       scrollToLoadedView(videoTrackingResultRef)
       setStatusMessage(`Video tracking complete. Found ${data.track_count} track(s).`)
     } catch (err) {
@@ -3971,12 +4012,14 @@ function App() {
       if (data.result_type === 'extract_frame') {
         const result = data.result as VideoFrameExtractResponse
         setVideoFrameResult(result)
+        rememberVideoResultPanels('extract_frame')
         setVideoFrameDetectionResult(null)
       }
 
       if (data.result_type === 'extract_frames') {
         const result = data.result as VideoMultiFrameExtractResponse
         setVideoMultiFrameResult(result)
+        rememberVideoResultPanels('extract_frames')
         setVideoMultiFrameDetectionResult(null)
         setVideoFrameResult(null)
         setVideoFrameDetectionResult(null)
@@ -3986,6 +4029,7 @@ function App() {
         const result = data.result as VideoDetectFramesCommandResponse
         setVideoMultiFrameResult(result.extracted_frames)
         setVideoMultiFrameDetectionResult(result.detection)
+        rememberVideoResultPanels('extract_frames', 'detect_frames')
         setVideoFrameResult(null)
         setVideoFrameDetectionResult(null)
       }
@@ -3993,11 +4037,13 @@ function App() {
       if (data.result_type === 'track_video') {
         const result = data.result as VideoTrackingResponse
         setVideoTrackingResult(result)
+        rememberVideoResultPanels('track_video')
       }
 
       if (data.result_type === 'trim_video') {
         const result = data.result as VideoTrimResponse
         setVideoTrimResult(result)
+        rememberVideoResultPanels('trim_video')
       }
 
         addNonZoomCommandGeneratedOutputToHistory(data)
@@ -4516,6 +4562,50 @@ function App() {
   const trimmedVideoUrl = videoTrimResult ? `/api${videoTrimResult.trimmed_file_url}` : null
 
   const extractedFrameUrl = videoFrameResult ? `/api${videoFrameResult.frame_file_url}` : null
+
+  const isVideoResultPanelAvailable = (panelKey: VideoResultPanelKey) => {
+    if (panelKey === 'trim_video') {
+      return Boolean(videoTrimResult)
+    }
+
+    if (panelKey === 'extract_frame') {
+      return Boolean(videoFrameResult)
+    }
+
+    if (panelKey === 'frame_detection') {
+      return Boolean(videoFrameDetectionResult)
+    }
+
+    if (panelKey === 'extract_frames') {
+      return Boolean(videoMultiFrameResult)
+    }
+
+    if (panelKey === 'detect_frames') {
+      return Boolean(videoMultiFrameDetectionResult)
+    }
+
+    if (panelKey === 'sampled_detection') {
+      return Boolean(videoSampledDetectionResult)
+    }
+
+    if (panelKey === 'track_video') {
+      return Boolean(videoTrackingResult)
+    }
+
+    return false
+  }
+
+  const videoResultPanelsInDisplayOrder = [
+    ...videoResultOrder.filter(isVideoResultPanelAvailable),
+    ...VIDEO_RESULT_PANEL_FALLBACK_ORDER.filter(
+      (panelKey) =>
+        isVideoResultPanelAvailable(panelKey) && !videoResultOrder.includes(panelKey),
+    ),
+  ]
+
+  const isVideoCommandResult = commandResult
+    ? VIDEO_COMMAND_RESULT_TYPES.has(commandResult.result_type)
+    : false
 
   const videoWorkflowHistoryItems = [
     videoUploadResult
@@ -5758,83 +5848,86 @@ function App() {
         onDownloadJson={handleDownloadJsonFile}
       />
 
-      <CommandResultSection
-    isDeveloperMode={isDeveloperMode}
-        commandResult={commandResult}
-        commandResultRef={commandResultRef}
-        activeGeneratedImageFilename={activeGeneratedImageSource?.filename ?? null}
-        copiedParserLogJsonKey={copiedParserLogJsonKey}
-        failedParserLogJsonKey={failedParserLogJsonKey}
-        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
-        isBusy={isBusy}
-        onCopyJson={handleCopyParserLogJson}
-        onDownloadJson={handleDownloadJsonFile}
-        onClearCommandResult={() => {
-          setCommandResult(null)
-          setStatusMessage('Command Result view cleared.')
-        }}
-        onDetectZoomedImage={async (result) => {
-          try {
-            setStatusMessage('Running YOLO on zoomed image...')
+      {!isVideoCommandResult && (
+        <CommandResultSection
+          isDeveloperMode={isDeveloperMode}
+          commandResult={commandResult}
+          commandResultRef={commandResultRef}
+          activeGeneratedImageFilename={activeGeneratedImageSource?.filename ?? null}
+          copiedParserLogJsonKey={copiedParserLogJsonKey}
+          failedParserLogJsonKey={failedParserLogJsonKey}
+          downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+          isBusy={isBusy}
+          onCopyJson={handleCopyParserLogJson}
+          onDownloadJson={handleDownloadJsonFile}
+          onClearCommandResult={() => {
+            setCommandResult(null)
+            setStatusMessage('Command Result view cleared.')
+          }}
+          onDetectZoomedImage={async (result) => {
+            try {
+              setStatusMessage('Running YOLO on zoomed image...')
 
-            const normalizedDetectionThreshold =
-              confidenceThreshold > 1 ? confidenceThreshold / 100 : confidenceThreshold
+              const normalizedDetectionThreshold =
+                confidenceThreshold > 1 ? confidenceThreshold / 100 : confidenceThreshold
 
-            const response = await fetch(
-              `/api/vision/detect-output/${encodeURIComponent(result.zoomed_filename)}/annotated?confidence_threshold=${normalizedDetectionThreshold}`,
-              {
-                method: 'POST',
-              },
-            )
+              const response = await fetch(
+                `/api/vision/detect-output/${encodeURIComponent(result.zoomed_filename)}/annotated?confidence_threshold=${normalizedDetectionThreshold}`,
+                {
+                  method: 'POST',
+                },
+              )
 
-            if (!response.ok) {
-              const errorData = await response.json().catch(() => null)
-              throw new Error(errorData?.detail ?? 'Failed to run YOLO on zoomed image.')
-            }
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => null)
+                throw new Error(errorData?.detail ?? 'Failed to run YOLO on zoomed image.')
+              }
 
-            const detectionData = await response.json() as DetectionResponse
+              const detectionData = await response.json() as DetectionResponse
 
-            setDetectionResult(detectionData)
-            addGeneratedOutputHistoryItem({
-              action: 'annotated_detection',
-              label: detectionData.source === 'outputs'
-                ? 'YOLO on generated output'
-                : 'Annotated detection output',
-              filename: detectionData.annotated_filename,
-              file_url: detectionData.annotated_file_url,
-              source: detectionData.source ?? 'uploads',
-              source_filename: detectionData.filename,
-            })
-            setSelectedClass('all')
-            setLastDetectionThreshold(normalizedDetectionThreshold)
-            setLastDetectionClass('all')
-
-            window.setTimeout(() => {
-              detectionResultRef.current?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
+              setDetectionResult(detectionData)
+              addGeneratedOutputHistoryItem({
+                action: 'annotated_detection',
+                label: detectionData.source === 'outputs'
+                  ? 'YOLO on generated output'
+                  : 'Annotated detection output',
+                filename: detectionData.annotated_filename,
+                file_url: detectionData.annotated_file_url,
+                source: detectionData.source ?? 'uploads',
+                source_filename: detectionData.filename,
               })
-            }, 100)
+              setSelectedClass('all')
+              setLastDetectionThreshold(normalizedDetectionThreshold)
+              setLastDetectionClass('all')
 
-            setClassOptions((previousClasses) =>
-              Array.from(
-                new Set([
-                  ...previousClasses,
-                  ...detectionData.detections.map((detection) => detection.class_name),
-                ]),
-              ).sort(),
-            )
+              window.setTimeout(() => {
+                detectionResultRef.current?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                })
+              }, 100)
 
-            setStatusMessage('Object detection completed on zoomed image.')
-          } catch (error) {
-            setStatusMessage(
-              error instanceof Error
-                ? error.message
-                : 'Failed to detect objects on zoomed image.',
-            )
-          }
-        }}
-      />
+              setClassOptions((previousClasses) =>
+                Array.from(
+                  new Set([
+                    ...previousClasses,
+                    ...detectionData.detections.map((detection) => detection.class_name),
+                  ]),
+                ).sort(),
+              )
+
+              setStatusMessage('Object detection completed on zoomed image.')
+            } catch (error) {
+              setStatusMessage(
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to detect objects on zoomed image.',
+              )
+            }
+          }}
+        />
+      )}
+
       <VideoFrameToolsSection
         videoUploadResult={videoUploadResult}
         frameTimestampSeconds={frameTimestampSeconds}
@@ -5886,110 +5979,246 @@ function App() {
         onDownloadJson={handleDownloadJsonFile}
       />
 
-      <VideoTrimResultSection
-        isDeveloperMode={isDeveloperMode}
-        videoTrimResult={videoTrimResult}
-        videoTrimResultRef={videoTrimResultRef}
-        trimmedVideoUrl={trimmedVideoUrl}
-        isBusy={isBusy}
-        copiedParserLogJsonKey={copiedParserLogJsonKey}
-        failedParserLogJsonKey={failedParserLogJsonKey}
-        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
-        onClearVideoTrimResult={() => {
-          setVideoTrimResult(null)
-          setStatusMessage('Video Trim Result view cleared.')
-        }}
-        onCopyJson={handleCopyParserLogJson}
-        onDownloadJson={handleDownloadJsonFile}
-      />
+      {isDeveloperMode && isVideoCommandResult && (
+        <CommandResultSection
+          isDeveloperMode={isDeveloperMode}
+          commandResult={commandResult}
+          commandResultRef={commandResultRef}
+          activeGeneratedImageFilename={activeGeneratedImageSource?.filename ?? null}
+          copiedParserLogJsonKey={copiedParserLogJsonKey}
+          failedParserLogJsonKey={failedParserLogJsonKey}
+          downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+          isBusy={isBusy}
+          onCopyJson={handleCopyParserLogJson}
+          onDownloadJson={handleDownloadJsonFile}
+          onClearCommandResult={() => {
+            setCommandResult(null)
+            setStatusMessage('Command Result view cleared.')
+          }}
+          onDetectZoomedImage={async (result) => {
+            try {
+              setStatusMessage('Running YOLO on zoomed image...')
 
-      <ExtractedFrameResultSection
-        isDeveloperMode={isDeveloperMode}
-        videoFrameResult={videoFrameResult}
-        videoFrameResultRef={videoFrameResultRef}
-        extractedFrameUrl={extractedFrameUrl}
-        isBusy={isBusy}
-        isDetectingFrame={isDetectingFrame}
-        copiedParserLogJsonKey={copiedParserLogJsonKey}
-        failedParserLogJsonKey={failedParserLogJsonKey}
-        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
-        onClearVideoFrameResult={() => {
-          setVideoFrameResult(null)
-          setStatusMessage('Extracted Frame Result view cleared.')
-        }}
-        onDetectExtractedFrame={handleDetectExtractedFrame}
-        onCopyJson={handleCopyParserLogJson}
-        onDownloadJson={handleDownloadJsonFile}
-      />
+              const normalizedDetectionThreshold =
+                confidenceThreshold > 1 ? confidenceThreshold / 100 : confidenceThreshold
 
-      <VideoFrameDetectionResultSection
-        isDeveloperMode={isDeveloperMode}
-        videoFrameDetectionResult={videoFrameDetectionResult}
-        videoFrameDetectionResultRef={videoFrameDetectionResultRef}
-        annotatedFrameUrl={annotatedFrameUrl}
-        isBusy={isBusy}
-        copiedParserLogJsonKey={copiedParserLogJsonKey}
-        failedParserLogJsonKey={failedParserLogJsonKey}
-        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
-        onClearVideoFrameDetectionResult={() => {
-          setVideoFrameDetectionResult(null)
-          setStatusMessage('Video Frame Detection Result view cleared.')
-        }}
-        onCopyJson={handleCopyParserLogJson}
-        onDownloadJson={handleDownloadJsonFile}
-      />
+              const response = await fetch(
+                `/api/vision/detect-output/${encodeURIComponent(result.zoomed_filename)}/annotated?confidence_threshold=${normalizedDetectionThreshold}`,
+                {
+                  method: 'POST',
+                },
+              )
 
-      <MultiFrameExtractionResultSection
-        isDeveloperMode={isDeveloperMode}
-        videoMultiFrameResult={videoMultiFrameResult}
-        videoMultiFrameResultRef={videoMultiFrameResultRef}
-        isBusy={isBusy}
-        isDetectingMultipleFrames={isDetectingMultipleFrames}
-        copiedParserLogJsonKey={copiedParserLogJsonKey}
-        failedParserLogJsonKey={failedParserLogJsonKey}
-        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
-        onClearVideoMultiFrameResult={() => {
-          setVideoMultiFrameResult(null)
-          setStatusMessage('Multi-Frame Extraction Result view cleared.')
-        }}
-        onDetectMultipleVideoFrames={handleDetectMultipleVideoFrames}
-        onCopyJson={handleCopyParserLogJson}
-        onDownloadJson={handleDownloadJsonFile}
-      />
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => null)
+                throw new Error(errorData?.detail ?? 'Failed to run YOLO on zoomed image.')
+              }
 
-      <MultiFrameDetectionResultSection
-        isDeveloperMode={isDeveloperMode}
-        videoMultiFrameDetectionResult={videoMultiFrameDetectionResult}
-        videoMultiFrameDetectionResultRef={videoMultiFrameDetectionResultRef}
-        isBusy={isBusy}
-        copiedParserLogJsonKey={copiedParserLogJsonKey}
-        failedParserLogJsonKey={failedParserLogJsonKey}
-        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
-        formatFrameTimestamp={formatFrameTimestamp}
-        getFrameClassSummary={getFrameClassSummary}
-        onClearVideoMultiFrameDetectionResult={() => {
-          setVideoMultiFrameDetectionResult(null)
-          setStatusMessage('Multi-Frame Detection Result view cleared.')
-        }}
-        onCopyJson={handleCopyParserLogJson}
-        onDownloadJson={handleDownloadJsonFile}
-      />
+              const detectionData = await response.json() as DetectionResponse
 
-      <VideoTrackingResultSection
-        isDeveloperMode={isDeveloperMode}
-        videoTrackingResult={videoTrackingResult}
-        videoTrackingResultRef={videoTrackingResultRef}
-        isBusy={isBusy}
-        copiedParserLogJsonKey={copiedParserLogJsonKey}
-        failedParserLogJsonKey={failedParserLogJsonKey}
-        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
-        onClearVideoTrackingResult={() => {
-          setVideoTrackingResult(null)
-          setStatusMessage('Video Tracking Result view cleared.')
-        }}
-        onCopyJson={handleCopyParserLogJson}
-        onDownloadJson={handleDownloadJsonFile}
-      />
+              setDetectionResult(detectionData)
+              addGeneratedOutputHistoryItem({
+                action: 'annotated_detection',
+                label: detectionData.source === 'outputs'
+                  ? 'YOLO on generated output'
+                  : 'Annotated detection output',
+                filename: detectionData.annotated_filename,
+                file_url: detectionData.annotated_file_url,
+                source: detectionData.source ?? 'uploads',
+                source_filename: detectionData.filename,
+              })
+              setSelectedClass('all')
+              setLastDetectionThreshold(normalizedDetectionThreshold)
+              setLastDetectionClass('all')
+
+              window.setTimeout(() => {
+                detectionResultRef.current?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                })
+              }, 100)
+
+              setClassOptions((previousClasses) =>
+                Array.from(
+                  new Set([
+                    ...previousClasses,
+                    ...detectionData.detections.map((detection) => detection.class_name),
+                  ]),
+                ).sort(),
+              )
+
+              setStatusMessage('Object detection completed on zoomed image.')
+            } catch (error) {
+              setStatusMessage(
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to detect objects on zoomed image.',
+              )
+            }
+          }}
+        />
+      )}
+
+      {videoResultPanelsInDisplayOrder.map((panelKey) => {
+        if (panelKey === 'trim_video') {
+          return (
+            <VideoTrimResultSection
+              key={panelKey}
+              isDeveloperMode={isDeveloperMode}
+              videoTrimResult={videoTrimResult}
+              videoTrimResultRef={videoTrimResultRef}
+              trimmedVideoUrl={trimmedVideoUrl}
+              isBusy={isBusy}
+              copiedParserLogJsonKey={copiedParserLogJsonKey}
+              failedParserLogJsonKey={failedParserLogJsonKey}
+              downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+              onClearVideoTrimResult={() => {
+                setVideoTrimResult(null)
+                setStatusMessage('Video Trim Result view cleared.')
+              }}
+              onCopyJson={handleCopyParserLogJson}
+              onDownloadJson={handleDownloadJsonFile}
+            />
+          )
+        }
+
+        if (panelKey === 'extract_frame') {
+          return (
+            <ExtractedFrameResultSection
+              key={panelKey}
+              isDeveloperMode={isDeveloperMode}
+              videoFrameResult={videoFrameResult}
+              videoFrameResultRef={videoFrameResultRef}
+              extractedFrameUrl={extractedFrameUrl}
+              isBusy={isBusy}
+              isDetectingFrame={isDetectingFrame}
+              copiedParserLogJsonKey={copiedParserLogJsonKey}
+              failedParserLogJsonKey={failedParserLogJsonKey}
+              downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+              onClearVideoFrameResult={() => {
+                setVideoFrameResult(null)
+                setStatusMessage('Extracted Frame Result view cleared.')
+              }}
+              onDetectExtractedFrame={handleDetectExtractedFrame}
+              onCopyJson={handleCopyParserLogJson}
+              onDownloadJson={handleDownloadJsonFile}
+            />
+          )
+        }
+
+        if (panelKey === 'frame_detection') {
+          return (
+            <VideoFrameDetectionResultSection
+              key={panelKey}
+              isDeveloperMode={isDeveloperMode}
+              videoFrameDetectionResult={videoFrameDetectionResult}
+              videoFrameDetectionResultRef={videoFrameDetectionResultRef}
+              annotatedFrameUrl={annotatedFrameUrl}
+              isBusy={isBusy}
+              copiedParserLogJsonKey={copiedParserLogJsonKey}
+              failedParserLogJsonKey={failedParserLogJsonKey}
+              downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+              onClearVideoFrameDetectionResult={() => {
+                setVideoFrameDetectionResult(null)
+                setStatusMessage('Video Frame Detection Result view cleared.')
+              }}
+              onCopyJson={handleCopyParserLogJson}
+              onDownloadJson={handleDownloadJsonFile}
+            />
+          )
+        }
+
+        if (panelKey === 'extract_frames') {
+          return (
+            <MultiFrameExtractionResultSection
+              key={panelKey}
+              isDeveloperMode={isDeveloperMode}
+              videoMultiFrameResult={videoMultiFrameResult}
+              videoMultiFrameResultRef={videoMultiFrameResultRef}
+              isBusy={isBusy}
+              isDetectingMultipleFrames={isDetectingMultipleFrames}
+              copiedParserLogJsonKey={copiedParserLogJsonKey}
+              failedParserLogJsonKey={failedParserLogJsonKey}
+              downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+              onClearVideoMultiFrameResult={() => {
+                setVideoMultiFrameResult(null)
+                setStatusMessage('Multi-Frame Extraction Result view cleared.')
+              }}
+              onDetectMultipleVideoFrames={handleDetectMultipleVideoFrames}
+              onCopyJson={handleCopyParserLogJson}
+              onDownloadJson={handleDownloadJsonFile}
+            />
+          )
+        }
+
+        if (panelKey === 'detect_frames') {
+          return (
+            <MultiFrameDetectionResultSection
+              key={panelKey}
+              isDeveloperMode={isDeveloperMode}
+              videoMultiFrameDetectionResult={videoMultiFrameDetectionResult}
+              videoMultiFrameDetectionResultRef={videoMultiFrameDetectionResultRef}
+              isBusy={isBusy}
+              copiedParserLogJsonKey={copiedParserLogJsonKey}
+              failedParserLogJsonKey={failedParserLogJsonKey}
+              downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+              formatFrameTimestamp={formatFrameTimestamp}
+              getFrameClassSummary={getFrameClassSummary}
+              onClearVideoMultiFrameDetectionResult={() => {
+                setVideoMultiFrameDetectionResult(null)
+                setStatusMessage('Multi-Frame Detection Result view cleared.')
+              }}
+              onCopyJson={handleCopyParserLogJson}
+              onDownloadJson={handleDownloadJsonFile}
+            />
+          )
+        }
+
+        if (panelKey === 'sampled_detection') {
+          return (
+            <SampledVideoDetectionResultSection
+              key={panelKey}
+              isDeveloperMode={isDeveloperMode}
+              videoSampledDetectionResult={videoSampledDetectionResult}
+              videoSampledDetectionResultRef={videoSampledDetectionResultRef}
+              isBusy={isBusy}
+              copiedParserLogJsonKey={copiedParserLogJsonKey}
+              failedParserLogJsonKey={failedParserLogJsonKey}
+              downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+              onClearVideoSampledDetectionResult={() => {
+                setVideoSampledDetectionResult(null)
+                setStatusMessage('Sampled Video Detection Result view cleared.')
+              }}
+              onCopyJson={handleCopyParserLogJson}
+              onDownloadJson={handleDownloadJsonFile}
+            />
+          )
+        }
+
+        if (panelKey === 'track_video') {
+          return (
+            <VideoTrackingResultSection
+              key={panelKey}
+              isDeveloperMode={isDeveloperMode}
+              videoTrackingResult={videoTrackingResult}
+              videoTrackingResultRef={videoTrackingResultRef}
+              isBusy={isBusy}
+              copiedParserLogJsonKey={copiedParserLogJsonKey}
+              failedParserLogJsonKey={failedParserLogJsonKey}
+              downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+              onClearVideoTrackingResult={() => {
+                setVideoTrackingResult(null)
+                setStatusMessage('Video Tracking Result view cleared.')
+              }}
+              onCopyJson={handleCopyParserLogJson}
+              onDownloadJson={handleDownloadJsonFile}
+            />
+          )
+        }
+
+        return null
+      })}
+
 
     </main>
   )
