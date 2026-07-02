@@ -392,6 +392,7 @@ Important docs include:
 ```text
 docs/api-and-feature-reference.md
 docs/product-walkthrough.md
+docs/architecture-overview.md
 docs/project-vision-and-ai-roadmap.md
 docs/llm-command-parser-architecture.md
 docs/command-planner-design.md
@@ -442,7 +443,7 @@ Stable areas include:
 - PostgreSQL-backed persistence where configured
 - Docker and CI-backed development workflow
 
-The next recommended work is demo scripting, architecture documentation, and portfolio presentation rather than additional core UI features.
+The next recommended work is documentation refinement, architecture visuals, sample media references, and deployment hardening rather than additional core UI features.
 
 ---
 
@@ -451,7 +452,7 @@ The next recommended work is demo scripting, architecture documentation, and por
 Possible next improvements:
 
 - Add screenshots and sample media references to the product walkthrough
-- Add architecture diagrams to the docs folder
+- Add visual diagrams or screenshots to `docs/architecture-overview.md`
 - Improve persistent media storage for deployed environments
 - Add more robust video tracking methods
 - Expand real LLM evaluation coverage
