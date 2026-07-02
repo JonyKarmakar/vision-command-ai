@@ -399,6 +399,7 @@ docs/llm-command-parser-architecture.md
 docs/command-planner-design.md
 docs/workspace-recovery-flow.md
 docs/deployment-readiness-summary.md
+docs/deployment-hardening-plan.md
 docs/render-deployment-evidence.md
 docs/releases/v0.3.0.md
 docs/releases/v0.4.0.md
@@ -454,7 +455,7 @@ Possible next improvements:
 
 - Add final walkthrough screenshots following `docs/walkthrough-assets.md`
 - Add visual diagrams or screenshots to `docs/architecture-overview.md`
-- Improve persistent media storage for deployed environments
+- Implement deployment hardening items from `docs/deployment-hardening-plan.md`
 - Add more robust video tracking methods
 - Expand real LLM evaluation coverage
 - Add user-facing screenshots to the README
