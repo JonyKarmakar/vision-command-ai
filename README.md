@@ -456,7 +456,7 @@ The next recommended work is documentation refinement, architecture visuals, sam
 
 Possible next improvements:
 
-- Add final walkthrough screenshots following `docs/walkthrough-assets.md`
+- Add final walkthrough screenshots using the `docs/assets/` placeholder structure
 - Expand architecture visuals in `docs/architecture-overview.md` with screenshots or rendered diagrams
 - Implement deployment hardening items from `docs/deployment-hardening-plan.md`
 - Add more robust video tracking methods
