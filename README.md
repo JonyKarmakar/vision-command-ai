@@ -395,6 +395,7 @@ docs/api-and-feature-reference.md
 docs/product-walkthrough.md
 docs/architecture-overview.md
 docs/walkthrough-assets.md
+docs/assets/README.md
 docs/project-vision-and-ai-roadmap.md
 docs/llm-command-parser-architecture.md
 docs/command-planner-design.md

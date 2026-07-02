@@ -91,6 +91,7 @@ If small assets are later added to the repository, use this structure:
 
 ```text
 docs/assets/
+├── README.md
 ├── screenshots/
 │   ├── user-mode-home.png
 │   ├── image-detection-result.png
@@ -103,12 +104,15 @@ docs/assets/
 │   ├── sample-image.jpg
 │   └── sample-video.mp4
 │
-└── sample-outputs/
-    ├── annotated-detection.png
-    ├── cropped-object.png
-    ├── blurred-object.png
-    ├── zoomed-object.png
-    └── extracted-frame.png
+├── sample-outputs/
+│   ├── annotated-detection.png
+│   ├── cropped-object.png
+│   ├── blurred-object.png
+│   ├── zoomed-object.png
+│   └── extracted-frame.png
+│
+└── diagrams/
+    └── architecture-overview.png
 ```
 
 Do not add large videos or unnecessary generated media to Git. If sample files become large, store them externally and document the source instead.
