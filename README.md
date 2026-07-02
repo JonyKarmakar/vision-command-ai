@@ -391,6 +391,7 @@ Important docs include:
 
 ```text
 docs/api-and-feature-reference.md
+docs/product-walkthrough.md
 docs/project-vision-and-ai-roadmap.md
 docs/llm-command-parser-architecture.md
 docs/command-planner-design.md
@@ -449,7 +450,7 @@ The next recommended work is demo scripting, architecture documentation, and por
 
 Possible next improvements:
 
-- Add a short demo script for recruiters or technical reviewers
+- Add screenshots and sample media references to the product walkthrough
 - Add architecture diagrams to the docs folder
 - Improve persistent media storage for deployed environments
 - Add more robust video tracking methods
