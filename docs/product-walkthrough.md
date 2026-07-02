@@ -447,6 +447,8 @@ For video workflows, use short sample clips when testing locally.
 
 - `README.md`
 - `docs/api-and-feature-reference.md`
+- `docs/architecture-overview.md`
+- `docs/walkthrough-assets.md`
 - `docs/project-vision-and-ai-roadmap.md`
 - `docs/llm-command-parser-architecture.md`
 - `docs/command-planner-design.md`

@@ -393,6 +393,7 @@ Important docs include:
 docs/api-and-feature-reference.md
 docs/product-walkthrough.md
 docs/architecture-overview.md
+docs/walkthrough-assets.md
 docs/project-vision-and-ai-roadmap.md
 docs/llm-command-parser-architecture.md
 docs/command-planner-design.md
@@ -451,7 +452,7 @@ The next recommended work is documentation refinement, architecture visuals, sam
 
 Possible next improvements:
 
-- Add screenshots and sample media references to the product walkthrough
+- Add final walkthrough screenshots following `docs/walkthrough-assets.md`
 - Add visual diagrams or screenshots to `docs/architecture-overview.md`
 - Improve persistent media storage for deployed environments
 - Add more robust video tracking methods
