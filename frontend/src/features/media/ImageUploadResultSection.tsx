@@ -115,7 +115,12 @@ export function ImageUploadResultSection({
         </div>
 
         <div className="metadata-list">
-          <p><strong>Image:</strong> {uploadResult.original_filename}</p>
+          {isDeveloperMode ? (
+            <p><strong>Image:</strong> {uploadResult.original_filename}</p>
+          ) : (
+            <p><strong>Status:</strong> Ready for object detection and editing.</p>
+          )}
+
           <p><strong>Size:</strong> {uploadResult.width}px × {uploadResult.height}px</p>
 
           {isDeveloperMode && (
