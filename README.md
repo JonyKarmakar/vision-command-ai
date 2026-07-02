@@ -405,6 +405,7 @@ docs/render-deployment-evidence.md
 docs/releases/v0.3.0.md
 docs/releases/v0.4.0.md
 docs/releases/v0.5.0.md
+docs/releases/v0.5.1.md
 ```
 
 The detailed API and feature inventory from the previous README is preserved in:

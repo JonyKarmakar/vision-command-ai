@@ -212,6 +212,7 @@ Available release notes:
 docs/releases/v0.3.0.md
 docs/releases/v0.4.0.md
 docs/releases/v0.5.0.md
+docs/releases/v0.5.1.md
 ```
 
 Use release notes to understand major completed milestones and how the project evolved.
