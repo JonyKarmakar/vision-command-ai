@@ -48,6 +48,109 @@ Media Processing + AI Services
 PostgreSQL
 ```
 
+## Visual Architecture Diagrams
+
+The following Mermaid diagrams provide a visual overview of the main system architecture and workflow paths.
+
+These diagrams are intended to complement the text-based architecture notes above and can be rendered directly by GitHub.
+
+### System overview
+
+```mermaid
+flowchart TD
+    user[User] --> frontend[React + TypeScript Frontend]
+    frontend --> api[FastAPI Backend]
+    api --> media[Media Processing Services]
+    api --> command[Command Intelligence Layer]
+    api --> db[(PostgreSQL Optional)]
+    media --> yolo[YOLO Object Detection]
+    media --> image_ops[Image Operations]
+    media --> video_ops[Video Operations]
+    command --> parser[Command Parser]
+    command --> planner[Command Planner]
+    command --> execution[Prepared Execution]
+    image_ops --> outputs[Generated Outputs]
+    video_ops --> video_results[Video Results]
+    outputs --> history[Generated Output History]
+    video_results --> video_history[Video Command History]
+```
+
+### Image workflow
+
+```mermaid
+flowchart TD
+    upload[Upload Image] --> preview[Image Preview]
+    preview --> detect[Run Object Detection]
+    detect --> detections[Structured Detections]
+    detections --> annotate[Annotated Output]
+    detections --> edit[Crop / Blur / Zoom]
+    edit --> generated[Generated Output]
+    generated --> history[Generated Output History]
+    history --> reuse[Use as Active Source]
+    reuse --> detect_again[Run Detection Again]
+```
+
+### Video workflow
+
+```mermaid
+flowchart TD
+    upload[Upload Video] --> metadata[Extract Metadata]
+    metadata --> trim[Trim Video]
+    metadata --> frame[Extract Single Frame]
+    metadata --> frames[Extract Multiple Frames]
+    metadata --> sampled[Sampled Video Detection]
+    metadata --> tracking[Object Tracking]
+    trim --> result_order[Ordered Video Result Panels]
+    frame --> result_order
+    frames --> result_order
+    sampled --> result_order
+    tracking --> result_order
+    result_order --> history[Video Command History]
+    history --> navigation[View Result Navigation]
+```
+
+### AI Assistant command flow
+
+```mermaid
+flowchart TD
+    command_input[Text or Voice Command] --> frontend[Frontend Command UI]
+    frontend --> backend[FastAPI Command Endpoint]
+    backend --> parser[Parser or Planner]
+    parser --> validation[Validation Layer]
+    validation --> prepared[Prepared Execution]
+    prepared --> execute[Execute Media Action]
+    execute --> route[Route Result to Image or Video Panel]
+    route --> user_mode[User Mode Result]
+    route --> developer_mode[Developer Mode Debug Details]
+```
+
+### Optional persistence flow
+
+```mermaid
+flowchart TD
+    workflow[Workflow Completes] --> db_check{DATABASE_URL configured?}
+    db_check -->|Yes| postgres[(PostgreSQL)]
+    db_check -->|No| fallback[Safe not_configured fallback]
+    postgres --> records[Persist Metadata and Logs]
+    fallback --> local_demo[Continue Local Demo Flow]
+```
+
+### Future hardened deployment direction
+
+```mermaid
+flowchart TD
+    frontend[Frontend Static Site] --> api[FastAPI API Service]
+    api --> storage[Object Storage]
+    api --> database[(PostgreSQL)]
+    api --> queue[Job Queue]
+    queue --> worker[Inference / Video Worker]
+    worker --> model[YOLO / Media Processing]
+    worker --> storage
+    worker --> database
+    api --> observability[Logs and Metrics]
+    worker --> observability
+```
+
 Main responsibilities:
 
 ```text
@@ -608,7 +711,7 @@ Current limitations include:
 - Render free-tier infrastructure can be slow for model inference
 - Video tracking is a practical baseline and can be improved
 - Real LLM evaluation coverage can be expanded
-- Architecture diagrams can be improved with visual assets
+- Mermaid architecture diagrams are now included and can be expanded with screenshots or rendered visual assets
 - Frontend state management may need further modularization as the app grows
 
 ---
