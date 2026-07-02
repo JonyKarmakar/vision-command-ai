@@ -198,6 +198,18 @@ These documents cover backend container readiness, port environment support, fro
 
 ---
 
+## Documentation Assets
+
+```text
+docs/assets/README.md
+```
+
+Use this document to understand the placeholder folder structure for future walkthrough screenshots, sample inputs, sample outputs, and rendered diagrams.
+
+The asset folders are intentionally lightweight and should not be used for large videos, private media, or temporary generated files.
+
+---
+
 ## Release Notes
 
 Release notes are stored in:
