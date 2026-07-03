@@ -5,7 +5,7 @@ from app.services.llm_prompt_builder import (
 
 
 def test_prompt_version_updated_for_supported_classes():
-    assert COMMAND_PARSER_PROMPT_VERSION == "prompt-v2"
+    assert COMMAND_PARSER_PROMPT_VERSION == "prompt-v3"
 
 
 def test_prompt_includes_supported_object_classes():
