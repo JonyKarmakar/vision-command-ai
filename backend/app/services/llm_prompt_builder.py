@@ -4,7 +4,7 @@ from app.services.model_classes import (
 )
 
 
-COMMAND_PARSER_PROMPT_VERSION = "prompt-v2"
+COMMAND_PARSER_PROMPT_VERSION = "prompt-v3"
 
 
 EXPECTED_COMMAND_JSON_SCHEMA = {
@@ -13,7 +13,7 @@ EXPECTED_COMMAND_JSON_SCHEMA = {
     "properties": {
         "action": {
             "type": "string",
-            "description": "Structured command action such as detect, crop_by_class, blur_by_class, extract_frame, extract_frames, detect_frames, track_video, or trim_video.",
+            "description": "Structured command action such as detect, crop_by_class, blur_by_class, blur_all_by_class, zoom_by_class, extract_frame, extract_frames, detect_frames, track_video, or trim_video.",
         },
         "class_name": {
             "type": ["string", "null"],
@@ -21,7 +21,11 @@ EXPECTED_COMMAND_JSON_SCHEMA = {
         },
         "timestamp_seconds": {
             "type": ["number", "null"],
-            "description": "Timestamp for single-frame extraction commands.",
+            "description": "Timestamp in seconds for single-frame extraction commands. Use seconds, not milliseconds.",
+        },
+        "target_scope": {
+            "type": ["string", "null"],
+            "description": "Optional target selector for zoom_by_class. Use best, largest, left, right, center, or single.",
         },
         "start_seconds": {
             "type": ["number", "null"],
@@ -73,6 +77,7 @@ Supported actions:
 - crop_by_class
 - blur_by_class
 - blur_all_by_class
+- zoom_by_class
 - extract_frame
 - extract_frames
 - detect_frames
@@ -86,10 +91,29 @@ Class-name rules:
 - class_name must be null or exactly one of the supported object classes listed above.
 - Use null for actions that do not require an object class.
 - Normalize common user words to supported class names before returning JSON.
+- Map people, persons, human, and humans to person.
 - If the user asks for an unsupported object class, return the closest supported class only when it is clearly equivalent. Otherwise set class_name to null.
+
+Target-scope rules:
+- Use target_scope only for zoom_by_class.
+- Allowed target_scope values are best, largest, left, right, center, and single.
+- If the user says left person, person on the left, or left-side person, use target_scope left.
+- If the user says right person, person on the right, or right-side person, use target_scope right.
+- If no zoom target is specified, set target_scope to null.
+
+Time rules:
+- timestamp_seconds, start_seconds, end_seconds, and interval_seconds must be seconds.
+- Never return milliseconds.
+- "1 second" means 1, not 1000.
+- "from 0 to 3 seconds" means start_seconds 0 and end_seconds 3.
 
 Common alias normalizations:
 {class_aliases}
+
+Demo examples:
+- "Zoom into the person on the left" -> {{"action":"zoom_by_class","class_name":"person","target_scope":"left","timestamp_seconds":null,"start_seconds":null,"end_seconds":null,"interval_seconds":null}}
+- "Blur all people in the image" -> {{"action":"blur_all_by_class","class_name":"person","timestamp_seconds":null,"start_seconds":null,"end_seconds":null,"interval_seconds":null}}
+- "Extract a frame at 1 second" -> {{"action":"extract_frame","class_name":null,"timestamp_seconds":1,"start_seconds":null,"end_seconds":null,"interval_seconds":null}}
 
 Return a JSON object matching the expected schema.
 """.strip()
@@ -224,6 +248,11 @@ Planning rules:
 
 Common alias normalizations:
 {class_aliases}
+
+Demo examples:
+- "Zoom into the person on the left" -> {{"action":"zoom_by_class","class_name":"person","target_scope":"left","timestamp_seconds":null,"start_seconds":null,"end_seconds":null,"interval_seconds":null}}
+- "Blur all people in the image" -> {{"action":"blur_all_by_class","class_name":"person","timestamp_seconds":null,"start_seconds":null,"end_seconds":null,"interval_seconds":null}}
+- "Extract a frame at 1 second" -> {{"action":"extract_frame","class_name":null,"timestamp_seconds":1,"start_seconds":null,"end_seconds":null,"interval_seconds":null}}
 
 Return a JSON object matching the expected schema.
 """.strip()

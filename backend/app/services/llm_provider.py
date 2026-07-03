@@ -36,6 +36,7 @@ COMMAND_PARSER_OUTPUT_SCHEMA = {
                 "crop_by_class",
                 "blur_by_class",
                 "blur_all_by_class",
+                "zoom_by_class",
                 "extract_frame",
                 "extract_frames",
                 "detect_frames",
@@ -48,6 +49,10 @@ COMMAND_PARSER_OUTPUT_SCHEMA = {
         },
         "timestamp_seconds": {
             "type": ["number", "null"],
+        },
+        "target_scope": {
+            "type": ["string", "null"],
+            "enum": ["best", "largest", "left", "right", "center", "single", None],
         },
         "start_seconds": {
             "type": ["number", "null"],
@@ -308,6 +313,76 @@ def _build_class_phrase_map():
 
     return phrase_to_class
 
+def _extract_command_text_from_user_prompt(user_prompt: str) -> str:
+    match = re.search(
+        r"Parse this command:\s*(.*?)\n\s*Supported actions:",
+        user_prompt,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    if match:
+        return match.group(1).strip()
+
+    return user_prompt.strip()
+
+
+def _extract_numbers_from_text(text: str):
+    return [float(value) for value in re.findall(r"\d+(?:\.\d+)?", text)]
+
+
+def _infer_target_scope_from_command(command_text: str):
+    normalized_command = " ".join(command_text.lower().strip().split())
+
+    scope_patterns = {
+        "left": ["left", "left side", "left-side"],
+        "right": ["right", "right side", "right-side"],
+        "center": ["center", "centre", "middle"],
+        "largest": ["largest", "biggest"],
+        "best": ["best"],
+        "single": ["single"],
+    }
+
+    for scope, phrases in scope_patterns.items():
+        for phrase in phrases:
+            if _prompt_contains_phrase(normalized_command, phrase):
+                return scope
+
+    return None
+
+
+def _infer_action_from_command(command_text: str, current_action):
+    normalized_command = " ".join(command_text.lower().strip().split())
+    words = set(normalized_command.split())
+
+    if "zoom" in words:
+        return "zoom_by_class"
+
+    if "blur" in words:
+        return "blur_all_by_class" if "all" in words else "blur_by_class"
+
+    if "crop" in words:
+        return "crop_by_class"
+
+    if "track" in words:
+        return "track_video"
+
+    if "trim" in words and "video" in words:
+        return "trim_video"
+
+    if "extract" in words and "frames" in words:
+        return "extract_frames"
+
+    if "detect" in words and "frames" in words:
+        return "detect_frames"
+
+    if "extract" in words and "frame" in words:
+        return "extract_frame"
+
+    if "detect" in words:
+        return "detect"
+
+    return current_action
+
 
 def _infer_class_name_from_command(user_prompt: str):
     normalized_prompt = " ".join(user_prompt.lower().strip().split())
@@ -329,7 +404,9 @@ def _infer_class_name_from_command(user_prompt: str):
 
 
 def _repair_ollama_parsed_command(parsed_command: dict, user_prompt: str) -> dict:
-    action = parsed_command.get("action")
+    command_text = _extract_command_text_from_user_prompt(user_prompt)
+    action = _infer_action_from_command(command_text, parsed_command.get("action"))
+    inferred_class_name = _infer_class_name_from_command(command_text)
 
     repaired_command = {
         "action": action,
@@ -340,7 +417,15 @@ def _repair_ollama_parsed_command(parsed_command: dict, user_prompt: str) -> dic
         "interval_seconds": parsed_command.get("interval_seconds"),
     }
 
-    if repaired_command["class_name"]:
+    if action in {
+        "crop_by_class",
+        "blur_by_class",
+        "blur_all_by_class",
+        "zoom_by_class",
+        "track_video",
+    } and inferred_class_name:
+        repaired_command["class_name"] = inferred_class_name
+    elif repaired_command["class_name"]:
         repaired_command["class_name"] = _normalize_llm_class_name(
             repaired_command["class_name"]
         )
@@ -349,22 +434,40 @@ def _repair_ollama_parsed_command(parsed_command: dict, user_prompt: str) -> dic
         "crop_by_class",
         "blur_by_class",
         "blur_all_by_class",
+        "zoom_by_class",
         "track_video",
     } and not repaired_command["class_name"]:
-        repaired_command["class_name"] = _infer_class_name_from_command(user_prompt)
+        repaired_command["class_name"] = inferred_class_name
 
     if action in {
         "detect",
         "crop_by_class",
         "blur_by_class",
         "blur_all_by_class",
+        "zoom_by_class",
     }:
         repaired_command["timestamp_seconds"] = None
         repaired_command["start_seconds"] = None
         repaired_command["end_seconds"] = None
         repaired_command["interval_seconds"] = None
 
+    if action == "zoom_by_class":
+        target_scope = _infer_target_scope_from_command(command_text)
+
+        if not target_scope and parsed_command.get("target_scope"):
+            candidate_scope = str(parsed_command["target_scope"]).lower()
+            if candidate_scope in {"best", "largest", "left", "right", "center", "single"}:
+                target_scope = candidate_scope
+
+        if target_scope:
+            repaired_command["target_scope"] = target_scope
+
     if action == "extract_frame":
+        numbers = _extract_numbers_from_text(command_text)
+
+        if numbers:
+            repaired_command["timestamp_seconds"] = numbers[0]
+
         repaired_command["class_name"] = None
         repaired_command["start_seconds"] = None
         repaired_command["end_seconds"] = None
