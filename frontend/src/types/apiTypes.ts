@@ -478,6 +478,17 @@ export type LLMProviderStatusResponse = {
   supported_planner_modes?: string[]
 }
 
+export type ImageChatResponse = {
+  question: string
+  answer: string
+  response_mode: string
+  responder_type: string
+  prompt_version: string
+  provider_status: LLMProviderStatusResponse
+  used_context_keys: string[]
+  context_summary: Record<string, unknown>
+}
+
 export type CommandResponse = {
   command: string
   parser_mode: string
