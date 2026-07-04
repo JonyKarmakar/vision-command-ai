@@ -75,6 +75,13 @@ export function CommandResultSection({
     return null
   }
 
+  const hasVisibleUserModeCommandResult =
+    commandResult.result_type === 'zoom_by_class'
+
+  if (!isDeveloperMode && !hasVisibleUserModeCommandResult) {
+    return null
+  }
+
   const commandResultTitle =
     !isDeveloperMode && commandResult.result_type === 'zoom_by_class'
       ? 'Zoomed image ready'

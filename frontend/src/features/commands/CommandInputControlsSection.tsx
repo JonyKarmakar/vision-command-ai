@@ -1,3 +1,5 @@
+type AssistantParserMode = 'rule_based' | 'llm_mock' | 'real_llm'
+
 type CommandInputControlsSectionProps = {
   commandText: string
   isBusy: boolean
@@ -9,6 +11,11 @@ type CommandInputControlsSectionProps = {
   isRunningCommand: boolean
   isListening: boolean
   isDeveloperMode: boolean
+  selectedParserMode: AssistantParserMode
+  llmProviderName: string | null
+  llmProviderModel: string | null
+  realLlmAvailable: boolean | null
+  isLoadingLlmProviderStatus: boolean
   onCommandTextChange: (commandText: string) => void
   onParseCommand: () => void | Promise<void>
   onPlanCommand: () => void | Promise<void>
@@ -16,6 +23,8 @@ type CommandInputControlsSectionProps = {
   onLoadPromptPreview: () => void | Promise<void>
   onRunCommand: () => void | Promise<void>
   onVoiceCommand: () => void
+  onUseRealLlm: () => void | Promise<void>
+  onLoadLlmProviderStatus: () => void | Promise<void>
   onUseRuleBasedParser: () => void
   onUseMockParser: () => void
 }
@@ -31,6 +40,11 @@ export function CommandInputControlsSection({
   isRunningCommand,
   isListening,
   isDeveloperMode,
+  selectedParserMode,
+  llmProviderName,
+  llmProviderModel,
+  realLlmAvailable,
+  isLoadingLlmProviderStatus,
   onCommandTextChange,
   onParseCommand,
   onPlanCommand,
@@ -38,6 +52,8 @@ export function CommandInputControlsSection({
   onLoadPromptPreview,
   onRunCommand,
   onVoiceCommand,
+  onUseRealLlm,
+  onLoadLlmProviderStatus,
   onUseRuleBasedParser,
   onUseMockParser,
 }: CommandInputControlsSectionProps) {
@@ -73,6 +89,18 @@ export function CommandInputControlsSection({
       {isListening ? 'Listening...' : isDeveloperMode ? 'Voice Command' : 'Speak'}
     </button>
   )
+
+  const localAiStatusLabel = isLoadingLlmProviderStatus
+    ? 'Checking...'
+    : realLlmAvailable === true
+      ? 'Available'
+      : realLlmAvailable === false
+        ? 'Offline'
+        : 'Not checked'
+
+  const localAiModeLabel = selectedParserMode === 'real_llm'
+    ? 'Local AI selected'
+    : 'Basic command parser selected'
 
   return (
     <>
@@ -120,8 +148,48 @@ export function CommandInputControlsSection({
           <div className="assistant-command-copy">
             <label htmlFor="vision-command-input">What should VisionCommand do?</label>
             <p>
-              Write a simple command, then run it. You can also speak the command instead.
+              Write or speak a natural command. Local AI can understand more natural image and video
+              commands when it is available.
             </p>
+          </div>
+
+          <div className="assistant-local-ai-panel" aria-label="Local AI command intelligence">
+            <div>
+              <span className="assistant-local-ai-label">Assistant intelligence</span>
+              <strong>{localAiModeLabel}</strong>
+              <p>
+                Local AI status: <strong>{localAiStatusLabel}</strong>
+                {llmProviderName ? <> with {llmProviderName}</> : null}
+                {llmProviderModel ? <> / {llmProviderModel}</> : null}
+              </p>
+            </div>
+
+            <div className="assistant-local-ai-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => void onUseRealLlm()}
+                disabled={isBusy || selectedParserMode === 'real_llm'}
+              >
+                {selectedParserMode === 'real_llm' ? 'Using Local AI' : 'Use Local AI'}
+              </button>
+
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => void onLoadLlmProviderStatus()}
+                disabled={isBusy || isLoadingLlmProviderStatus}
+              >
+                {isLoadingLlmProviderStatus ? 'Checking...' : 'Check Local AI'}
+              </button>
+            </div>
+
+            {realLlmAvailable === false && (
+              <p className="small-note">
+                Local AI is offline. Start Ollama and the backend with Ollama settings, then check again.
+                You can continue with basic commands while Local AI is unavailable.
+              </p>
+            )}
           </div>
 
           <div className="assistant-command-row">
