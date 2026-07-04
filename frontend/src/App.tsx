@@ -690,6 +690,19 @@ function App() {
     scrollToLoadedView(resultViewByType[resultType] ?? commandResultRef)
   }
 
+  const updateCommandResultForExecutedCommand = (data: CommandResponse) => {
+    if (isDeveloperMode || data.result_type === 'zoom_by_class') {
+      setCommandResult(data)
+      return
+    }
+
+    setCommandResult((previousCommandResult) =>
+      previousCommandResult?.result_type === 'zoom_by_class'
+        ? previousCommandResult
+        : null,
+    )
+  }
+
 
   const getWorkspaceResultTargetRef = useCallback((label: string) => {
     switch (label) {
@@ -2695,12 +2708,20 @@ function App() {
 
     setIsListening(true)
     setError(null)
-    setStatusMessage('Listening for a voice command...')
+    setStatusMessage(
+      isDeveloperMode
+        ? 'Listening for a voice command...'
+        : 'Listening. Speak your assistant command...',
+    )
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript
       setCommandText(transcript)
-      setStatusMessage(`Heard: "${transcript}". You can now run the command.`)
+      setStatusMessage(
+        isDeveloperMode
+          ? `Heard: "${transcript}". You can now run the command.`
+          : `Heard: "${transcript}". Review it, then Ask / Run.`,
+      )
     }
 
     recognition.onerror = () => {
@@ -3226,7 +3247,7 @@ function App() {
       }
 
       const data: CommandResponse = await response.json()
-      setCommandResult(data)
+      updateCommandResultForExecutedCommand(data)
       scrollToCommandOutputView(data.result_type)
 
       if (data.result_type === 'annotated_detection') {
@@ -3941,7 +3962,13 @@ function App() {
     try {
       setIsRunningCommand(true)
       setError(null)
-      setStatusMessage(`Running command with ${selectedParserMode}: "${commandText}"...`)
+      setStatusMessage(
+        isDeveloperMode
+          ? `Running command with ${selectedParserMode}: "${commandText}"...`
+          : selectedParserMode === 'real_llm'
+            ? `Asking Local AI to run: "${commandText}"...`
+            : `Running assistant command: "${commandText}"...`,
+      )
 
       const response = await fetch('/api/commands/execute', {
         method: 'POST',
@@ -3962,7 +3989,7 @@ function App() {
       }
 
       const data: CommandResponse = await response.json()
-      setCommandResult(data)
+      updateCommandResultForExecutedCommand(data)
       scrollToCommandOutputView(data.result_type)
 
       if (data.result_type === 'annotated_detection') {
@@ -5203,6 +5230,11 @@ function App() {
             isRunningCommand={isRunningCommand}
             isListening={isListening}
             isDeveloperMode={isDeveloperMode}
+            selectedParserMode={selectedParserMode}
+            llmProviderName={llmProviderStatusResult?.provider_name ?? null}
+            llmProviderModel={llmProviderStatusResult?.provider_model ?? null}
+            realLlmAvailable={llmProviderStatusResult?.real_llm_available ?? null}
+            isLoadingLlmProviderStatus={isLoadingLlmProviderStatus}
             onCommandTextChange={(nextCommandText) => {
               setCommandText(nextCommandText)
               setCommandParseResult(null)
@@ -5213,6 +5245,14 @@ function App() {
             onLoadPromptPreview={handleLoadPromptPreview}
             onRunCommand={handleCommand}
             onVoiceCommand={handleVoiceCommand}
+            onUseRealLlm={() => {
+              setSelectedParserMode('real_llm')
+
+              if (!llmProviderStatusResult && !isLoadingLlmProviderStatus) {
+                void handleLoadLlmProviderStatus()
+              }
+            }}
+            onLoadLlmProviderStatus={handleLoadLlmProviderStatus}
             onUseRuleBasedParser={() => setSelectedParserMode('rule_based')}
             onUseMockParser={() => setSelectedParserMode('llm_mock')}
           />
