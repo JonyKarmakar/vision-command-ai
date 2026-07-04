@@ -271,3 +271,4 @@ docs/
 ├── workspace-recovery-flow.md
 └── releases/
 ```
+- [Local AI Demo Guide](local-ai-demo.md) - Run and present the Ollama-backed Local AI assistant flow.
