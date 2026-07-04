@@ -16,6 +16,7 @@ from app.services.command_evaluation import (
 )
 from app.services.llm_parser import parse_command_with_mode
 from app.services.llm_provider import get_llm_provider_status
+from app.services.image_chat import answer_image_chat
 from app.services.llm_prompt_builder import (
     build_command_parser_prompt,
     build_command_planner_prompt,
@@ -75,6 +76,7 @@ from app.schemas import (
     VideoMultiFrameExtractRequest,
     VideoSampledDetectionRequest,
     VideoTrackingRequest,
+    ImageChatRequest,
 )
 
 from app.config import (
@@ -3630,6 +3632,16 @@ def get_parser_attempt_logs(limit: int = Query(20, ge=1, le=100)):
         "logs": logs,
     }
 
+
+
+
+@app.post("/assistant/image-chat")
+def answer_image_chat_endpoint(request: ImageChatRequest):
+    return answer_image_chat(
+        question=request.question,
+        image_context=request.image_context,
+        response_mode=request.response_mode,
+    )
 
 
 @app.get("/llm/provider/status")

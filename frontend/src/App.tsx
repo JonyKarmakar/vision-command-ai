@@ -30,6 +30,7 @@ import { AppHeroStatusSection } from './features/layout/AppHeroStatusSection'
 import { CommandCardSection } from './features/commands/CommandCardSection'
 import { CommandPresetsSection } from './features/commands/CommandPresetsSection'
 import { CommandInputControlsSection } from './features/commands/CommandInputControlsSection'
+import { ImageChatAnalysisSection } from './features/commands/ImageChatAnalysisSection'
 import { CommandModeSelectorsSection } from './features/commands/CommandModeSelectorsSection'
 import { CommandHistoryControlsSection } from './features/commands/CommandHistoryControlsSection'
 import { ParserObservabilityControlsSection } from './features/commands/ParserObservabilityControlsSection'
@@ -87,6 +88,7 @@ import type {
   ParserAttemptLogsResponse,
   LLMProviderStatusResponse,
   CommandResponse,
+  ImageChatResponse,
   CommandLog,
   CommandLogSummaryItem,
   CommandLogSummaryResponse,
@@ -303,6 +305,10 @@ function App() {
   const [selectedParserMode, setSelectedParserMode] = useState<PlannerMode>('rule_based')
   const [selectedPlannerMode, setSelectedPlannerMode] = useState<PlannerMode>('rule_based')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
+  const [imageChatQuestion, setImageChatQuestion] = useState('')
+  const [imageChatResult, setImageChatResult] = useState<ImageChatResponse | null>(null)
+  const [isAskingImageChat, setIsAskingImageChat] = useState(false)
+  const [imageChatError, setImageChatError] = useState<string | null>(null)
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
   const [commandPlanResult, setCommandPlanResult] = useState<CommandPlanResponse | null>(null)
   const [commandPlanExecutionPrepareResult, setCommandPlanExecutionPrepareResult] = useState<CommandPlanExecutionPrepareResponse | null>(null)
@@ -2596,6 +2602,76 @@ function App() {
       window.setTimeout(() => {
         setDownloadedParserLogJsonKey((currentKey) => (currentKey === downloadKey ? '' : currentKey))
       }, 2000)
+    }
+  }
+
+  const buildImageChatContext = () => ({
+    uploadResult,
+    detectionResult,
+    cropResult,
+    blurResult,
+    commandResult,
+    activeGeneratedImageSource,
+    generatedOutputHistory: generatedOutputHistory.slice(0, 10),
+  })
+
+  const handleAskImageChat = async () => {
+    const trimmedQuestion = imageChatQuestion.trim()
+
+    if (!trimmedQuestion) {
+      setImageChatError('Write a question about the current image first.')
+      return
+    }
+
+    if (
+      !uploadResult &&
+      !activeGeneratedImageSource &&
+      !detectionResult &&
+      !commandResult &&
+      generatedOutputHistory.length === 0
+    ) {
+      setImageChatError('Upload an image or select a generated output before asking about image context.')
+      return
+    }
+
+    setIsAskingImageChat(true)
+    setImageChatError(null)
+    setStatusMessage(`Asking VisionCommand AI about this image: "${trimmedQuestion}"...`)
+
+    try {
+      const response = await fetch('/api/assistant/image-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: trimmedQuestion,
+          response_mode: selectedParserMode === 'real_llm' ? 'auto' : 'rule_based',
+          image_context: buildImageChatContext(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        const detail = typeof data.detail === 'string'
+          ? data.detail
+          : 'Image chat request failed.'
+
+        throw new Error(detail)
+      }
+
+      setImageChatResult(data as ImageChatResponse)
+      setStatusMessage('Image chat answer ready.')
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Image chat request failed.'
+
+      setImageChatError(message)
+      setStatusMessage(message)
+    } finally {
+      setIsAskingImageChat(false)
     }
   }
 
@@ -5255,6 +5331,39 @@ function App() {
             onLoadLlmProviderStatus={handleLoadLlmProviderStatus}
             onUseRuleBasedParser={() => setSelectedParserMode('rule_based')}
             onUseMockParser={() => setSelectedParserMode('llm_mock')}
+          />
+
+          <ImageChatAnalysisSection
+            question={imageChatQuestion}
+            answer={imageChatResult?.answer ?? null}
+            responderType={imageChatResult?.responder_type ?? null}
+            promptVersion={imageChatResult?.prompt_version ?? null}
+            contextSummary={imageChatResult?.context_summary ?? null}
+            isDeveloperMode={isDeveloperMode}
+            isBusy={isBusy}
+            isLoading={isAskingImageChat}
+            hasImageContext={Boolean(
+              uploadResult ||
+              activeGeneratedImageSource ||
+              detectionResult ||
+              commandResult ||
+              generatedOutputHistory.length > 0
+            )}
+            error={imageChatError}
+            onQuestionChange={(nextQuestion) => {
+              setImageChatQuestion(nextQuestion)
+              setImageChatError(null)
+            }}
+            onAskImage={handleAskImageChat}
+            onSelectQuestion={(nextQuestion) => {
+              setImageChatQuestion(nextQuestion)
+              setImageChatError(null)
+            }}
+            onClearAnswer={() => {
+              setImageChatResult(null)
+              setImageChatError(null)
+              setStatusMessage('Image chat answer cleared.')
+            }}
           />
 
           {isDeveloperMode && (
