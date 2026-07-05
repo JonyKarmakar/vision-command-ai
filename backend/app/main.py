@@ -17,6 +17,7 @@ from app.services.command_evaluation import (
 from app.services.llm_parser import parse_command_with_mode
 from app.services.llm_provider import get_llm_provider_status
 from app.services.image_chat import answer_image_chat
+from app.services.video_chat import answer_video_chat
 from app.services.llm_prompt_builder import (
     build_command_parser_prompt,
     build_command_planner_prompt,
@@ -77,6 +78,7 @@ from app.schemas import (
     VideoSampledDetectionRequest,
     VideoTrackingRequest,
     ImageChatRequest,
+    VideoChatRequest,
 )
 
 from app.config import (
@@ -3633,6 +3635,16 @@ def get_parser_attempt_logs(limit: int = Query(20, ge=1, le=100)):
     }
 
 
+
+
+
+@app.post("/assistant/video-chat")
+def answer_video_chat_endpoint(request: VideoChatRequest):
+    return answer_video_chat(
+        question=request.question,
+        video_context=request.video_context,
+        response_mode=request.response_mode,
+    )
 
 
 @app.post("/assistant/image-chat")

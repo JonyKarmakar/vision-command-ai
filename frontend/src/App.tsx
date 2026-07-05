@@ -31,6 +31,7 @@ import { CommandCardSection } from './features/commands/CommandCardSection'
 import { CommandPresetsSection } from './features/commands/CommandPresetsSection'
 import { CommandInputControlsSection } from './features/commands/CommandInputControlsSection'
 import { ImageChatAnalysisSection } from './features/commands/ImageChatAnalysisSection'
+import { VideoChatAnalysisSection } from './features/commands/VideoChatAnalysisSection'
 import { CommandModeSelectorsSection } from './features/commands/CommandModeSelectorsSection'
 import { CommandHistoryControlsSection } from './features/commands/CommandHistoryControlsSection'
 import { ParserObservabilityControlsSection } from './features/commands/ParserObservabilityControlsSection'
@@ -89,6 +90,7 @@ import type {
   LLMProviderStatusResponse,
   CommandResponse,
   ImageChatResponse,
+  VideoChatResponse,
   CommandLog,
   CommandLogSummaryItem,
   CommandLogSummaryResponse,
@@ -309,6 +311,10 @@ function App() {
   const [imageChatResult, setImageChatResult] = useState<ImageChatResponse | null>(null)
   const [isAskingImageChat, setIsAskingImageChat] = useState(false)
   const [imageChatError, setImageChatError] = useState<string | null>(null)
+  const [videoChatQuestion, setVideoChatQuestion] = useState('')
+  const [videoChatResult, setVideoChatResult] = useState<VideoChatResponse | null>(null)
+  const [isAskingVideoChat, setIsAskingVideoChat] = useState(false)
+  const [videoChatError, setVideoChatError] = useState<string | null>(null)
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
   const [commandPlanResult, setCommandPlanResult] = useState<CommandPlanResponse | null>(null)
   const [commandPlanExecutionPrepareResult, setCommandPlanExecutionPrepareResult] = useState<CommandPlanExecutionPrepareResponse | null>(null)
@@ -2672,6 +2678,80 @@ function App() {
       setStatusMessage(message)
     } finally {
       setIsAskingImageChat(false)
+    }
+  }
+
+  const buildVideoChatContext = () => ({
+    videoUploadResult,
+    videoTrimResult,
+    videoFrameDetectionResult,
+    videoMultiFrameDetectionResult,
+    videoSampledDetectionResult,
+    videoTrackingResult,
+    commandResult,
+    generatedOutputHistory: generatedOutputHistory.slice(0, 10),
+  })
+
+  const handleAskVideoChat = async () => {
+    const trimmedQuestion = videoChatQuestion.trim()
+
+    if (!trimmedQuestion) {
+      setVideoChatError('Write a question about the current video first.')
+      return
+    }
+
+    if (
+      !videoUploadResult &&
+      !videoTrimResult &&
+      !videoFrameDetectionResult &&
+      !videoMultiFrameDetectionResult &&
+      !videoSampledDetectionResult &&
+      !videoTrackingResult &&
+      !commandResult &&
+      generatedOutputHistory.length === 0
+    ) {
+      setVideoChatError('Upload a video or run a video workflow before asking about video context.')
+      return
+    }
+
+    setIsAskingVideoChat(true)
+    setVideoChatError(null)
+    setStatusMessage(`Asking VisionCommand AI about this video: "${trimmedQuestion}"...`)
+
+    try {
+      const response = await fetch('/api/assistant/video-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: trimmedQuestion,
+          response_mode: selectedParserMode === 'real_llm' ? 'auto' : 'rule_based',
+          video_context: buildVideoChatContext(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        const detail = typeof data.detail === 'string'
+          ? data.detail
+          : 'Video chat request failed.'
+
+        throw new Error(detail)
+      }
+
+      setVideoChatResult(data as VideoChatResponse)
+      setStatusMessage('Video chat answer ready.')
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Video chat request failed.'
+
+      setVideoChatError(message)
+      setStatusMessage(message)
+    } finally {
+      setIsAskingVideoChat(false)
     }
   }
 
@@ -5333,38 +5413,83 @@ function App() {
             onUseMockParser={() => setSelectedParserMode('llm_mock')}
           />
 
-          <ImageChatAnalysisSection
-            question={imageChatQuestion}
-            answer={imageChatResult?.answer ?? null}
-            responderType={imageChatResult?.responder_type ?? null}
-            promptVersion={imageChatResult?.prompt_version ?? null}
-            contextSummary={imageChatResult?.context_summary ?? null}
-            isDeveloperMode={isDeveloperMode}
-            isBusy={isBusy}
-            isLoading={isAskingImageChat}
-            hasImageContext={Boolean(
-              uploadResult ||
-              activeGeneratedImageSource ||
-              detectionResult ||
-              commandResult ||
-              generatedOutputHistory.length > 0
-            )}
-            error={imageChatError}
-            onQuestionChange={(nextQuestion) => {
-              setImageChatQuestion(nextQuestion)
-              setImageChatError(null)
-            }}
-            onAskImage={handleAskImageChat}
-            onSelectQuestion={(nextQuestion) => {
-              setImageChatQuestion(nextQuestion)
-              setImageChatError(null)
-            }}
-            onClearAnswer={() => {
-              setImageChatResult(null)
-              setImageChatError(null)
-              setStatusMessage('Image chat answer cleared.')
-            }}
-          />
+          {(uploadResult || activeGeneratedImageSource || detectionResult || cropResult || blurResult) && (
+            <ImageChatAnalysisSection
+              question={imageChatQuestion}
+              answer={imageChatResult?.answer ?? null}
+              responderType={imageChatResult?.responder_type ?? null}
+              promptVersion={imageChatResult?.prompt_version ?? null}
+              contextSummary={imageChatResult?.context_summary ?? null}
+              isDeveloperMode={isDeveloperMode}
+              isBusy={isBusy}
+              isLoading={isAskingImageChat}
+              hasImageContext={Boolean(
+                uploadResult ||
+                activeGeneratedImageSource ||
+                detectionResult ||
+                cropResult ||
+                blurResult
+              )}
+              error={imageChatError}
+              onQuestionChange={(nextQuestion) => {
+                setImageChatQuestion(nextQuestion)
+                setImageChatError(null)
+              }}
+              onAskImage={handleAskImageChat}
+              onSelectQuestion={(nextQuestion) => {
+                setImageChatQuestion(nextQuestion)
+                setImageChatError(null)
+              }}
+              onClearAnswer={() => {
+                setImageChatResult(null)
+                setImageChatError(null)
+                setStatusMessage('Image chat answer cleared.')
+              }}
+            />
+          )}
+
+          {(
+            videoUploadResult ||
+            videoTrimResult ||
+            videoFrameDetectionResult ||
+            videoMultiFrameDetectionResult ||
+            videoSampledDetectionResult ||
+            videoTrackingResult
+          ) && (
+            <VideoChatAnalysisSection
+              question={videoChatQuestion}
+              answer={videoChatResult?.answer ?? null}
+              responderType={videoChatResult?.responder_type ?? null}
+              promptVersion={videoChatResult?.prompt_version ?? null}
+              contextSummary={videoChatResult?.context_summary ?? null}
+              isDeveloperMode={isDeveloperMode}
+              isBusy={isBusy}
+              isLoading={isAskingVideoChat}
+              hasVideoContext={Boolean(
+                videoUploadResult ||
+                videoTrimResult ||
+                videoFrameDetectionResult ||
+                videoMultiFrameDetectionResult ||
+                videoSampledDetectionResult ||
+                videoTrackingResult
+              )}
+              error={videoChatError}
+              onQuestionChange={(nextQuestion) => {
+                setVideoChatQuestion(nextQuestion)
+                setVideoChatError(null)
+              }}
+              onAskVideo={handleAskVideoChat}
+              onSelectQuestion={(nextQuestion) => {
+                setVideoChatQuestion(nextQuestion)
+                setVideoChatError(null)
+              }}
+              onClearAnswer={() => {
+                setVideoChatResult(null)
+                setVideoChatError(null)
+                setStatusMessage('Video chat answer cleared.')
+              }}
+            />
+          )}
 
           {isDeveloperMode && (
             <div className="developer-mode-stack">
@@ -5819,6 +5944,24 @@ function App() {
         </section>
       )}
 
+      <ImageUploadResultSection
+        isDeveloperMode={isDeveloperMode}
+        uploadResult={uploadResult}
+        uploadedImageUrl={uploadedImageUrl}
+        uploadResultRef={uploadResultRef}
+        isBusy={isBusy}
+        copiedParserLogJsonKey={copiedParserLogJsonKey}
+        failedParserLogJsonKey={failedParserLogJsonKey}
+        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
+        onClearUploadResult={() => {
+          setUploadResult(null)
+          setStatusMessage('Image Upload Result view cleared.')
+        }}
+        onCopyJson={handleCopyParserLogJson}
+        onDownloadJson={handleDownloadJsonFile}
+      />
+
+
       <VideoUploadFoundationSection
         isDeveloperMode={isDeveloperMode}
         showUploadCard={false}
@@ -5847,22 +5990,6 @@ function App() {
         onDownloadJson={handleDownloadJsonFile}
       />
 
-      <ImageUploadResultSection
-        isDeveloperMode={isDeveloperMode}
-        uploadResult={uploadResult}
-        uploadedImageUrl={uploadedImageUrl}
-        uploadResultRef={uploadResultRef}
-        isBusy={isBusy}
-        copiedParserLogJsonKey={copiedParserLogJsonKey}
-        failedParserLogJsonKey={failedParserLogJsonKey}
-        downloadedParserLogJsonKey={downloadedParserLogJsonKey}
-        onClearUploadResult={() => {
-          setUploadResult(null)
-          setStatusMessage('Image Upload Result view cleared.')
-        }}
-        onCopyJson={handleCopyParserLogJson}
-        onDownloadJson={handleDownloadJsonFile}
-      />
 
       <GeneratedOutputHistorySection
         isDeveloperMode={isDeveloperMode}
