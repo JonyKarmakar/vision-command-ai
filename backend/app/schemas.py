@@ -179,3 +179,19 @@ class ImageChatResponse(BaseModel):
     provider_status: dict
     used_context_keys: list
     context_summary: dict
+
+class VideoChatRequest(BaseModel):
+    question: str
+    video_context: Optional[dict] = None
+    response_mode: Literal["auto", "rule_based", "real_llm"] = "auto"
+
+
+class VideoChatResponse(BaseModel):
+    question: str
+    answer: str
+    response_mode: str
+    responder_type: str
+    prompt_version: str
+    provider_status: dict
+    used_context_keys: list
+    context_summary: dict
