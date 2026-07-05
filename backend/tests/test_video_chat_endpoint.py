@@ -62,7 +62,7 @@ def test_video_chat_answers_privacy_question_from_sampled_detections():
     data = response.json()
 
     assert data["responder_type"] == "rule_based"
-    assert data["prompt_version"] == "video-chat-prompt-v1"
+    assert data["prompt_version"] == "video-chat-prompt-v3"
     assert "privacy" in data["answer"].lower()
     assert "person" in data["answer"].lower() or "people" in data["answer"].lower()
     assert data["context_summary"]["detected_classes"]["person"] == 1
