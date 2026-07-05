@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from app.services.llm_provider import get_llm_provider_status
 
 
-VIDEO_CHAT_PROMPT_VERSION = "video-chat-prompt-v1"
+VIDEO_CHAT_PROMPT_VERSION = "video-chat-prompt-v3"
 
 
 def _safe_context(video_context):
@@ -193,6 +193,74 @@ def _format_duration(duration_seconds):
     return f"{duration_seconds:.1f} seconds"
 
 
+def _is_summary_question(question):
+    normalized_question = question.lower().strip()
+    return any(
+        phrase in normalized_question
+        for phrase in ["what happens", "summarize", "summary", "what do you see"]
+    )
+
+
+def _format_timestamps(timestamps):
+    if not timestamps:
+        return ""
+
+    formatted = []
+    for timestamp in timestamps[:5]:
+        if isinstance(timestamp, int):
+            formatted.append(f"{timestamp}s")
+        elif isinstance(timestamp, float):
+            formatted.append(f"{timestamp:g}s")
+
+    if not formatted:
+        return ""
+
+    if len(formatted) == 1:
+        return f" at {formatted[0]}"
+
+    return f" at {', '.join(formatted[:-1])} and {formatted[-1]}"
+
+
+def _build_safe_sampled_detection_answer(context_summary):
+    class_summary = _format_class_counts(context_summary["detected_classes"])
+    timestamp_summary = _format_timestamps(
+        context_summary.get("sampled_timestamps_seconds", [])
+    )
+
+    no_tracking_sentence = ""
+    if context_summary.get("track_count", 0) == 0:
+        no_tracking_sentence = " No tracking result is available."
+
+    return (
+        f"Based on sampled frames{timestamp_summary}, the structured video context "
+        f"contains detections for {class_summary}. "
+        "I cannot describe the full activity, scene, location, or intent from this "
+        "sampled detection context alone."
+        f"{no_tracking_sentence} "
+        "This is based on sampled video/workflow context, not raw video-level understanding."
+    )
+
+
+def _should_guard_real_llm_answer(question, answer, context_summary):
+    if not _is_summary_question(question):
+        return False
+
+    has_sampled_detection_context = (
+        context_summary.get("sampled_frame_count", 0) > 0
+        and context_summary.get("detection_count", 0) > 0
+    )
+    has_tracking_context = context_summary.get("track_count", 0) > 0
+
+    if not has_sampled_detection_context or has_tracking_context:
+        return False
+
+    # For summary questions, sampled detections without tracking are not enough
+    # to safely describe activity, movement, intent, or scene details. Small
+    # local models often over-infer from class labels, so use a deterministic
+    # sampled-context answer instead.
+    return True
+
+
 def _build_rule_based_answer(question, context_summary):
     normalized_question = question.lower().strip()
     detected_classes = context_summary["detected_classes"]
@@ -287,6 +355,10 @@ def build_video_chat_prompt(question, video_context):
         "You are VisionCommand AI, a helpful video workflow assistant. "
         "Answer questions using only the structured video context provided. "
         "Do not claim to watch raw video pixels. Be honest about limitations. "
+        "Do not infer the full activity, scene, sport, location, or intent from object classes alone. "
+        "If the context only has sampled detections, say sampled frames contain those objects. "
+        "Do not say tracked, tracking, movement, or changed between frames unless track_count is greater than 0 or tracking context is present. "
+        "If track_count is 0, say no tracking result is available. "
         "If the context includes person detections, refer to them as people or persons, not faces unless a face class is present. "
         "Do not discuss model accuracy unless the user asks about model performance. "
         "When privacy is mentioned, recommend practical review of people, faces, screens, documents, text, license plates, and sensitive objects."
@@ -301,8 +373,11 @@ Structured video context summary:
 
 Answer in 2 to 5 concise sentences.
 Use plain product language for a normal user.
-Ground the answer in sampled-frame detections, video metadata, tracking, and workflow context.
+Ground the answer only in sampled-frame detections, video metadata, tracking results if present, and workflow context.
 Do not invent visual details that are not in the structured context.
+Do not describe the video as sports-related, outdoor, indoor, a game, a scene, or an activity unless that is explicitly present in the structured context.
+If track_count is 0, do not use the words tracked, tracking, movement, or changed except to say that no tracking result is available.
+For summary questions, say what objects appear in sampled frames and mention the sampled timestamps when available.
 Mention when the answer is based on sampled video/workflow context rather than raw video-level understanding.
 """.strip()
 
@@ -412,12 +487,23 @@ def answer_video_chat(question, video_context=None, response_mode="auto"):
             system_prompt=prompt_preview["system_prompt"],
             user_prompt=prompt_preview["user_prompt"],
         )
+        responder_type = "real_llm"
+
+        if _should_guard_real_llm_answer(
+            question=question.strip(),
+            answer=answer,
+            context_summary=prompt_preview["context_summary"],
+        ):
+            answer = _build_safe_sampled_detection_answer(
+                prompt_preview["context_summary"]
+            )
+            responder_type = "real_llm_guarded"
 
         return {
             "question": question.strip(),
             "answer": answer,
             "response_mode": response_mode,
-            "responder_type": "real_llm",
+            "responder_type": responder_type,
             "prompt_version": prompt_preview["prompt_version"],
             "provider_status": provider_status,
             "used_context_keys": prompt_preview["context_summary"]["context_keys"],
