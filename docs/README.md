@@ -272,3 +272,4 @@ docs/
 └── releases/
 ```
 - [Local AI Demo Guide](local-ai-demo.md) - Run and present the Ollama-backed Local AI assistant flow.
+- [Image Chat Demo Guide](image-chat-demo.md) - Demo structured image questions, privacy guidance, and Local AI image answers.
