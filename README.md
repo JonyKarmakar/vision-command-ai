@@ -386,6 +386,7 @@ Recent demo-readiness PRs were merged only after pull request checks and post-me
 ## Documentation
 
 - [Local AI Demo Guide](docs/local-ai-demo.md) - Run the Ollama-backed Local AI assistant flow in User Mode.
+- [Image Chat Demo Guide](docs/image-chat-demo.md) - Demo structured image questions, privacy guidance, and Local AI image answers.
 
 Detailed documentation is available in the `docs/` folder.
 
