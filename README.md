@@ -388,6 +388,7 @@ Recent demo-readiness PRs were merged only after pull request checks and post-me
 - [Local AI Demo Guide](docs/local-ai-demo.md) - Run the Ollama-backed Local AI assistant flow in User Mode.
 - [Image Chat Demo Guide](docs/image-chat-demo.md) - Demo structured image questions, privacy guidance, and Local AI image answers.
 - [Video Chat Demo Guide](docs/video-chat-demo.md) - Demo structured video questions, sampled-frame grounding, and guarded Local AI video answers.
+- [Milestone D Video Chat Summary](docs/milestone-d-video-chat-summary.md) - Summarize the completed structured video chat milestone.
 
 Detailed documentation is available in the `docs/` folder.
 
