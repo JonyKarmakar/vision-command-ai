@@ -274,3 +274,4 @@ docs/
 - [Local AI Demo Guide](local-ai-demo.md) - Run and present the Ollama-backed Local AI assistant flow.
 - [Image Chat Demo Guide](image-chat-demo.md) - Demo structured image questions, privacy guidance, and Local AI image answers.
 - [Video Chat Demo Guide](video-chat-demo.md) - Demo structured video questions, sampled-frame grounding, and guarded Local AI video answers.
+- [Milestone D Video Chat Summary](milestone-d-video-chat-summary.md) - Summarize the completed structured video chat milestone.
