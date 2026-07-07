@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw, UnidentifiedImageError
 from app.routers import health, model
 from app.services.command_evaluation import (
     evaluate_command_parser,
+    evaluate_command_parser_robustness,
     evaluate_command_planner,
 )
 from app.services.llm_parser import parse_command_with_mode
@@ -3312,6 +3313,13 @@ def evaluate_text_command_parser(
     parser_mode: str = Query("rule_based"),
 ):
     return evaluate_command_parser(parser_mode)
+
+
+@app.get("/commands/evaluate/robustness")
+def evaluate_command_parser_robustness_endpoint(
+    parser_mode: str = Query("rule_based"),
+):
+    return evaluate_command_parser_robustness(parser_mode)
 
 
 @app.get("/commands/evaluate/compare")
