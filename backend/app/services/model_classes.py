@@ -86,6 +86,12 @@ CLASS_ALIASES = {
     "persons": "person",
     "human": "person",
     "humans": "person",
+    "man": "person",
+    "men": "person",
+    "woman": "person",
+    "women": "person",
+    "child": "person",
+    "children": "person",
     "bike": "bicycle",
     "bikes": "bicycle",
     "cycle": "bicycle",
@@ -116,6 +122,8 @@ CLASS_ALIASES = {
     "tables": "dining table",
     "television": "tv",
     "televisions": "tv",
+    "smartphone": "cell phone",
+    "smartphones": "cell phone",
     "phone": "cell phone",
     "phones": "cell phone",
     "mobile": "cell phone",
@@ -162,3 +170,111 @@ def normalize_model_class_name(class_name: str):
 
 def is_supported_model_class(class_name: str):
     return normalize_model_class_name(class_name) in SUPPORTED_OBJECT_CLASSES
+
+
+def get_class_groups():
+    return {
+        "vehicle": [
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+        ],
+        "vehicles": [
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+        ],
+        "animal": [
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+        ],
+        "animals": [
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+        ],
+        "furniture": [
+            "chair",
+            "couch",
+            "bed",
+            "dining table",
+            "toilet",
+        ],
+        "food": [
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+        ],
+    }
+
+
+def normalize_class_request(class_name: str):
+    requested = " ".join(str(class_name).lower().strip().split())
+    normalized = normalize_model_class_name(requested)
+    supported = normalized in SUPPORTED_OBJECT_CLASSES
+    class_groups = get_class_groups()
+    matched_group = class_groups.get(requested)
+
+    return {
+        "requested_class": requested,
+        "normalized_class": normalized,
+        "is_supported": supported,
+        "matched_alias": normalized != requested and supported,
+        "matched_group": matched_group,
+    }
+
+
+def get_supported_class_examples(limit: int = 15):
+    return SUPPORTED_OBJECT_CLASSES[:limit]
+
+
+def build_unsupported_class_message(class_name: str):
+    request = normalize_class_request(class_name)
+
+    if request["matched_group"]:
+        examples = ", ".join(request["matched_group"])
+        return (
+            f"'{request['requested_class']}' is a broad object category. "
+            "The current model works with specific supported classes, not broad categories. "
+            f"Try one of these supported classes: {examples}."
+        )
+
+    examples = ", ".join(get_supported_class_examples())
+    return (
+        f"Unsupported object class '{class_name}'. "
+        "The current model cannot detect this class. "
+        f"Try supported classes like: {examples}. "
+        "For arbitrary objects, this project would need an open-vocabulary detection model in a future milestone."
+    )

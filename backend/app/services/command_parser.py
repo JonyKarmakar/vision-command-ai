@@ -3,7 +3,7 @@ import re
 from fastapi import HTTPException
 
 from app.services.model_classes import (
-    get_supported_model_classes,
+    build_unsupported_class_message,
     is_supported_model_class,
     normalize_model_class_name,
 )
@@ -19,15 +19,9 @@ def normalize_supported_requested_class_name(class_name: str):
     if is_supported_model_class(normalized_class_name):
         return normalized_class_name
 
-    supported_examples = ", ".join(get_supported_model_classes()[:15])
-
     raise HTTPException(
         status_code=400,
-        detail=(
-            f"Unsupported object class '{class_name}'. "
-            f"The current model cannot detect this class. "
-            f"Try supported classes like: {supported_examples}"
-        ),
+        detail=build_unsupported_class_message(class_name),
     )
 
 
