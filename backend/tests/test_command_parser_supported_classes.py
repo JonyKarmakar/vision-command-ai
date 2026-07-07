@@ -61,3 +61,37 @@ def test_crop_command_rejects_unsupported_class():
 
     assert error.value.status_code == 400
     assert "Unsupported object class 'wallet'" in error.value.detail
+
+
+def test_crop_command_accepts_people_alias():
+    assert parse_command("crop people") == {
+        "action": "crop_by_class",
+        "class_name": "person",
+    }
+
+
+def test_blur_command_accepts_children_alias():
+    assert parse_command("blur children") == {
+        "action": "blur_by_class",
+        "class_name": "person",
+    }
+
+
+def test_crop_command_rejects_broad_vehicle_category_with_specific_suggestions():
+    with pytest.raises(HTTPException) as error:
+        parse_command("crop vehicles")
+
+    assert error.value.status_code == 400
+    assert "'vehicles' is a broad object category" in error.value.detail
+    assert "car" in error.value.detail
+    assert "truck" in error.value.detail
+    assert "motorcycle" in error.value.detail
+
+
+def test_blur_command_rejects_arbitrary_unsupported_object_with_future_guidance():
+    with pytest.raises(HTTPException) as error:
+        parse_command("blur helmet")
+
+    assert error.value.status_code == 400
+    assert "Unsupported object class 'helmet'" in error.value.detail
+    assert "open-vocabulary detection model" in error.value.detail
