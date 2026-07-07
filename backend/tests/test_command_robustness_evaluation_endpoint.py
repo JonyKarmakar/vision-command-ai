@@ -1,0 +1,51 @@
+from fastapi.testclient import TestClient
+
+from app import main
+
+
+client = TestClient(main.app)
+
+
+def test_command_parser_robustness_evaluation_endpoint():
+    response = client.get("/commands/evaluate/robustness")
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["parser_type"] == "rule_based"
+    assert data["total_cases"] >= 10
+    assert data["current_pass_cases"] >= 5
+    assert data["expected_error_cases"] >= 2
+    assert data["future_target_cases"] >= 3
+    assert data["undocumented_behavior_cases"] == 0
+    assert data["future_target_gap"] >= 1
+    assert len(data["results"]) == data["total_cases"]
+
+
+def test_command_parser_robustness_evaluation_endpoint_with_llm_mock_mode():
+    response = client.get("/commands/evaluate/robustness?parser_mode=llm_mock")
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["parser_type"] == "llm_mock"
+    assert data["total_cases"] >= 10
+    assert data["undocumented_behavior_cases"] == 0
+
+
+def test_command_parser_robustness_evaluation_endpoint_rejects_invalid_parser_mode():
+    response = client.get("/commands/evaluate/robustness?parser_mode=llm")
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Supported parser modes are: rule_based, llm_mock, real_llm"
+    }
+
+
+def test_command_parser_robustness_evaluation_endpoint_real_llm_requires_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "disabled")
+
+    response = client.get("/commands/evaluate/robustness?parser_mode=real_llm")
+
+    assert response.status_code == 503
+    assert "requires a configured provider" in response.json()["detail"]
