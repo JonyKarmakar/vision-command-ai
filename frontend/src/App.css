@@ -5321,6 +5321,27 @@ input[type="file"]::file-selector-button:hover {
   margin: 0 0 0.5rem;
 }
 
+.image-chat-grounding-note {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.22);
+}
+
+.image-chat-grounding-note strong {
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+.image-chat-grounding-note p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 .image-chat-debug {
   margin-top: 1rem;
 }
