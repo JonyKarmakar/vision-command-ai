@@ -234,3 +234,36 @@ def test_parse_zoom_requires_class_name():
 
     assert exc_info.value.status_code == 400
     assert "Please specify which class to zoom" in exc_info.value.detail
+
+
+def test_parse_zoom_biggest_person_command():
+    assert parse_command("zoom into the biggest person") == {
+        "action": "zoom_by_class",
+        "class_name": "person",
+        "target_scope": "largest",
+    }
+
+
+def test_parse_find_cars_command():
+    assert parse_command("find cars") == {
+        "action": "detect",
+        "class_name": "car",
+    }
+
+
+def test_parse_show_frames_with_people_requires_time_range():
+    with pytest.raises(HTTPException) as exc_info:
+        parse_command("show frames with people")
+
+    assert exc_info.value.status_code == 400
+    assert "Please specify a start and end time" in exc_info.value.detail
+
+
+def test_parse_show_frames_with_people_time_range_command():
+    assert parse_command("show frames with people from 0 to 3 seconds") == {
+        "action": "detect_frames",
+        "class_name": "person",
+        "start_seconds": 0.0,
+        "end_seconds": 3.0,
+        "interval_seconds": 1.0,
+    }

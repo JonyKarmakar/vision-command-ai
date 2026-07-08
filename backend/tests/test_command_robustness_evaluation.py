@@ -36,7 +36,8 @@ def test_command_robustness_cases_cover_natural_aliases_and_future_parser_gaps()
     }
 
     assert cases["find cars"]["case_type"] == "future_target"
-    assert cases["show frames with people"]["case_type"] == "future_target"
+    assert cases["show frames with people"]["case_type"] == "expected_error"
+    assert cases["show frames with people from 0 to 3 seconds"]["case_type"] == "future_target"
 
 
 def test_rule_based_command_robustness_evaluation_documents_current_behavior():
@@ -48,7 +49,7 @@ def test_rule_based_command_robustness_evaluation_documents_current_behavior():
     assert result["expected_error_cases"] >= 2
     assert result["future_target_cases"] >= 3
     assert result["undocumented_behavior_cases"] == 0
-    assert result["future_target_gap"] >= 1
+    assert result["future_target_gap"] == 0
 
 
 def test_rule_based_command_robustness_records_expected_errors():
@@ -69,7 +70,7 @@ def test_rule_based_command_robustness_records_expected_errors():
     assert "Unsupported object class 'helmet'" in helmet_result["error"]
 
 
-def test_rule_based_command_robustness_records_future_targets_without_failing_dataset():
+def test_rule_based_command_robustness_records_future_targets_as_met():
     result = evaluate_command_parser_robustness("rule_based")
     results_by_command = {
         case_result["command"]: case_result
@@ -78,12 +79,40 @@ def test_rule_based_command_robustness_records_future_targets_without_failing_da
 
     zoom_result = results_by_command["zoom into the biggest person"]
     assert zoom_result["case_type"] == "future_target"
-    assert zoom_result["future_target_met"] is False
+    assert zoom_result["future_target_met"] is True
     assert zoom_result["current_behavior_passed"] is True
-    assert "Unsupported object class 'biggest person'" in zoom_result["error"]
+    assert zoom_result["error"] is None
+    assert zoom_result["actual"] == {
+        "action": "zoom_by_class",
+        "class_name": "person",
+        "target_scope": "largest",
+    }
 
     find_result = results_by_command["find cars"]
     assert find_result["case_type"] == "future_target"
-    assert find_result["future_target_met"] is False
+    assert find_result["future_target_met"] is True
     assert find_result["current_behavior_passed"] is True
-    assert "Unsupported command" in find_result["error"]
+    assert find_result["error"] is None
+    assert find_result["actual"] == {
+        "action": "detect",
+        "class_name": "car",
+    }
+
+    show_frames_result = results_by_command["show frames with people from 0 to 3 seconds"]
+    assert show_frames_result["case_type"] == "future_target"
+    assert show_frames_result["future_target_met"] is True
+    assert show_frames_result["current_behavior_passed"] is True
+    assert show_frames_result["error"] is None
+    assert show_frames_result["actual"] == {
+        "action": "detect_frames",
+        "class_name": "person",
+        "start_seconds": 0.0,
+        "end_seconds": 3.0,
+        "interval_seconds": 1.0,
+    }
+
+    missing_time_result = results_by_command["show frames with people"]
+    assert missing_time_result["case_type"] == "expected_error"
+    assert missing_time_result["current_behavior_passed"] is True
+    assert missing_time_result["actual"] is None
+    assert "Please specify a start and end time" in missing_time_result["error"]

@@ -171,6 +171,100 @@ def parse_command(command: str):
             "end_seconds": end_seconds,
         }
 
+    if "show" in words and "frames" in words:
+        numbers = _extract_numbers(normalized_command)
+
+        if len(numbers) < 2:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Please specify a start and end time, for example: "
+                    "show frames with people from 0 to 3 seconds"
+                ),
+            )
+
+        start_seconds = numbers[0]
+        end_seconds = numbers[1]
+        interval_seconds = numbers[2] if len(numbers) >= 3 else 1.0
+
+        command_without_numbers = re.sub(r"\d+(?:\.\d+)?", "", normalized_command)
+        words_without_numbers = command_without_numbers.split()
+
+        ignored_words = {
+            "show",
+            "frame",
+            "frames",
+            "with",
+            "containing",
+            "that",
+            "have",
+            "has",
+            "from",
+            "to",
+            "at",
+            "every",
+            "second",
+            "seconds",
+            "the",
+            "a",
+            "an",
+            "object",
+            "objects",
+            "detected",
+            "in",
+            "image",
+            "photo",
+            "picture",
+            "video",
+        }
+
+        class_words = [
+            word for word in words_without_numbers
+            if word not in ignored_words
+        ]
+
+        if not class_words:
+            raise HTTPException(
+                status_code=400,
+                detail="Please specify which class to show in frames, for example: show frames with people from 0 to 3 seconds",
+            )
+
+        return {
+            "action": "detect_frames",
+            "class_name": normalize_supported_requested_class_name(" ".join(class_words)),
+            "start_seconds": start_seconds,
+            "end_seconds": end_seconds,
+            "interval_seconds": interval_seconds,
+        }
+
+    if "find" in words:
+        ignored_words = {
+            "find",
+            "the",
+            "a",
+            "an",
+            "object",
+            "objects",
+            "detected",
+            "in",
+            "image",
+            "photo",
+            "picture",
+            "video",
+            "frame",
+            "frames",
+        }
+
+        class_words = [
+            word for word in words
+            if word not in ignored_words
+        ]
+
+        return {
+            "action": "detect",
+            "class_name": normalize_supported_requested_class_name(" ".join(class_words)) if class_words else None,
+        }
+
     if "detect" in normalized_command:
         return {
             "action": "detect",
@@ -238,7 +332,18 @@ def parse_command(command: str):
 
     if "zoom" in normalized_command:
         target_scope = None
-        scope_words = {"best", "largest", "left", "right", "center", "single"}
+        scope_aliases = {
+            "best": "best",
+            "largest": "largest",
+            "biggest": "largest",
+            "main": "largest",
+            "left": "left",
+            "right": "right",
+            "center": "center",
+            "centre": "center",
+            "middle": "center",
+            "single": "single",
+        }
 
         ignored_words = {
             "zoom",
@@ -255,8 +360,8 @@ def parse_command(command: str):
 
         class_words = []
         for word in words:
-            if word in scope_words:
-                target_scope = word
+            if word in scope_aliases:
+                target_scope = scope_aliases[word]
                 continue
 
             if word not in ignored_words:
