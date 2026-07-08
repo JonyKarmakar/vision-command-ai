@@ -104,6 +104,7 @@ def test_execute_detect_frames_command_without_range_fails():
     )
 
     assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Please specify a start and end time, for example: detect frames from 0 to 3 seconds"
-    }
+    detail = response.json()["detail"]
+    assert "I understood this as a frame detection command" in detail
+    assert "I need a start and end time" in detail
+    assert "detect frames from 0 to 3 seconds" in detail

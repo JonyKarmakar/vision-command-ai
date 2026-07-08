@@ -140,3 +140,28 @@ def test_validate_track_video_rejects_unsupported_optional_class_name():
 
     assert error.value.status_code == 400
     assert "Unsupported object class 'wallet'" in error.value.detail
+
+
+def test_validate_blur_by_class_rejects_broad_category_with_specific_suggestions():
+    with pytest.raises(HTTPException) as error:
+        validate_parsed_command({
+            "action": "blur_by_class",
+            "class_name": "vehicles",
+        })
+
+    assert error.value.status_code == 400
+    assert "'vehicles' is a broad object category" in error.value.detail
+    assert "car" in error.value.detail
+    assert "truck" in error.value.detail
+
+
+def test_validate_blur_by_class_rejects_unsupported_class_with_future_guidance():
+    with pytest.raises(HTTPException) as error:
+        validate_parsed_command({
+            "action": "blur_by_class",
+            "class_name": "helmet",
+        })
+
+    assert error.value.status_code == 400
+    assert "Unsupported object class 'helmet'" in error.value.detail
+    assert "open-vocabulary detection model" in error.value.detail

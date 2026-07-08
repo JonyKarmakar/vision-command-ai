@@ -25,6 +25,32 @@ def normalize_supported_requested_class_name(class_name: str):
     )
 
 
+
+def _format_examples(examples: list[str]) -> str:
+    return "; ".join(examples)
+
+
+def _clarification_message(message: str, examples: list[str]) -> str:
+    return f"{message} Try: {_format_examples(examples)}."
+
+
+def _unsupported_command_message() -> str:
+    return _clarification_message(
+        "I could not map this command to a supported VisionCommand action yet.",
+        [
+            "detect objects",
+            "crop person",
+            "crop bottle",
+            "blur all people",
+            "zoom into the biggest person",
+            "find cars",
+            "show frames with people from 0 to 3 seconds",
+            "track person from 0 to 3 seconds",
+            "trim video from 0 to 2 seconds",
+        ],
+    )
+
+
 def _extract_numbers(command: str):
     return [float(value) for value in re.findall(r"(\d+(?:\.\d+)?)", command)]
 
@@ -57,7 +83,10 @@ def parse_command(command: str):
         if len(numbers) < 2:
             raise HTTPException(
                 status_code=400,
-                detail="Please specify a start and end time, for example: detect frames from 0 to 3 seconds",
+                detail=_clarification_message(
+                    "I understood this as a frame detection command, but I need a start and end time.",
+                    ["detect frames from 0 to 3 seconds"],
+                ),
             )
 
         start_seconds = numbers[0]
@@ -78,7 +107,10 @@ def parse_command(command: str):
         if len(numbers) < 2:
             raise HTTPException(
                 status_code=400,
-                detail="Please specify a start and end time, for example: extract frames from 0 to 3 seconds",
+                detail=_clarification_message(
+                    "I understood this as a multi-frame extraction command, but I need a start and end time.",
+                    ["extract frames from 0 to 3 seconds"],
+                ),
             )
 
         start_seconds = numbers[0]
@@ -99,7 +131,10 @@ def parse_command(command: str):
         if timestamp_seconds is None:
             raise HTTPException(
                 status_code=400,
-                detail="Please specify a timestamp, for example: extract frame at 1 second",
+                detail=_clarification_message(
+                    "I understood this as a frame extraction command, but I need a timestamp.",
+                    ["extract frame at 1 second"],
+                ),
             )
 
         return {
@@ -114,7 +149,10 @@ def parse_command(command: str):
         if time_range is None:
             raise HTTPException(
                 status_code=400,
-                detail="Please specify a start and end time, for example: track video from 0 to 3 seconds",
+                detail=_clarification_message(
+                    "I understood this as a tracking command, but I need a start and end time.",
+                    ["track video from 0 to 3 seconds", "track person from 0 to 3 seconds"],
+                ),
             )
 
         start_seconds, end_seconds = time_range
@@ -159,7 +197,10 @@ def parse_command(command: str):
         if time_range is None:
             raise HTTPException(
                 status_code=400,
-                detail="Please specify a start and end time, for example: trim video from 0 to 2 seconds",
+                detail=_clarification_message(
+                    "I understood this as a trim command, but I need a start and end time.",
+                    ["trim video from 0 to 2 seconds"],
+                ),
             )
 
         start_seconds, end_seconds = time_range
@@ -177,9 +218,9 @@ def parse_command(command: str):
         if len(numbers) < 2:
             raise HTTPException(
                 status_code=400,
-                detail=(
-                    "Please specify a start and end time, for example: "
-                    "show frames with people from 0 to 3 seconds"
+                detail=_clarification_message(
+                    "I understood this as a frame search command, but I need a start and end time.",
+                    ["show frames with people from 0 to 3 seconds"],
                 ),
             )
 
@@ -226,7 +267,10 @@ def parse_command(command: str):
         if not class_words:
             raise HTTPException(
                 status_code=400,
-                detail="Please specify which class to show in frames, for example: show frames with people from 0 to 3 seconds",
+                detail=_clarification_message(
+                    "I understood this as a frame search command, but I need an object class.",
+                    ["show frames with people from 0 to 3 seconds"],
+                ),
             )
 
         return {
@@ -260,9 +304,18 @@ def parse_command(command: str):
             if word not in ignored_words
         ]
 
+        if not class_words:
+            raise HTTPException(
+                status_code=400,
+                detail=_clarification_message(
+                    "I understood this as a find command, but I need an object class.",
+                    ["find cars", "find people", "detect objects"],
+                ),
+            )
+
         return {
             "action": "detect",
-            "class_name": normalize_supported_requested_class_name(" ".join(class_words)) if class_words else None,
+            "class_name": normalize_supported_requested_class_name(" ".join(class_words)),
         }
 
     if "detect" in normalized_command:
@@ -291,7 +344,10 @@ def parse_command(command: str):
         if not class_words:
             raise HTTPException(
                 status_code=400,
-                detail="Please specify which class to crop, for example: crop person",
+                detail=_clarification_message(
+                    "I understood this as a crop command, but I need an object class.",
+                    ["crop person", "crop bottle", "crop bike"],
+                ),
             )
 
         return {
@@ -322,7 +378,10 @@ def parse_command(command: str):
         if not class_words:
             raise HTTPException(
                 status_code=400,
-                detail="Please specify which class to blur, for example: blur person",
+                detail=_clarification_message(
+                    "I understood this as a blur command, but I need an object class.",
+                    ["blur person", "blur all people", "blur phone"],
+                ),
             )
 
         return {
@@ -370,7 +429,10 @@ def parse_command(command: str):
         if not class_words:
             raise HTTPException(
                 status_code=400,
-                detail="Please specify which class to zoom, for example: zoom person",
+                detail=_clarification_message(
+                    "I understood this as a zoom command, but I need an object class.",
+                    ["zoom person", "zoom into the biggest person", "zoom left person"],
+                ),
             )
 
         parsed_command = {
@@ -400,5 +462,5 @@ def parse_command(command: str):
 
     raise HTTPException(
         status_code=400,
-        detail=f"Unsupported command. Try commands like: {', '.join(supported_examples)}",
+        detail=_unsupported_command_message(),
     )

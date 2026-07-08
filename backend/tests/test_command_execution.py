@@ -140,9 +140,10 @@ def test_execute_crop_command_without_class_fails():
     )
 
     assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Please specify which class to crop, for example: crop person"
-    }
+    detail = response.json()["detail"]
+    assert "I understood this as a crop command" in detail
+    assert "I need an object class" in detail
+    assert "crop person" in detail
 
 
 def test_execute_unsupported_command_fails():
@@ -158,14 +159,13 @@ def test_execute_unsupported_command_fails():
     assert response.status_code == 400
 
     detail = response.json()["detail"]
-    assert "Unsupported command" in detail
+    assert "I could not map this command to a supported VisionCommand action yet" in detail
     assert "detect objects" in detail
     assert "crop person" in detail
-    assert "blur person" in detail
-    assert "extract frame at 1 second" in detail
-    assert "extract frames from 0 to 3 seconds" in detail
-    assert "detect frames from 0 to 3 seconds" in detail
-    assert "track video from 0 to 3 seconds" in detail
+    assert "show frames with people from 0 to 3 seconds" in detail
+    assert "find cars" in detail
+    assert "zoom into the biggest person" in detail
+    assert "blur all people" in detail
     assert "track person from 0 to 3 seconds" in detail
     assert "trim video from 0 to 2 seconds" in detail
 
@@ -245,9 +245,10 @@ def test_execute_blur_command_without_class_fails():
     )
 
     assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Please specify which class to blur, for example: blur person"
-    }
+    detail = response.json()["detail"]
+    assert "I understood this as a blur command" in detail
+    assert "I need an object class" in detail
+    assert "blur person" in detail
 
 
 
