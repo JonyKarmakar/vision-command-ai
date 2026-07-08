@@ -185,6 +185,17 @@ const getErrorMessage = (error: unknown, fallbackMessage: string): string => {
   return error instanceof Error && error.message ? error.message : fallbackMessage
 }
 
+const isCommandClarificationMessage = (message: string): boolean => {
+  const normalizedMessage = message.toLowerCase()
+
+  return [
+    'i understood this as',
+    'i could not map this command',
+    'unsupported object class',
+    'broad object category',
+  ].some((phrase) => normalizedMessage.includes(phrase))
+}
+
 
 type VideoResultPanelKey =
   | 'trim_video'
@@ -307,6 +318,7 @@ function App() {
   const [selectedParserMode, setSelectedParserMode] = useState<PlannerMode>('rule_based')
   const [selectedPlannerMode, setSelectedPlannerMode] = useState<PlannerMode>('rule_based')
   const [commandResult, setCommandResult] = useState<CommandResponse | null>(null)
+  const [commandClarificationMessage, setCommandClarificationMessage] = useState<string | null>(null)
   const [imageChatQuestion, setImageChatQuestion] = useState('')
   const [imageChatResult, setImageChatResult] = useState<ImageChatResponse | null>(null)
   const [isAskingImageChat, setIsAskingImageChat] = useState(false)
@@ -2325,6 +2337,8 @@ function App() {
 
     setCommandResult(null)
     setCommandParseResult(null)
+    setCommandClarificationMessage(null)
+    setError(null)
     setParsedCommandValidationResult(null)
     setCommandPromptPreviewResult(null)
     setCommandEvaluationResult(null)
@@ -3178,6 +3192,7 @@ function App() {
     try {
       setIsParsingCommand(true)
       setError(null)
+      setCommandClarificationMessage(null)
       setCommandParseResult(null)
       setParsedCommandValidationResult(null)
       setStatusMessage(`Parsing command: "${commandText}"...`)
@@ -3203,6 +3218,9 @@ function App() {
       setStatusMessage(`Command parsed as: ${data.parsed_command.action}.`)
     } catch (err) {
       const message = getErrorMessage(err, 'Command parsing failed.')
+      setCommandClarificationMessage(
+        isCommandClarificationMessage(message) ? message : null,
+      )
       setError(message)
       setStatusMessage(message)
     } finally {
@@ -3382,6 +3400,7 @@ function App() {
     try {
       setIsExecutingPreparedCommand(true)
       setError(null)
+      setCommandClarificationMessage(null)
       setStatusMessage(`Executing prepared command: ${preparedAction}...`)
 
       const response = await fetch('/api/commands/execute-prepared', {
@@ -3455,6 +3474,9 @@ function App() {
       setStatusMessage(`Executed prepared command as: ${data.result_type}.`)
     } catch (err) {
       const message = getErrorMessage(err, 'Prepared command execution failed.')
+      setCommandClarificationMessage(
+        isCommandClarificationMessage(message) ? message : null,
+      )
       setError(message)
       setStatusMessage(message)
     } finally {
@@ -4118,6 +4140,7 @@ function App() {
     try {
       setIsRunningCommand(true)
       setError(null)
+      setCommandClarificationMessage(null)
       setStatusMessage(
         isDeveloperMode
           ? `Running command with ${selectedParserMode}: "${commandText}"...`
@@ -4234,6 +4257,9 @@ function App() {
       setStatusMessage(`Command complete: "${commandText}".`)
     } catch (err) {
       const message = getErrorMessage(err, 'Command failed.')
+      setCommandClarificationMessage(
+        isCommandClarificationMessage(message) ? message : null,
+      )
       setError(message)
       setStatusMessage(message)
     } finally {
@@ -5386,6 +5412,7 @@ function App() {
             isRunningCommand={isRunningCommand}
             isListening={isListening}
             isDeveloperMode={isDeveloperMode}
+            commandClarificationMessage={commandClarificationMessage}
             selectedParserMode={selectedParserMode}
             llmProviderName={llmProviderStatusResult?.provider_name ?? null}
             llmProviderModel={llmProviderStatusResult?.provider_model ?? null}
@@ -5394,6 +5421,8 @@ function App() {
             onCommandTextChange={(nextCommandText) => {
               setCommandText(nextCommandText)
               setCommandParseResult(null)
+              setCommandClarificationMessage(null)
+              setError(null)
             }}
             onParseCommand={handleParseCommand}
             onPlanCommand={handlePlanCommand}

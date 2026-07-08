@@ -35,8 +35,8 @@ export function CommandCardSection({ children, isDeveloperMode }: CommandCardSec
           <div className="assistant-example-strip" aria-label="Example assistant commands">
             <span>Try:</span>
             <code>detect objects</code>
-            <code>blur person</code>
-            <code>zoom left person</code>
+            <code>blur all people</code>
+            <code>zoom into the biggest person</code>
             <code>extract frame at 1 second</code>
           </div>
         </>
