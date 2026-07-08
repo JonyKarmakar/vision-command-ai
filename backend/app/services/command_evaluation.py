@@ -236,6 +236,15 @@ COMMAND_ROBUSTNESS_EVALUATION_CASES = [
     },
     {
         "command": "show frames with people",
+        "case_type": "expected_error",
+        "expected_error_contains": [
+            "Please specify a start and end time",
+            "show frames with people from 0 to 3 seconds",
+        ],
+        "notes": "Frame-search commands need a time range before they can become executable.",
+    },
+    {
+        "command": "show frames with people from 0 to 3 seconds",
         "case_type": "future_target",
         "current_error_contains": [
             "Unsupported command",
@@ -243,8 +252,11 @@ COMMAND_ROBUSTNESS_EVALUATION_CASES = [
         "future_expected": {
             "action": "detect_frames",
             "class_name": "person",
+            "start_seconds": 0.0,
+            "end_seconds": 3.0,
+            "interval_seconds": 1.0,
         },
-        "notes": "Future video parser should understand frame-search phrasing and people/person aliases.",
+        "notes": "Video parser should understand frame-search phrasing with people/person aliases and an explicit time range.",
     },
 ]
 

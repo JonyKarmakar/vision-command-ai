@@ -18,7 +18,7 @@ def test_command_parser_robustness_evaluation_endpoint():
     assert data["expected_error_cases"] >= 2
     assert data["future_target_cases"] >= 3
     assert data["undocumented_behavior_cases"] == 0
-    assert data["future_target_gap"] >= 1
+    assert data["future_target_gap"] == 0
     assert len(data["results"]) == data["total_cases"]
 
 
