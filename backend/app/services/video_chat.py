@@ -193,11 +193,64 @@ def _format_duration(duration_seconds):
     return f"{duration_seconds:.1f} seconds"
 
 
+def _contains_any_phrase(normalized_question, phrases):
+    return any(phrase in normalized_question for phrase in phrases)
+
+
+def _build_unsupported_video_question_answer(question, context_summary):
+    normalized_question = question.lower().strip()
+    class_summary = _format_class_counts(context_summary["detected_classes"])
+
+    if _contains_any_phrase(
+        normalized_question,
+        ["identify", "who is", "who are", "name this person", "recognize"],
+    ):
+        return (
+            "I can report detected object classes from the sampled video context, "
+            "but I cannot identify who a person is. "
+            f"The current video context contains detections for {class_summary}. "
+            "This project does not perform face recognition or identity lookup."
+        )
+
+    if _contains_any_phrase(
+        normalized_question,
+        ["where", "location", "city", "country", "place", "recorded", "filmed"],
+    ):
+        return (
+            "I cannot infer where this video was recorded from sampled detections alone. "
+            f"The current video context contains detections for {class_summary}. "
+            "Location would require explicit metadata or user-provided context."
+        )
+
+    if _contains_any_phrase(
+        normalized_question,
+        ["happy", "sad", "angry", "emotion", "feeling", "mood"],
+    ):
+        return (
+            "I cannot determine a person's emotion, mood, or intent from sampled detection context. "
+            f"The current video context contains detections for {class_summary}. "
+            "A more grounded question would be about detected objects, privacy review, or tracking results."
+        )
+
+    if _contains_any_phrase(
+        normalized_question,
+        ["what is happening", "what's happening", "activity", "doing", "intent"],
+    ):
+        if (
+            context_summary.get("sampled_frame_count", 0) > 0
+            and context_summary.get("detection_count", 0) > 0
+            and context_summary.get("track_count", 0) == 0
+        ):
+            return _build_safe_sampled_detection_answer(context_summary)
+
+    return None
+
+
 def _is_summary_question(question):
     normalized_question = question.lower().strip()
     return any(
         phrase in normalized_question
-        for phrase in ["what happens", "summarize", "summary", "what do you see"]
+        for phrase in ["what happens", "what is happening", "what's happening", "summarize", "summary", "what do you see"]
     )
 
 
@@ -279,6 +332,14 @@ def _build_rule_based_answer(question, context_summary):
             "Upload a video and run frame extraction, sampled detection, or tracking first, "
             "then ask again for a more grounded video summary."
         )
+
+    unsupported_answer = _build_unsupported_video_question_answer(
+        question,
+        context_summary,
+    )
+
+    if unsupported_answer:
+        return unsupported_answer
 
     if any(word in normalized_question for word in ["privacy", "private", "blur", "hide", "anonym"]):
         if "person" in detected_classes:

@@ -109,3 +109,81 @@ def test_image_chat_rejects_unknown_response_mode():
     )
 
     assert response.status_code == 422
+
+
+def test_image_chat_declines_identity_question_from_detection_context():
+    response = client.post(
+        "/assistant/image-chat",
+        json={
+            "question": "Can you identify the person?",
+            "response_mode": "rule_based",
+            "image_context": {
+                "detectionResult": {
+                    "detection_count": 1,
+                    "detections": [
+                        {"class_name": "person", "confidence": 0.91, "bbox": {}},
+                    ],
+                }
+            },
+        },
+    )
+
+    assert response.status_code == 200
+
+    answer = response.json()["answer"].lower()
+
+    assert "cannot identify" in answer
+    assert "person" in answer
+    assert "face recognition" in answer
+
+
+def test_image_chat_declines_emotion_question_from_detection_context():
+    response = client.post(
+        "/assistant/image-chat",
+        json={
+            "question": "Is this person happy?",
+            "response_mode": "rule_based",
+            "image_context": {
+                "detectionResult": {
+                    "detection_count": 1,
+                    "detections": [
+                        {"class_name": "person", "confidence": 0.91, "bbox": {}},
+                    ],
+                }
+            },
+        },
+    )
+
+    assert response.status_code == 200
+
+    answer = response.json()["answer"].lower()
+
+    assert "cannot determine" in answer
+    assert "emotion" in answer
+    assert "structured detection context" in answer
+
+
+def test_image_chat_declines_location_question_from_detection_context():
+    response = client.post(
+        "/assistant/image-chat",
+        json={
+            "question": "Where was this photo taken?",
+            "response_mode": "rule_based",
+            "image_context": {
+                "detectionResult": {
+                    "detection_count": 1,
+                    "detections": [
+                        {"class_name": "car", "confidence": 0.82, "bbox": {}},
+                    ],
+                }
+            },
+        },
+    )
+
+    assert response.status_code == 200
+
+    answer = response.json()["answer"].lower()
+
+    assert "cannot infer" in answer
+    assert "where this image was taken" in answer
+    assert "metadata" in answer

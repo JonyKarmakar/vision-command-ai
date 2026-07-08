@@ -176,3 +176,106 @@ def test_video_chat_rejects_unknown_response_mode():
     )
 
     assert response.status_code == 422
+
+
+def test_video_chat_declines_identity_question_from_sampled_context():
+    response = client.post(
+        "/assistant/video-chat",
+        json={
+            "question": "Can you identify the person?",
+            "response_mode": "rule_based",
+            "video_context": {
+                "videoMultiFrameDetectionResult": {
+                    "frame_count": 1,
+                    "frames": [
+                        {
+                            "detections": [
+                                {"class_name": "person", "confidence": 0.91, "bbox": {}},
+                            ],
+                            "detection_count": 1,
+                        }
+                    ],
+                }
+            },
+        },
+    )
+
+    assert response.status_code == 200
+
+    answer = response.json()["answer"].lower()
+
+    assert "cannot identify" in answer
+    assert "sampled video context" in answer
+    assert "face recognition" in answer
+
+
+def test_video_chat_declines_location_question_from_sampled_context():
+    response = client.post(
+        "/assistant/video-chat",
+        json={
+            "question": "Where was this video recorded?",
+            "response_mode": "rule_based",
+            "video_context": {
+                "videoMultiFrameDetectionResult": {
+                    "frame_count": 1,
+                    "frames": [
+                        {
+                            "detections": [
+                                {"class_name": "person", "confidence": 0.91, "bbox": {}},
+                            ],
+                            "detection_count": 1,
+                        }
+                    ],
+                }
+            },
+        },
+    )
+
+    assert response.status_code == 200
+
+    answer = response.json()["answer"].lower()
+
+    assert "cannot infer" in answer
+    assert "where this video was recorded" in answer
+    assert "metadata" in answer
+
+
+def test_video_chat_handles_what_is_happening_with_safe_sampled_context_answer():
+    response = client.post(
+        "/assistant/video-chat",
+        json={
+            "question": "What is happening in this video?",
+            "response_mode": "rule_based",
+            "video_context": {
+                "videoMultiFrameDetectionResult": {
+                    "frame_count": 2,
+                    "frames": [
+                        {
+                            "timestamp_seconds": 0,
+                            "detections": [
+                                {"class_name": "person", "confidence": 0.91, "bbox": {}},
+                            ],
+                            "detection_count": 1,
+                        },
+                        {
+                            "timestamp_seconds": 1,
+                            "detections": [
+                                {"class_name": "sports ball", "confidence": 0.82, "bbox": {}},
+                            ],
+                            "detection_count": 1,
+                        },
+                    ],
+                }
+            },
+        },
+    )
+
+    assert response.status_code == 200
+
+    answer = response.json()["answer"].lower()
+
+    assert "sampled frames" in answer
+    assert "person (1)" in answer
+    assert "sports ball (1)" in answer
+    assert "cannot describe the full activity" in answer
+    assert "raw video-level understanding" in answer
