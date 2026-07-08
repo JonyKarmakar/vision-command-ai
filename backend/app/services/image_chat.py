@@ -101,6 +101,60 @@ def _format_detected_classes(detected_classes):
     )
 
 
+def _contains_any_phrase(normalized_question, phrases):
+    return any(phrase in normalized_question for phrase in phrases)
+
+
+def _build_unsupported_question_answer(question, context_summary):
+    normalized_question = question.lower().strip()
+    class_summary = _format_detected_classes(context_summary["detected_classes"])
+
+    if _contains_any_phrase(
+        normalized_question,
+        ["identify", "who is", "who are", "name this person", "recognize"],
+    ):
+        return (
+            "I can report that the structured image context includes detected object classes, "
+            "but I cannot identify who a person is. "
+            f"The current image context contains: {class_summary}. "
+            "This project does not perform face recognition or identity lookup."
+        )
+
+    if _contains_any_phrase(
+        normalized_question,
+        ["happy", "sad", "angry", "emotion", "feeling", "mood"],
+    ):
+        return (
+            "I cannot determine a person's emotion, mood, or intent from this structured "
+            "detection context. "
+            f"The current image context only contains detected object classes: {class_summary}. "
+            "A more grounded question would be about detected objects, privacy review, or workflow history."
+        )
+
+    if _contains_any_phrase(
+        normalized_question,
+        ["where", "location", "city", "country", "place", "taken"],
+    ):
+        return (
+            "I cannot infer where this image was taken from the structured detection context alone. "
+            f"The current image context contains detected object classes: {class_summary}. "
+            "Location would require explicit metadata or user-provided context."
+        )
+
+    if _contains_any_phrase(
+        normalized_question,
+        ["what is happening", "what's happening", "activity", "doing", "intent"],
+    ):
+        return (
+            "I cannot reliably describe activity, intent, or the full scene from structured "
+            "object detections alone. "
+            f"The current image context contains: {class_summary}. "
+            "This answer is based on detection/workflow context, not raw image understanding."
+        )
+
+    return None
+
+
 def _build_rule_based_answer(question, context_summary):
     normalized_question = question.lower().strip()
     detected_classes = context_summary["detected_classes"]
@@ -113,6 +167,14 @@ def _build_rule_based_answer(question, context_summary):
             "I do not have detected-object context for the current image yet. "
             "Run detection first, then ask again for a more grounded image summary."
         )
+
+    unsupported_answer = _build_unsupported_question_answer(
+        question,
+        context_summary,
+    )
+
+    if unsupported_answer:
+        return unsupported_answer
 
     if any(word in normalized_question for word in ["privacy", "private", "blur", "hide", "anonym"]):
         if "person" in detected_classes:
@@ -168,6 +230,7 @@ def build_image_chat_prompt(question, image_context):
         "You are VisionCommand AI, a helpful image workflow assistant. "
         "Answer questions using only the structured image context provided. "
         "Do not claim to see raw pixels. Be honest about limitations. "
+        "Do not identify people, infer emotions, infer location, or describe intent unless the structured context explicitly supports it. "
         "Do not say faces were detected unless the structured context includes a face class. "
         "If the context includes person detections, refer to them as people or persons, not faces. "
         "Do not discuss object detection model accuracy unless the user asks about model performance. "
