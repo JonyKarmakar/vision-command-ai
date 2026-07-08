@@ -109,6 +109,15 @@ export function VideoChatAnalysisSection({
             Answer source: {responderType ?? 'unknown'}
             {promptVersion ? ` · ${promptVersion}` : ''}
           </p>
+
+          <div className="image-chat-grounding-note" role="note">
+            <strong>Grounding note</strong>
+            <p>
+              This answer is grounded in sampled detections, tracking results, and workflow context.
+              It does not identify people, infer emotions or recording location, or use full
+              raw-video understanding.
+            </p>
+          </div>
         </div>
       )}
 
