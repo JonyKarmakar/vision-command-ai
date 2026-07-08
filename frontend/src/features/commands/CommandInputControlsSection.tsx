@@ -11,6 +11,7 @@ type CommandInputControlsSectionProps = {
   isRunningCommand: boolean
   isListening: boolean
   isDeveloperMode: boolean
+  commandClarificationMessage: string | null
   selectedParserMode: AssistantParserMode
   llmProviderName: string | null
   llmProviderModel: string | null
@@ -40,6 +41,7 @@ export function CommandInputControlsSection({
   isRunningCommand,
   isListening,
   isDeveloperMode,
+  commandClarificationMessage,
   selectedParserMode,
   llmProviderName,
   llmProviderModel,
@@ -200,6 +202,13 @@ export function CommandInputControlsSection({
               {voiceButton}
             </div>
           </div>
+
+            {commandClarificationMessage && (
+              <div className="assistant-command-clarification" role="alert">
+                <strong>VisionCommand needs one more detail</strong>
+                <p>{commandClarificationMessage}</p>
+              </div>
+            )}
         </div>
       )}
 
