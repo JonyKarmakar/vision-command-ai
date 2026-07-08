@@ -98,9 +98,10 @@ def test_execute_extract_frame_command_without_timestamp_fails():
     )
 
     assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Please specify a timestamp, for example: extract frame at 1 second"
-    }
+    detail = response.json()["detail"]
+    assert "I understood this as a frame extraction command" in detail
+    assert "I need a timestamp" in detail
+    assert "extract frame at 1 second" in detail
 
 
 def test_execute_trim_video_command_without_range_fails():
@@ -114,6 +115,7 @@ def test_execute_trim_video_command_without_range_fails():
     )
 
     assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Please specify a start and end time, for example: trim video from 0 to 2 seconds"
-    }
+    detail = response.json()["detail"]
+    assert "I understood this as a trim command" in detail
+    assert "I need a start and end time" in detail
+    assert "trim video from 0 to 2 seconds" in detail

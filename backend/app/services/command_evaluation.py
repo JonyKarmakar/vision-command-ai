@@ -238,7 +238,8 @@ COMMAND_ROBUSTNESS_EVALUATION_CASES = [
         "command": "show frames with people",
         "case_type": "expected_error",
         "expected_error_contains": [
-            "Please specify a start and end time",
+            "I understood this as a frame search command",
+            "I need a start and end time",
             "show frames with people from 0 to 3 seconds",
         ],
         "notes": "Frame-search commands need a time range before they can become executable.",

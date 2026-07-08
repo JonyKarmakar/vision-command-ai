@@ -115,4 +115,5 @@ def test_rule_based_command_robustness_records_future_targets_as_met():
     assert missing_time_result["case_type"] == "expected_error"
     assert missing_time_result["current_behavior_passed"] is True
     assert missing_time_result["actual"] is None
-    assert "Please specify a start and end time" in missing_time_result["error"]
+    assert "I understood this as a frame search command" in missing_time_result["error"]
+    assert "I need a start and end time" in missing_time_result["error"]

@@ -233,7 +233,8 @@ def test_parse_zoom_requires_class_name():
         parse_command("zoom")
 
     assert exc_info.value.status_code == 400
-    assert "Please specify which class to zoom" in exc_info.value.detail
+    assert "I understood this as a zoom command" in exc_info.value.detail
+    assert "I need an object class" in exc_info.value.detail
 
 
 def test_parse_zoom_biggest_person_command():
@@ -256,7 +257,8 @@ def test_parse_show_frames_with_people_requires_time_range():
         parse_command("show frames with people")
 
     assert exc_info.value.status_code == 400
-    assert "Please specify a start and end time" in exc_info.value.detail
+    assert "I understood this as a frame search command" in exc_info.value.detail
+    assert "I need a start and end time" in exc_info.value.detail
 
 
 def test_parse_show_frames_with_people_time_range_command():

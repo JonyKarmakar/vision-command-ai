@@ -127,6 +127,8 @@ def test_execute_track_video_command_without_range_fails():
     )
 
     assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Please specify a start and end time, for example: track video from 0 to 3 seconds"
-    }
+    detail = response.json()["detail"]
+    assert "I understood this as a tracking command" in detail
+    assert "I need a start and end time" in detail
+    assert "track video from 0 to 3 seconds" in detail
+    assert "track person from 0 to 3 seconds" in detail

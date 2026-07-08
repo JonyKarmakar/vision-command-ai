@@ -62,7 +62,7 @@ def test_parse_command_logs_failure(tmp_path, monkeypatch):
     assert log_entry["parser_mode"] == "rule_based"
     assert log_entry["success"] is False
     assert log_entry["parsed_command"] is None
-    assert "Unsupported command" in log_entry["error"]
+    assert "I could not map this command to a supported VisionCommand action yet" in log_entry["error"]
     assert log_entry["latency_ms"] >= 0
 
 
