@@ -1,4 +1,4 @@
-import type { RefObject } from 'react'
+import { useEffect, useState, type CSSProperties, type RefObject } from 'react'
 
 import type { Detection, DetectionResponse } from '../../types/apiTypes'
 
@@ -9,10 +9,38 @@ type ObjectInventoryItem = {
   averageConfidence: number
 }
 
+type ObjectCropImageSize = {
+  imageUrl: string
+  width: number
+  height: number
+}
+
+const getObjectCropPreviewStyle = (
+  detection: Detection,
+  imageSize: ObjectCropImageSize,
+): CSSProperties => {
+  const cropWidth = Math.max(1, detection.bbox.x2 - detection.bbox.x1)
+  const cropHeight = Math.max(1, detection.bbox.y2 - detection.bbox.y1)
+
+  return {
+    width: `${(imageSize.width / cropWidth) * 100}%`,
+    height: `${(imageSize.height / cropHeight) * 100}%`,
+    transform: `translate(-${(detection.bbox.x1 / imageSize.width) * 100}%, -${(detection.bbox.y1 / imageSize.height) * 100}%)`,
+  }
+}
+
+const getObjectCropPreviewAspectRatio = (detection: Detection) => {
+  const cropWidth = Math.max(1, detection.bbox.x2 - detection.bbox.x1)
+  const cropHeight = Math.max(1, detection.bbox.y2 - detection.bbox.y1)
+
+  return `${cropWidth} / ${cropHeight}`
+}
+
 type DetectionResultSectionProps = {
   detectionResult: DetectionResponse | null
   detectionResultRef: RefObject<HTMLHeadingElement | null>
   annotatedImageUrl: string | null
+  objectCropImageUrl: string | null
   filteredDetections: Detection[]
   availableClasses: string[]
   confidenceThreshold: number
@@ -44,6 +72,7 @@ export function DetectionResultSection({
   detectionResult,
   detectionResultRef,
   annotatedImageUrl,
+  objectCropImageUrl,
   filteredDetections,
   availableClasses,
   confidenceThreshold,
@@ -65,6 +94,40 @@ export function DetectionResultSection({
   onCopyJson,
   onDownloadJson,
 }: DetectionResultSectionProps) {
+  const [objectCropImageSize, setObjectCropImageSize] = useState<ObjectCropImageSize | null>(null)
+
+  useEffect(() => {
+    if (!objectCropImageUrl) {
+      return undefined
+    }
+
+    const image = new Image()
+
+    image.onload = () => {
+      setObjectCropImageSize({
+        imageUrl: objectCropImageUrl,
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      })
+    }
+
+    image.onerror = () => {
+      setObjectCropImageSize((currentSize) =>
+        currentSize?.imageUrl === objectCropImageUrl ? null : currentSize,
+      )
+    }
+
+    image.src = objectCropImageUrl
+
+    return () => {
+      image.onload = null
+      image.onerror = null
+    }
+  }, [objectCropImageUrl])
+
+  const loadedObjectCropImageSize =
+    objectCropImageSize?.imageUrl === objectCropImageUrl ? objectCropImageSize : null
+
   if (!detectionResult) {
     return null
   }
@@ -230,6 +293,77 @@ export function DetectionResultSection({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {filteredDetections.length > 0 && (
+          <div className="object-crop-gallery-panel" aria-label="Object crop gallery">
+            <div className="object-crop-gallery-header">
+              <div>
+                <h3>Object crop gallery</h3>
+                <p>
+                  Visual previews for the detections currently visible after filters.
+                </p>
+              </div>
+
+              <span className="object-inventory-total">
+                {filteredDetections.length} crop{filteredDetections.length === 1 ? '' : 's'}
+              </span>
+            </div>
+
+            {!objectCropImageUrl && (
+              <p className="small-note">
+                Crop previews need an available source image URL.
+              </p>
+            )}
+
+            {objectCropImageUrl && !loadedObjectCropImageSize && (
+              <p className="small-note">
+                Loading object crop previews...
+              </p>
+            )}
+
+            {objectCropImageUrl && loadedObjectCropImageSize && (
+              <div className="object-crop-gallery-grid">
+                {filteredDetections.map((detection, index) => (
+                  <div className="object-crop-gallery-item" key={`${detection.class_name}-${index}`}>
+                    <div
+                      className="object-crop-gallery-preview"
+                      style={{ aspectRatio: getObjectCropPreviewAspectRatio(detection) }}
+                    >
+                      <img
+                        src={objectCropImageUrl}
+                        alt={`${detection.class_name} crop preview`}
+                        style={getObjectCropPreviewStyle(detection, loadedObjectCropImageSize)}
+                      />
+                    </div>
+
+                    <div className="object-crop-gallery-details">
+                      <strong>{index + 1}. {detection.class_name}</strong>
+                      <span>{(detection.confidence * 100).toFixed(1)}% confidence</span>
+                    </div>
+
+                    <div className="object-crop-gallery-actions">
+                      <button
+                        className="crop-button"
+                        onClick={() => void onCropDetection(detection)}
+                        disabled={isBusy}
+                      >
+                        {isCropping ? 'Cropping...' : 'Crop'}
+                      </button>
+
+                      <button
+                        className="blur-button"
+                        onClick={() => void onBlurDetection(detection)}
+                        disabled={isBusy}
+                      >
+                        {isBlurring ? 'Blurring...' : 'Blur'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

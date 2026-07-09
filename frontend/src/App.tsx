@@ -4928,6 +4928,12 @@ function App() {
     ? `/api${detectionResult.annotated_file_url}`
     : null
 
+  const objectCropImageUrl = detectionResult
+    ? detectionResult.source === 'outputs'
+      ? `/api/media/outputs/${encodeURIComponent(detectionResult.filename)}`
+      : uploadedImageUrl
+    : null
+
   const croppedImageUrl = cropResult
     ? `/api${cropResult.cropped_file_url}`
     : null
@@ -6095,6 +6101,7 @@ function App() {
         detectionResult={detectionResult}
         detectionResultRef={detectionResultRef}
         annotatedImageUrl={annotatedImageUrl}
+        objectCropImageUrl={objectCropImageUrl}
         filteredDetections={filteredDetections}
         availableClasses={availableClasses}
         confidenceThreshold={confidenceThreshold}
