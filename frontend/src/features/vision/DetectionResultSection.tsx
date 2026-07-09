@@ -15,6 +15,78 @@ type ObjectCropImageSize = {
   height: number
 }
 
+type SpatialDetectionSummaryItem = {
+  detection: Detection
+  index: number
+  horizontalRegion: 'left' | 'center' | 'right'
+  verticalRegion: 'top' | 'middle' | 'bottom'
+  regionLabel: string
+  areaPercentage: number
+}
+
+const horizontalSpatialRegions = ['left', 'center', 'right'] as const
+const verticalSpatialRegions = ['top', 'middle', 'bottom'] as const
+
+const getHorizontalSpatialRegion = (centerRatio: number): SpatialDetectionSummaryItem['horizontalRegion'] => {
+  if (centerRatio < 1 / 3) {
+    return 'left'
+  }
+
+  if (centerRatio > 2 / 3) {
+    return 'right'
+  }
+
+  return 'center'
+}
+
+const getVerticalSpatialRegion = (centerRatio: number): SpatialDetectionSummaryItem['verticalRegion'] => {
+  if (centerRatio < 1 / 3) {
+    return 'top'
+  }
+
+  if (centerRatio > 2 / 3) {
+    return 'bottom'
+  }
+
+  return 'middle'
+}
+
+const getSpatialRegionLabel = (
+  verticalRegion: SpatialDetectionSummaryItem['verticalRegion'],
+  horizontalRegion: SpatialDetectionSummaryItem['horizontalRegion'],
+) => {
+  if (verticalRegion === 'middle' && horizontalRegion === 'center') {
+    return 'center'
+  }
+
+  return `${verticalRegion} ${horizontalRegion}`
+}
+
+const getSpatialDetectionSummaryItems = (
+  detections: Detection[],
+  imageSize: ObjectCropImageSize,
+): SpatialDetectionSummaryItem[] => {
+  const imageArea = Math.max(1, imageSize.width * imageSize.height)
+
+  return detections.map((detection, index) => {
+    const boxWidth = Math.max(1, detection.bbox.x2 - detection.bbox.x1)
+    const boxHeight = Math.max(1, detection.bbox.y2 - detection.bbox.y1)
+    const centerXRatio = ((detection.bbox.x1 + detection.bbox.x2) / 2) / imageSize.width
+    const centerYRatio = ((detection.bbox.y1 + detection.bbox.y2) / 2) / imageSize.height
+    const horizontalRegion = getHorizontalSpatialRegion(centerXRatio)
+    const verticalRegion = getVerticalSpatialRegion(centerYRatio)
+
+    return {
+      detection,
+      index,
+      horizontalRegion,
+      verticalRegion,
+      regionLabel: getSpatialRegionLabel(verticalRegion, horizontalRegion),
+      areaPercentage: (boxWidth * boxHeight * 100) / imageArea,
+    }
+  })
+}
+
 const getObjectCropPreviewStyle = (
   detection: Detection,
   imageSize: ObjectCropImageSize,
@@ -170,6 +242,42 @@ export function DetectionResultSection({
 
   const visibleClassCount = objectInventory.length
 
+  const spatialDetectionItems = loadedObjectCropImageSize
+    ? getSpatialDetectionSummaryItems(filteredDetections, loadedObjectCropImageSize)
+    : []
+
+  const spatialRegionCount = new Set(
+    spatialDetectionItems.map((item) => item.regionLabel),
+  ).size
+
+  const largestSpatialDetection = spatialDetectionItems.reduce<SpatialDetectionSummaryItem | null>(
+    (largestItem, item) =>
+      !largestItem || item.areaPercentage > largestItem.areaPercentage ? item : largestItem,
+    null,
+  )
+
+  const mostConfidentSpatialDetection = spatialDetectionItems.reduce<SpatialDetectionSummaryItem | null>(
+    (mostConfidentItem, item) =>
+      !mostConfidentItem || item.detection.confidence > mostConfidentItem.detection.confidence
+        ? item
+        : mostConfidentItem,
+    null,
+  )
+
+  const personSpatialDetectionCount = filteredDetections.filter(
+    (detection) => detection.class_name === 'person',
+  ).length
+
+  const horizontalDistribution = horizontalSpatialRegions.map((region) => ({
+    region,
+    count: spatialDetectionItems.filter((item) => item.horizontalRegion === region).length,
+  }))
+
+  const verticalDistribution = verticalSpatialRegions.map((region) => ({
+    region,
+    count: spatialDetectionItems.filter((item) => item.verticalRegion === region).length,
+  }))
+
   return (
     <section className="result-grid">
       <div className="card">
@@ -293,6 +401,115 @@ export function DetectionResultSection({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {filteredDetections.length > 0 && (
+          <div className="spatial-summary-panel" aria-label="Spatial image summary">
+            <div className="spatial-summary-header">
+              <div>
+                <h3>Spatial image summary</h3>
+                <p>
+                  Position summary for the detections currently visible after filters.
+                </p>
+              </div>
+
+              {spatialDetectionItems.length > 0 && (
+                <span className="object-inventory-total">
+                  {spatialRegionCount} region{spatialRegionCount === 1 ? '' : 's'}
+                </span>
+              )}
+            </div>
+
+            {!objectCropImageUrl && (
+              <p className="small-note">
+                Spatial summary needs an available source image URL.
+              </p>
+            )}
+
+            {objectCropImageUrl && !loadedObjectCropImageSize && (
+              <p className="small-note">
+                Loading spatial summary...
+              </p>
+            )}
+
+            {loadedObjectCropImageSize && spatialDetectionItems.length > 0 && (
+              <>
+                <div className="spatial-summary-insights">
+                  {mostConfidentSpatialDetection && (
+                    <div className="spatial-summary-insight">
+                      <span>Most confident</span>
+                      <strong>
+                        {mostConfidentSpatialDetection.detection.class_name} in {mostConfidentSpatialDetection.regionLabel}
+                      </strong>
+                      <p>
+                        {(mostConfidentSpatialDetection.detection.confidence * 100).toFixed(1)}% confidence
+                      </p>
+                    </div>
+                  )}
+
+                  {largestSpatialDetection && (
+                    <div className="spatial-summary-insight">
+                      <span>Largest region</span>
+                      <strong>
+                        {largestSpatialDetection.detection.class_name} in {largestSpatialDetection.regionLabel}
+                      </strong>
+                      <p>
+                        {largestSpatialDetection.areaPercentage.toFixed(1)}% of image area
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="spatial-summary-insight">
+                    <span>Privacy focus</span>
+                    <strong>
+                      {personSpatialDetectionCount > 0
+                        ? `${personSpatialDetectionCount} person detection${personSpatialDetectionCount === 1 ? '' : 's'} visible`
+                        : 'No person detections visible'}
+                    </strong>
+                    <p>
+                      Use this as a quick signal before cropping, blurring, or sharing.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="spatial-summary-distribution">
+                  <div>
+                    <h4>Horizontal position</h4>
+                    <div className="spatial-summary-region-list">
+                      {horizontalDistribution.map((item) => (
+                        <span key={item.region}>
+                          <strong>{item.region}</strong>
+                          {item.count}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4>Vertical position</h4>
+                    <div className="spatial-summary-region-list">
+                      {verticalDistribution.map((item) => (
+                        <span key={item.region}>
+                          <strong>{item.region}</strong>
+                          {item.count}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="spatial-summary-object-list">
+                  {spatialDetectionItems.map((item) => (
+                    <div className="spatial-summary-object" key={`${item.detection.class_name}-${item.index}`}>
+                      <strong>{item.index + 1}. {item.detection.class_name}</strong>
+                      <span>{item.regionLabel}</span>
+                      <small>{item.areaPercentage.toFixed(1)}% area</small>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
