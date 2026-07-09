@@ -24,6 +24,60 @@ type SpatialDetectionSummaryItem = {
   areaPercentage: number
 }
 
+type PrivacyReviewLevel = 'low' | 'medium' | 'higher'
+
+const privacyRelevantClasses = new Set([
+  'person',
+  'cell phone',
+  'laptop',
+  'book',
+  'handbag',
+  'backpack',
+  'suitcase',
+  'bottle',
+  'cup',
+])
+
+const getPrivacyReviewLevel = (
+  personCount: number,
+  privacyRelevantObjectCount: number,
+  largestPersonAreaPercentage: number,
+): PrivacyReviewLevel => {
+  if (personCount >= 2 || largestPersonAreaPercentage >= 10) {
+    return 'higher'
+  }
+
+  if (personCount === 1 || privacyRelevantObjectCount > 0) {
+    return 'medium'
+  }
+
+  return 'low'
+}
+
+const getPrivacyReviewLevelLabel = (level: PrivacyReviewLevel) => {
+  if (level === 'higher') {
+    return 'Higher review needed'
+  }
+
+  if (level === 'medium') {
+    return 'Review recommended'
+  }
+
+  return 'Low detected privacy risk'
+}
+
+const getPrivacyReviewLevelDescription = (level: PrivacyReviewLevel) => {
+  if (level === 'higher') {
+    return 'People or privacy-relevant objects are clearly visible. Review before sharing.'
+  }
+
+  if (level === 'medium') {
+    return 'Some visible objects may need review before sharing.'
+  }
+
+  return 'No obvious privacy-relevant object classes are visible in the current detection view.'
+}
+
 const horizontalSpatialRegions = ['left', 'center', 'right'] as const
 const verticalSpatialRegions = ['top', 'middle', 'bottom'] as const
 
@@ -278,6 +332,41 @@ export function DetectionResultSection({
     count: spatialDetectionItems.filter((item) => item.verticalRegion === region).length,
   }))
 
+  const privacyRelevantDetections = filteredDetections.filter((detection) =>
+    privacyRelevantClasses.has(detection.class_name),
+  )
+
+  const privacyRelevantClassNames = Array.from(
+    new Set(privacyRelevantDetections.map((detection) => detection.class_name)),
+  ).sort((leftClassName, rightClassName) => leftClassName.localeCompare(rightClassName))
+
+  const personSpatialDetections = spatialDetectionItems.filter(
+    (item) => item.detection.class_name === 'person',
+  )
+
+  const largestPersonSpatialDetection = personSpatialDetections.reduce<SpatialDetectionSummaryItem | null>(
+    (largestItem, item) =>
+      !largestItem || item.areaPercentage > largestItem.areaPercentage ? item : largestItem,
+    null,
+  )
+
+  const privacyReviewLevel = getPrivacyReviewLevel(
+    personSpatialDetectionCount,
+    privacyRelevantDetections.length,
+    largestPersonSpatialDetection?.areaPercentage ?? 0,
+  )
+
+  const privacyReviewActions = [
+    ...(personSpatialDetectionCount > 0
+      ? ['Blur visible people before sharing this image.']
+      : []),
+    ...(privacyRelevantClassNames.length > 0
+      ? ['Review privacy-relevant objects before sharing.']
+      : []),
+    'Crop unnecessary background if it contains private context.',
+    'Open the detection preview and visually check the final image before export.',
+  ]
+
   return (
     <section className="result-grid">
       <div className="card">
@@ -510,6 +599,95 @@ export function DetectionResultSection({
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {filteredDetections.length > 0 && (
+          <div className="privacy-review-panel" aria-label="Privacy and sharing review">
+            <div className="privacy-review-header">
+              <div>
+                <h3>Privacy and sharing review</h3>
+                <p>
+                  Object-detection-based checklist before cropping, blurring, downloading, or sharing.
+                </p>
+              </div>
+
+              <span className={`privacy-review-level privacy-review-level-${privacyReviewLevel}`}>
+                {getPrivacyReviewLevelLabel(privacyReviewLevel)}
+              </span>
+            </div>
+
+            <div className="privacy-review-summary">
+              <div className="privacy-review-card">
+                <span>Review level</span>
+                <strong>{getPrivacyReviewLevelLabel(privacyReviewLevel)}</strong>
+                <p>{getPrivacyReviewLevelDescription(privacyReviewLevel)}</p>
+              </div>
+
+              <div className="privacy-review-card">
+                <span>People visible</span>
+                <strong>
+                  {personSpatialDetectionCount} person detection{personSpatialDetectionCount === 1 ? '' : 's'}
+                </strong>
+                <p>
+                  {largestPersonSpatialDetection
+                    ? `Largest person region is in ${largestPersonSpatialDetection.regionLabel}.`
+                    : 'No person detections are visible after filters.'}
+                </p>
+              </div>
+
+              <div className="privacy-review-card">
+                <span>Objects to review</span>
+                <strong>
+                  {privacyRelevantDetections.length} detection{privacyRelevantDetections.length === 1 ? '' : 's'}
+                </strong>
+                <p>
+                  {privacyRelevantClassNames.length > 0
+                    ? privacyRelevantClassNames.join(', ')
+                    : 'No privacy-relevant classes found in the current filtered view.'}
+                </p>
+              </div>
+            </div>
+
+            {personSpatialDetections.length > 0 && (
+              <div className="privacy-review-people-list">
+                <h4>People review</h4>
+
+                {personSpatialDetections.map((item) => (
+                  <div className="privacy-review-person" key={`${item.detection.class_name}-${item.index}`}>
+                    <div>
+                      <strong>{item.index + 1}. person</strong>
+                      <span>
+                        {item.regionLabel}, {(item.detection.confidence * 100).toFixed(1)}% confidence
+                      </span>
+                    </div>
+
+                    <button
+                      className="blur-button"
+                      type="button"
+                      onClick={() => void onBlurDetection(item.detection)}
+                      disabled={isBusy}
+                    >
+                      {isBlurring ? 'Blurring...' : 'Blur person'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="privacy-review-checklist">
+              <h4>Sharing checklist</h4>
+
+              <ul>
+                {privacyReviewActions.map((action) => (
+                  <li key={action}>{action}</li>
+                ))}
+              </ul>
+            </div>
+
+            <p className="privacy-review-note">
+              This review is based on detected object classes and bounding boxes only. It does not identify people, read text, infer emotions, or determine where the image was taken.
+            </p>
           </div>
         )}
 
