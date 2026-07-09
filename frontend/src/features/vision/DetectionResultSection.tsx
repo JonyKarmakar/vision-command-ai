@@ -2,6 +2,13 @@ import type { RefObject } from 'react'
 
 import type { Detection, DetectionResponse } from '../../types/apiTypes'
 
+type ObjectInventoryItem = {
+  className: string
+  count: number
+  highestConfidence: number
+  averageConfidence: number
+}
+
 type DetectionResultSectionProps = {
   detectionResult: DetectionResponse | null
   detectionResultRef: RefObject<HTMLHeadingElement | null>
@@ -61,6 +68,44 @@ export function DetectionResultSection({
   if (!detectionResult) {
     return null
   }
+
+  const objectInventory = Object.values(
+    filteredDetections.reduce<Record<string, ObjectInventoryItem>>((inventory, detection) => {
+      const className = detection.class_name
+      const confidence = detection.confidence
+      const currentItem = inventory[className]
+
+      if (!currentItem) {
+        inventory[className] = {
+          className,
+          count: 1,
+          highestConfidence: confidence,
+          averageConfidence: confidence,
+        }
+
+        return inventory
+      }
+
+      const nextCount = currentItem.count + 1
+
+      inventory[className] = {
+        ...currentItem,
+        count: nextCount,
+        highestConfidence: Math.max(currentItem.highestConfidence, confidence),
+        averageConfidence: (
+          (currentItem.averageConfidence * currentItem.count) + confidence
+        ) / nextCount,
+      }
+
+      return inventory
+    }, {}),
+  ).sort((leftItem, rightItem) => (
+    rightItem.count - leftItem.count ||
+    rightItem.highestConfidence - leftItem.highestConfidence ||
+    leftItem.className.localeCompare(rightItem.className)
+  ))
+
+  const visibleClassCount = objectInventory.length
 
   return (
     <section className="result-grid">
@@ -146,6 +191,47 @@ export function DetectionResultSection({
             <p><strong>Annotated filename:</strong> {detectionResult.annotated_filename}</p>
           )}
         </div>
+
+        {objectInventory.length > 0 && (
+          <div className="object-inventory-panel" aria-label="Object inventory summary">
+            <div className="object-inventory-header">
+              <div>
+                <h3>Object inventory</h3>
+                <p>
+                  Class-level summary for the detections currently visible after filters.
+                </p>
+              </div>
+
+              <span className="object-inventory-total">
+                {visibleClassCount} class{visibleClassCount === 1 ? '' : 'es'}
+              </span>
+            </div>
+
+            <div className="object-inventory-grid">
+              {objectInventory.map((item) => (
+                <div className="object-inventory-item" key={item.className}>
+                  <div className="object-inventory-item-header">
+                    <strong>{item.className}</strong>
+                    <span>
+                      {item.count} object{item.count === 1 ? '' : 's'}
+                    </span>
+                  </div>
+
+                  <div className="object-inventory-metrics">
+                    <span>
+                      <strong>Highest</strong>
+                      {(item.highestConfidence * 100).toFixed(1)}%
+                    </span>
+                    <span>
+                      <strong>Average</strong>
+                      {(item.averageConfidence * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="filter-box">
           <label htmlFor="confidence-threshold">
