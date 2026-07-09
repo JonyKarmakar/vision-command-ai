@@ -26,6 +26,236 @@ type SpatialDetectionSummaryItem = {
 
 type PrivacyReviewLevel = 'low' | 'medium' | 'higher'
 
+type ImageQualityAnalysis = {
+  imageUrl: string
+  width: number
+  height: number
+  aspectRatio: number
+  megapixels: number
+  brightness: number
+  contrast: number
+  sharpness: number
+}
+
+type ImageQualityLevel = 'low' | 'medium' | 'good'
+
+const getImageQualityLevelLabel = (level: ImageQualityLevel) => {
+  if (level === 'good') {
+    return 'Good'
+  }
+
+  if (level === 'medium') {
+    return 'Review'
+  }
+
+  return 'Needs review'
+}
+
+const getBrightnessLabel = (brightness: number) => {
+  if (brightness < 75) {
+    return 'Low light'
+  }
+
+  if (brightness > 190) {
+    return 'Very bright'
+  }
+
+  return 'Balanced'
+}
+
+const getContrastLabel = (contrast: number) => {
+  if (contrast < 35) {
+    return 'Low contrast'
+  }
+
+  if (contrast > 75) {
+    return 'High contrast'
+  }
+
+  return 'Balanced'
+}
+
+const getSharpnessLabel = (sharpness: number) => {
+  if (sharpness < 10) {
+    return 'Soft'
+  }
+
+  if (sharpness > 28) {
+    return 'Sharp'
+  }
+
+  return 'Moderate'
+}
+
+const getResolutionQualityLevel = (megapixels: number): ImageQualityLevel => {
+  if (megapixels >= 2) {
+    return 'good'
+  }
+
+  if (megapixels >= 0.75) {
+    return 'medium'
+  }
+
+  return 'low'
+}
+
+const getLightingQualityLevel = (brightness: number): ImageQualityLevel => {
+  if (brightness < 55 || brightness > 215) {
+    return 'low'
+  }
+
+  if (brightness < 85 || brightness > 185) {
+    return 'medium'
+  }
+
+  return 'good'
+}
+
+const getContrastQualityLevel = (contrast: number): ImageQualityLevel => {
+  if (contrast < 25) {
+    return 'low'
+  }
+
+  if (contrast < 40) {
+    return 'medium'
+  }
+
+  return 'good'
+}
+
+const getSharpnessQualityLevel = (sharpness: number): ImageQualityLevel => {
+  if (sharpness < 8) {
+    return 'low'
+  }
+
+  if (sharpness < 16) {
+    return 'medium'
+  }
+
+  return 'good'
+}
+
+const getOverallImageQualityLevel = (analysis: ImageQualityAnalysis): ImageQualityLevel => {
+  const levels = [
+    getResolutionQualityLevel(analysis.megapixels),
+    getLightingQualityLevel(analysis.brightness),
+    getContrastQualityLevel(analysis.contrast),
+    getSharpnessQualityLevel(analysis.sharpness),
+  ]
+
+  if (levels.includes('low')) {
+    return 'low'
+  }
+
+  if (levels.includes('medium')) {
+    return 'medium'
+  }
+
+  return 'good'
+}
+
+const getImageQualityNotes = (analysis: ImageQualityAnalysis) => {
+  const notes = []
+
+  if (analysis.megapixels < 0.75) {
+    notes.push('Resolution is low, so crops may lose detail.')
+  } else if (analysis.megapixels < 2) {
+    notes.push('Resolution is usable, but close crops may still look soft.')
+  } else {
+    notes.push('Resolution is suitable for object review and basic editing.')
+  }
+
+  if (analysis.brightness < 75) {
+    notes.push('Image appears dark, so some objects may be harder to inspect.')
+  } else if (analysis.brightness > 190) {
+    notes.push('Image appears very bright, so highlight detail may be reduced.')
+  }
+
+  if (analysis.contrast < 35) {
+    notes.push('Contrast appears low, so object boundaries may be less clear.')
+  }
+
+  if (analysis.sharpness < 10) {
+    notes.push('Sharpness estimate is low, so the image may look soft or blurry.')
+  }
+
+  return notes
+}
+
+const analyzeImageQuality = async (imageUrl: string): Promise<ImageQualityAnalysis> =>
+  new Promise((resolve, reject) => {
+    const image = new Image()
+
+    image.onload = () => {
+      const width = image.naturalWidth
+      const height = image.naturalHeight
+      const sampleWidth = Math.min(320, width)
+      const sampleHeight = Math.max(1, Math.round((sampleWidth / width) * height))
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d', { willReadFrequently: true })
+
+      if (!context) {
+        reject(new Error('Image analysis canvas is not available.'))
+        return
+      }
+
+      canvas.width = sampleWidth
+      canvas.height = sampleHeight
+      context.drawImage(image, 0, 0, sampleWidth, sampleHeight)
+
+      const pixels = context.getImageData(0, 0, sampleWidth, sampleHeight).data
+      const grayscaleValues: number[] = []
+
+      for (let index = 0; index < pixels.length; index += 4) {
+        grayscaleValues.push(
+          (0.299 * pixels[index]) +
+          (0.587 * pixels[index + 1]) +
+          (0.114 * pixels[index + 2]),
+        )
+      }
+
+      const brightness =
+        grayscaleValues.reduce((total, value) => total + value, 0) / Math.max(1, grayscaleValues.length)
+
+      const contrast = Math.sqrt(
+        grayscaleValues.reduce((total, value) => total + ((value - brightness) ** 2), 0) /
+          Math.max(1, grayscaleValues.length),
+      )
+
+      let edgeDifferenceTotal = 0
+      let edgeDifferenceCount = 0
+
+      for (let y = 0; y < sampleHeight; y += 1) {
+        for (let x = 1; x < sampleWidth; x += 1) {
+          const currentIndex = y * sampleWidth + x
+          const previousIndex = currentIndex - 1
+
+          edgeDifferenceTotal += Math.abs(grayscaleValues[currentIndex] - grayscaleValues[previousIndex])
+          edgeDifferenceCount += 1
+        }
+      }
+
+      const sharpness = edgeDifferenceTotal / Math.max(1, edgeDifferenceCount)
+
+      resolve({
+        imageUrl,
+        width,
+        height,
+        aspectRatio: width / Math.max(1, height),
+        megapixels: (width * height) / 1_000_000,
+        brightness,
+        contrast,
+        sharpness,
+      })
+    }
+
+    image.onerror = () => {
+      reject(new Error('Image quality analysis failed to load the source image.'))
+    }
+
+    image.src = imageUrl
+  })
+
 const privacyRelevantClasses = new Set([
   'person',
   'cell phone',
@@ -221,6 +451,8 @@ export function DetectionResultSection({
   onDownloadJson,
 }: DetectionResultSectionProps) {
   const [objectCropImageSize, setObjectCropImageSize] = useState<ObjectCropImageSize | null>(null)
+  const [imageQualityAnalysis, setImageQualityAnalysis] = useState<ImageQualityAnalysis | null>(null)
+  const [imageQualityError, setImageQualityError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!objectCropImageUrl) {
@@ -251,8 +483,51 @@ export function DetectionResultSection({
     }
   }, [objectCropImageUrl])
 
+  useEffect(() => {
+    if (!objectCropImageUrl) {
+      return undefined
+    }
+
+    let isCurrent = true
+
+    void analyzeImageQuality(objectCropImageUrl)
+      .then((analysis) => {
+        if (!isCurrent) {
+          return
+        }
+
+        setImageQualityAnalysis(analysis)
+        setImageQualityError(null)
+      })
+      .catch((error: unknown) => {
+        if (!isCurrent) {
+          return
+        }
+
+        setImageQualityAnalysis(null)
+        setImageQualityError(
+          error instanceof Error ? error.message : 'Image quality analysis failed.',
+        )
+      })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [objectCropImageUrl])
+
   const loadedObjectCropImageSize =
     objectCropImageSize?.imageUrl === objectCropImageUrl ? objectCropImageSize : null
+
+  const loadedImageQualityAnalysis =
+    imageQualityAnalysis?.imageUrl === objectCropImageUrl ? imageQualityAnalysis : null
+
+  const imageQualityOverallLevel = loadedImageQualityAnalysis
+    ? getOverallImageQualityLevel(loadedImageQualityAnalysis)
+    : null
+
+  const imageQualityNotes = loadedImageQualityAnalysis
+    ? getImageQualityNotes(loadedImageQualityAnalysis)
+    : []
 
   if (!detectionResult) {
     return null
@@ -449,6 +724,99 @@ export function DetectionResultSection({
 
           {isDeveloperMode && (
             <p><strong>Annotated filename:</strong> {detectionResult.annotated_filename}</p>
+          )}
+        </div>
+
+        <div className="image-quality-panel" aria-label="Image quality and technical analysis">
+          <div className="image-quality-header">
+            <div>
+              <h3>Image quality and technical analysis</h3>
+              <p>
+                Browser-side estimate of resolution, lighting, contrast, and sharpness.
+              </p>
+            </div>
+
+            {imageQualityOverallLevel && (
+              <span className={`image-quality-level image-quality-level-${imageQualityOverallLevel}`}>
+                {getImageQualityLevelLabel(imageQualityOverallLevel)}
+              </span>
+            )}
+          </div>
+
+          {!objectCropImageUrl && (
+            <p className="small-note">
+              Image quality analysis needs an available source image URL.
+            </p>
+          )}
+
+          {objectCropImageUrl && !loadedImageQualityAnalysis && !imageQualityError && (
+            <p className="small-note">
+              Analyzing image quality...
+            </p>
+          )}
+
+          {imageQualityError && (
+            <p className="small-note">
+              {imageQualityError}
+            </p>
+          )}
+
+          {loadedImageQualityAnalysis && (
+            <>
+              <div className="image-quality-metrics">
+                <div className="image-quality-card">
+                  <span>Resolution</span>
+                  <strong>
+                    {loadedImageQualityAnalysis.width}px × {loadedImageQualityAnalysis.height}px
+                  </strong>
+                  <p>{loadedImageQualityAnalysis.megapixels.toFixed(2)} MP</p>
+                </div>
+
+                <div className="image-quality-card">
+                  <span>Aspect ratio</span>
+                  <strong>{loadedImageQualityAnalysis.aspectRatio.toFixed(2)}:1</strong>
+                  <p>
+                    {loadedImageQualityAnalysis.aspectRatio > 1
+                      ? 'Landscape orientation'
+                      : loadedImageQualityAnalysis.aspectRatio < 1
+                        ? 'Portrait orientation'
+                        : 'Square orientation'}
+                  </p>
+                </div>
+
+                <div className="image-quality-card">
+                  <span>Brightness</span>
+                  <strong>{getBrightnessLabel(loadedImageQualityAnalysis.brightness)}</strong>
+                  <p>{loadedImageQualityAnalysis.brightness.toFixed(0)} / 255 average</p>
+                </div>
+
+                <div className="image-quality-card">
+                  <span>Contrast</span>
+                  <strong>{getContrastLabel(loadedImageQualityAnalysis.contrast)}</strong>
+                  <p>{loadedImageQualityAnalysis.contrast.toFixed(1)} contrast estimate</p>
+                </div>
+
+                <div className="image-quality-card">
+                  <span>Sharpness</span>
+                  <strong>{getSharpnessLabel(loadedImageQualityAnalysis.sharpness)}</strong>
+                  <p>{loadedImageQualityAnalysis.sharpness.toFixed(1)} edge estimate</p>
+                </div>
+              </div>
+
+              <div className="image-quality-notes">
+                <h4>Quality notes</h4>
+
+                <ul>
+                  {imageQualityNotes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <p className="image-quality-note">
+                These values are lightweight browser-side estimates. Use them as review signals, not as professional forensic measurements.
+              </p>
+            </>
           )}
         </div>
 
