@@ -54,6 +54,7 @@ import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboard
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
 import { CropResultSection } from './features/vision/CropResultSection'
 import { BlurResultSection } from './features/vision/BlurResultSection'
+import { BeforeAfterComparisonSection } from './features/vision/BeforeAfterComparisonSection'
 import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
 import type {
   UploadResponse,
@@ -4942,6 +4943,31 @@ function App() {
     ? `/api${blurResult.blurred_file_url}`
     : null
 
+  const beforeAfterComparisonAfterImageUrl =
+    blurredImageUrl ?? croppedImageUrl ?? annotatedImageUrl
+
+  const beforeAfterComparisonAfterLabel = blurredImageUrl
+    ? 'Privacy edit'
+    : croppedImageUrl
+      ? 'Crop result'
+      : annotatedImageUrl
+        ? 'Detection preview'
+        : 'Generated result'
+
+  const beforeAfterComparisonAfterDescription = blurredImageUrl
+    ? 'Blurred image output'
+    : croppedImageUrl
+      ? 'Cropped image output'
+      : annotatedImageUrl
+        ? 'Annotated detection output'
+        : 'Latest generated image output'
+
+  const beforeAfterComparisonAfterFilename =
+    blurResult?.blurred_filename ??
+    cropResult?.cropped_filename ??
+    detectionResult?.annotated_filename ??
+    null
+
   const availableClasses = classOptions
 
   const filteredDetections = detectionResult
@@ -6158,6 +6184,14 @@ function App() {
         }}
         onCopyJson={handleCopyParserLogJson}
         onDownloadJson={handleDownloadJsonFile}
+      />
+
+      <BeforeAfterComparisonSection
+        beforeImageUrl={objectCropImageUrl}
+        afterImageUrl={beforeAfterComparisonAfterImageUrl}
+        afterLabel={beforeAfterComparisonAfterLabel}
+        afterDescription={beforeAfterComparisonAfterDescription}
+        afterFilename={beforeAfterComparisonAfterFilename}
       />
 
       {!isVideoCommandResult && (
