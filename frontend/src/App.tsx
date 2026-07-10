@@ -6128,6 +6128,20 @@ function App() {
         detectionResultRef={detectionResultRef}
         annotatedImageUrl={annotatedImageUrl}
         objectCropImageUrl={objectCropImageUrl}
+        imageReportComparisonLabel={
+          beforeAfterComparisonAfterImageUrl ? beforeAfterComparisonAfterLabel : null
+        }
+        imageReportComparisonDescription={
+          beforeAfterComparisonAfterImageUrl ? beforeAfterComparisonAfterDescription : null
+        }
+        imageReportComparisonFilename={
+          beforeAfterComparisonAfterImageUrl ? beforeAfterComparisonAfterFilename : null
+        }
+        imageReportGeneratedOutputs={generatedOutputHistory.map((item) => ({
+          action: item.action,
+          label: item.label,
+          filename: item.filename,
+        }))}
         filteredDetections={filteredDetections}
         availableClasses={availableClasses}
         confidenceThreshold={confidenceThreshold}
