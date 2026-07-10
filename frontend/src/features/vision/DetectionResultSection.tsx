@@ -15,6 +15,12 @@ type ObjectCropImageSize = {
   height: number
 }
 
+type ImageReportGeneratedOutputItem = {
+  action: string
+  label: string
+  filename: string
+}
+
 type SpatialDetectionSummaryItem = {
   detection: Detection
   index: number
@@ -397,6 +403,10 @@ type DetectionResultSectionProps = {
   detectionResultRef: RefObject<HTMLHeadingElement | null>
   annotatedImageUrl: string | null
   objectCropImageUrl: string | null
+  imageReportComparisonLabel: string | null
+  imageReportComparisonDescription: string | null
+  imageReportComparisonFilename: string | null
+  imageReportGeneratedOutputs: ImageReportGeneratedOutputItem[]
   filteredDetections: Detection[]
   availableClasses: string[]
   confidenceThreshold: number
@@ -429,6 +439,10 @@ export function DetectionResultSection({
   detectionResultRef,
   annotatedImageUrl,
   objectCropImageUrl,
+  imageReportComparisonLabel,
+  imageReportComparisonDescription,
+  imageReportComparisonFilename,
+  imageReportGeneratedOutputs,
   filteredDetections,
   availableClasses,
   confidenceThreshold,
@@ -453,6 +467,7 @@ export function DetectionResultSection({
   const [objectCropImageSize, setObjectCropImageSize] = useState<ObjectCropImageSize | null>(null)
   const [imageQualityAnalysis, setImageQualityAnalysis] = useState<ImageQualityAnalysis | null>(null)
   const [imageQualityError, setImageQualityError] = useState<string | null>(null)
+  const [isImageAnalysisReportDownloaded, setIsImageAnalysisReportDownloaded] = useState(false)
 
   useEffect(() => {
     if (!objectCropImageUrl) {
@@ -642,6 +657,146 @@ export function DetectionResultSection({
     'Open the detection preview and visually check the final image before export.',
   ]
 
+  const handleDownloadImageAnalysisReport = () => {
+    const generatedAt = new Date().toISOString()
+    const imageSize = loadedImageQualityAnalysis ?? loadedObjectCropImageSize
+    const classFilterLabel = selectedClass === 'all' ? 'all classes' : selectedClass
+    const detectionLines = filteredDetections.map((detection, index) =>
+      `- ${index + 1}. ${detection.class_name}: ${(detection.confidence * 100).toFixed(1)}% confidence`,
+    )
+
+    const objectInventoryLines = objectInventory.flatMap((item) => [
+      `- ${item.className}: ${item.count} ${item.count === 1 ? 'object' : 'objects'}`,
+      `  - highest confidence: ${(item.highestConfidence * 100).toFixed(1)}%`,
+      `  - average confidence: ${(item.averageConfidence * 100).toFixed(1)}%`,
+    ])
+
+    const horizontalRegionCounts = spatialDetectionItems.reduce<Record<string, number>>(
+      (counts, item) => ({
+        ...counts,
+        [item.horizontalRegion]: (counts[item.horizontalRegion] ?? 0) + 1,
+      }),
+      {},
+    )
+
+    const verticalRegionCounts = spatialDetectionItems.reduce<Record<string, number>>(
+      (counts, item) => ({
+        ...counts,
+        [item.verticalRegion]: (counts[item.verticalRegion] ?? 0) + 1,
+      }),
+      {},
+    )
+
+    const spatialLines = spatialDetectionItems.map((item) =>
+      `- ${item.index + 1}. ${item.detection.class_name}: ${item.regionLabel}, ${item.areaPercentage.toFixed(1)}% of image area`,
+    )
+
+    const privacyLines = [
+      `- Review level: ${getPrivacyReviewLevelLabel(privacyReviewLevel)}`,
+      `- People visible: ${personSpatialDetections.length}`,
+      `- Privacy-relevant detections: ${privacyRelevantDetections.length}`,
+      `- Privacy-relevant classes: ${
+        privacyRelevantClassNames.length > 0 ? privacyRelevantClassNames.join(', ') : 'none'
+      }`,
+    ]
+
+    const imageQualityLines = loadedImageQualityAnalysis
+      ? [
+          `- Resolution: ${loadedImageQualityAnalysis.width}px x ${loadedImageQualityAnalysis.height}px`,
+          `- Megapixels: ${loadedImageQualityAnalysis.megapixels.toFixed(2)} MP`,
+          `- Aspect ratio: ${loadedImageQualityAnalysis.aspectRatio.toFixed(2)}:1`,
+          `- Brightness: ${getBrightnessLabel(loadedImageQualityAnalysis.brightness)} (${loadedImageQualityAnalysis.brightness.toFixed(0)} / 255 average)`,
+          `- Contrast: ${getContrastLabel(loadedImageQualityAnalysis.contrast)} (${loadedImageQualityAnalysis.contrast.toFixed(1)} estimate)`,
+          `- Sharpness: ${getSharpnessLabel(loadedImageQualityAnalysis.sharpness)} (${loadedImageQualityAnalysis.sharpness.toFixed(1)} edge estimate)`,
+        ]
+      : ['- Image quality analysis was not available.']
+
+    const generatedOutputLines = imageReportGeneratedOutputs.map((item, index) =>
+      `- ${index + 1}. ${item.label} (${item.action}): ${item.filename}`,
+    )
+
+    const reportSections = [
+      '# VisionCommand AI Image Analysis Report',
+      '',
+      '## Image overview',
+      `- Generated at: ${generatedAt}`,
+      `- Source filename: ${detectionResult.filename}`,
+      imageSize
+        ? `- Image size: ${imageSize.width}px x ${imageSize.height}px`
+        : '- Image size: not available',
+      '',
+      '## Detection summary',
+      `- Total detections: ${detectionResult.detection_count}`,
+      `- Visible after filters: ${filteredDetections.length}`,
+      `- Confidence threshold: ${confidenceThreshold}%`,
+      `- Class filter: ${classFilterLabel}`,
+      '',
+      detectionLines.length > 0 ? detectionLines.join('\n') : '- No visible detections after current filters.',
+      '',
+      '## Object inventory',
+      objectInventoryLines.length > 0 ? objectInventoryLines.join('\n') : '- No object inventory available.',
+      '',
+      '## Spatial image summary',
+      `- Horizontal distribution: left ${horizontalRegionCounts.left ?? 0}, center ${
+        horizontalRegionCounts.center ?? 0
+      }, right ${horizontalRegionCounts.right ?? 0}`,
+      `- Vertical distribution: top ${verticalRegionCounts.top ?? 0}, middle ${
+        verticalRegionCounts.middle ?? 0
+      }, bottom ${verticalRegionCounts.bottom ?? 0}`,
+      spatialLines.length > 0 ? spatialLines.join('\n') : '- No spatial summary available.',
+      '',
+      '## Privacy and sharing review',
+      privacyLines.join('\n'),
+      '',
+      privacyReviewActions.length > 0
+        ? privacyReviewActions.map((action) => `- ${action}`).join('\n')
+        : '- No privacy review actions suggested from current detections.',
+      '',
+      '## Image quality and technical analysis',
+      imageQualityLines.join('\n'),
+      '',
+      imageQualityNotes.length > 0
+        ? imageQualityNotes.map((note) => `- ${note}`).join('\n')
+        : '- No additional image quality notes.',
+      '',
+      '## Before and after comparison',
+      imageReportComparisonLabel
+        ? [
+            '- Comparison available: yes',
+            `- After label: ${imageReportComparisonLabel}`,
+            `- After description: ${imageReportComparisonDescription ?? 'Generated image output'}`,
+            `- After filename: ${imageReportComparisonFilename ?? 'not available'}`,
+          ].join('\n')
+        : '- Comparison available: no',
+      '',
+      '## Generated outputs',
+      generatedOutputLines.length > 0 ? generatedOutputLines.join('\n') : '- No generated outputs recorded.',
+      '',
+      '## Safety notes',
+      '- This report is generated from the current frontend analysis state.',
+      '- It reflects object detections, browser-side image quality estimates, and visible workflow outputs.',
+      '- It does not identify people, read text, infer emotions, determine location, or judge image correctness automatically.',
+      '',
+    ]
+
+    const report = reportSections.join('\n')
+    const blob = new Blob([report], { type: 'text/markdown;charset=utf-8' })
+    const reportUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+
+    link.href = reportUrl
+    link.download = `visioncommand-image-analysis-${detectionResult.filename.replace(/[^a-z0-9]+/gi, '-')}.md`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(reportUrl)
+
+    setIsImageAnalysisReportDownloaded(true)
+    window.setTimeout(() => {
+      setIsImageAnalysisReportDownloaded(false)
+    }, 1800)
+  }
+
   return (
     <section className="result-grid">
       <div className="card">
@@ -818,6 +973,30 @@ export function DetectionResultSection({
               </p>
             </>
           )}
+        </div>
+
+        <div className="image-analysis-report-panel" aria-label="Image analysis report export">
+          <div className="image-analysis-report-header">
+            <div>
+              <h3>Image analysis report</h3>
+              <p>
+                Export the current detection, review, quality, and comparison state as a Markdown report.
+              </p>
+            </div>
+
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={handleDownloadImageAnalysisReport}
+              disabled={!detectionResult}
+            >
+              {isImageAnalysisReportDownloaded ? 'Downloaded!' : 'Download Markdown report'}
+            </button>
+          </div>
+
+          <p className="image-analysis-report-note">
+            The report uses the current frontend state, including filters, visible detections, privacy review, image quality estimates, and generated output references.
+          </p>
         </div>
 
         {objectInventory.length > 0 && (
