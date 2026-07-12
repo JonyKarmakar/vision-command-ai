@@ -33,6 +33,13 @@ class BlurAllByClassRequest(BaseModel):
     confidence_threshold: float = 0.25
 
 
+class ImageEnhanceRequest(BaseModel):
+    brightness: float = Field(1.0, ge=0.0, le=3.0)
+    contrast: float = Field(1.0, ge=0.0, le=3.0)
+    saturation: float = Field(1.0, ge=0.0, le=3.0)
+    sharpness: float = Field(1.0, ge=0.0, le=3.0)
+
+
 class CommandRequest(BaseModel):
     filename: str
     command: str
@@ -51,7 +58,7 @@ class PreparedCommandExecutionRequest(BaseModel):
 
 class GeneratedOutputHistoryItemRequest(BaseModel):
     id: str
-    action: Literal["annotated_detection", "zoom", "crop", "blur"]
+    action: Literal["annotated_detection", "zoom", "crop", "blur", "enhance"]
     label: str
     filename: str
     file_url: str

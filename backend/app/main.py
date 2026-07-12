@@ -60,6 +60,7 @@ from app.services.database_service import (
 )
 from app.schemas import (
     BlurAllByClassRequest,
+    ImageEnhanceRequest,
     BlurByClassRequest,
     CommandRequest,
     GeneratedOutputHistoryItemRequest,
@@ -586,6 +587,66 @@ def blur_generated_output_image(filename: str, blur: CropRequest):
             "y2": bottom,
         },
     }
+
+
+def _enhance_image_file(
+    filename: str,
+    image_path: Path,
+    request: ImageEnhanceRequest,
+    source: str,
+):
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    from PIL import ImageEnhance
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    with Image.open(image_path).convert("RGB") as image:
+        enhanced_image = ImageEnhance.Brightness(image).enhance(request.brightness)
+        enhanced_image = ImageEnhance.Contrast(enhanced_image).enhance(request.contrast)
+        enhanced_image = ImageEnhance.Color(enhanced_image).enhance(request.saturation)
+        enhanced_image = ImageEnhance.Sharpness(enhanced_image).enhance(request.sharpness)
+
+        file_extension = image_path.suffix or ".png"
+        enhanced_filename = f"enhanced_{image_path.stem}_{uuid4().hex}{file_extension}"
+        enhanced_path = OUTPUT_DIR / enhanced_filename
+        enhanced_image.save(enhanced_path)
+
+    return {
+        "filename": filename,
+        "source": source,
+        "enhanced_filename": enhanced_filename,
+        "enhanced_file_url": f"/media/outputs/{enhanced_filename}",
+        "adjustments": {
+            "brightness": request.brightness,
+            "contrast": request.contrast,
+            "saturation": request.saturation,
+            "sharpness": request.sharpness,
+        },
+    }
+
+
+@app.post("/vision/enhance/{filename}")
+def enhance_uploaded_image(filename: str, request: ImageEnhanceRequest):
+    image_path = UPLOAD_DIR / filename
+    return _enhance_image_file(
+        filename=filename,
+        image_path=image_path,
+        request=request,
+        source="uploads",
+    )
+
+
+@app.post("/vision/enhance-output/{filename}")
+def enhance_generated_output_image(filename: str, request: ImageEnhanceRequest):
+    image_path = OUTPUT_DIR / filename
+    return _enhance_image_file(
+        filename=filename,
+        image_path=image_path,
+        request=request,
+        source="outputs",
+    )
 
 
 

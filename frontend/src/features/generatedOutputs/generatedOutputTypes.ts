@@ -1,6 +1,6 @@
 export type GeneratedOutputHistoryItem = {
   id: string
-  action: 'annotated_detection' | 'zoom' | 'crop' | 'blur'
+  action: 'annotated_detection' | 'zoom' | 'crop' | 'blur' | 'enhance'
   label: string
   filename: string
   file_url: string
