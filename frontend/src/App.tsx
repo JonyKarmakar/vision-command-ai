@@ -55,6 +55,7 @@ import { DetectionResultSection } from './features/vision/DetectionResultSection
 import { CropResultSection } from './features/vision/CropResultSection'
 import { BlurResultSection } from './features/vision/BlurResultSection'
 import { BeforeAfterComparisonSection } from './features/vision/BeforeAfterComparisonSection'
+import { ImageEnhancementSection, type ImageEnhancementValues } from './features/vision/ImageEnhancementSection'
 import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
 import type {
   UploadResponse,
@@ -69,6 +70,7 @@ import type {
   CropResponse,
   ZoomResponse,
   BlurResponse,
+  EnhanceResponse,
   VideoDetectFramesCommandResponse,
   VideoSampledDetectionResponse,
   VideoTrackingResponse,
@@ -260,6 +262,7 @@ function App() {
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null)
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
+  const [enhanceResult, setEnhanceResult] = useState<EnhanceResponse | null>(null)
   const [generatedOutputHistory, setGeneratedOutputHistory] = useState<GeneratedOutputHistoryItem[]>([])
   const [isLoadingGeneratedOutputHistory, setIsLoadingGeneratedOutputHistory] = useState(false)
   const [
@@ -397,6 +400,8 @@ function App() {
   const [isDetecting, setIsDetecting] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
   const [isBlurring, setIsBlurring] = useState(false)
+  const [isEnhancing, setIsEnhancing] = useState(false)
+  const [isEnhancementApplied, setIsEnhancementApplied] = useState(false)
   const [isRunningCommand, setIsRunningCommand] = useState(false)
   const [isParsingCommand, setIsParsingCommand] = useState(false)
   const [isValidatingParsedCommand, setIsValidatingParsedCommand] = useState(false)
@@ -1944,6 +1949,7 @@ function App() {
       setDetectionResult(null)
       setCropResult(null)
       setBlurResult(null)
+      setEnhanceResult(null)
       setCommandResult(null)
       setSelectedClass('all')
       setClassOptions([])
@@ -2081,6 +2087,7 @@ function App() {
 
       const data: CropResponse = await response.json()
       setCropResult(data)
+      setEnhanceResult(null)
       addGeneratedOutputHistoryItem({
         action: 'crop',
         label: 'Cropped object output',
@@ -2140,6 +2147,7 @@ function App() {
 
       const data: BlurResponse = await response.json()
       setBlurResult(data)
+      setEnhanceResult(null)
       addGeneratedOutputHistoryItem({
         action: 'blur',
         label: 'Blurred object output',
@@ -2155,6 +2163,68 @@ function App() {
       setStatusMessage('Blur failed.')
     } finally {
       setIsBlurring(false)
+    }
+  }
+
+  const handleEnhanceImage = async (values: ImageEnhancementValues) => {
+    const activeFilename = activeGeneratedImageSource?.filename ?? uploadResult?.stored_filename
+    const activeSource = activeGeneratedImageSource ? 'outputs' : 'uploads'
+
+    if (!activeFilename) {
+      setError('Please upload an image or select a generated image first.')
+      return
+    }
+
+    try {
+      setIsEnhancing(true)
+      setIsEnhancementApplied(false)
+      setError(null)
+      setCommandResult(null)
+      setCropResult(null)
+      setBlurResult(null)
+      setStatusMessage('Applying image enhancement...')
+
+      const endpoint =
+        activeSource === 'outputs'
+          ? `/api/vision/enhance-output/${encodeURIComponent(activeFilename)}`
+          : `/api/vision/enhance/${encodeURIComponent(activeFilename)}`
+
+      const response = await fetch(
+        endpoint,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(values),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Image enhancement failed')
+      }
+
+      const data: EnhanceResponse = await response.json()
+      setEnhanceResult(data)
+      addGeneratedOutputHistoryItem({
+        action: 'enhance',
+        label: 'Enhanced image output',
+        filename: data.enhanced_filename,
+        file_url: data.enhanced_file_url,
+        source: data.source ?? activeSource,
+        source_filename: data.filename,
+      })
+      setIsEnhancementApplied(true)
+      window.setTimeout(() => {
+        setIsEnhancementApplied(false)
+      }, 1800)
+      setStatusMessage('Image enhancement complete. Enhanced output is ready.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Image enhancement failed.')
+    } finally {
+      setIsEnhancing(false)
     }
   }
 
@@ -4943,28 +5013,48 @@ function App() {
     ? `/api${blurResult.blurred_file_url}`
     : null
 
+  const enhancedImageUrl = enhanceResult
+    ? `/api${enhanceResult.enhanced_file_url}`
+    : null
+
+  const activeEnhancementImageUrl = activeGeneratedImageSource
+    ? `/api/media/outputs/${encodeURIComponent(activeGeneratedImageSource.filename)}`
+    : uploadedImageUrl
+
+  const activeEnhancementImageLabel = activeGeneratedImageSource
+    ? `Generated output: ${activeGeneratedImageSource.label}`
+    : 'Uploaded image'
+
+  const beforeAfterComparisonBeforeImageUrl =
+    objectCropImageUrl ?? activeEnhancementImageUrl
+
   const beforeAfterComparisonAfterImageUrl =
-    blurredImageUrl ?? croppedImageUrl ?? annotatedImageUrl
+    blurredImageUrl ?? croppedImageUrl ?? enhancedImageUrl ?? annotatedImageUrl
 
   const beforeAfterComparisonAfterLabel = blurredImageUrl
     ? 'Privacy edit'
     : croppedImageUrl
       ? 'Crop result'
-      : annotatedImageUrl
-        ? 'Detection preview'
-        : 'Generated result'
+      : enhancedImageUrl
+        ? 'Enhanced image'
+        : annotatedImageUrl
+          ? 'Detection preview'
+          : 'Generated result'
 
   const beforeAfterComparisonAfterDescription = blurredImageUrl
     ? 'Blurred image output'
     : croppedImageUrl
       ? 'Cropped image output'
-      : annotatedImageUrl
-        ? 'Annotated detection output'
-        : 'Latest generated image output'
+      : enhancedImageUrl
+        ? 'Enhanced image output'
+        : annotatedImageUrl
+          ? 'Annotated detection output'
+          : 'Latest generated image output'
 
   const beforeAfterComparisonAfterFilename =
     blurResult?.blurred_filename ??
     cropResult?.cropped_filename ??
+    enhanceResult?.enhanced_filename ??
     detectionResult?.annotated_filename ??
     null
 
@@ -4992,6 +5082,7 @@ function App() {
     isDetecting ||
     isCropping ||
     isBlurring ||
+    isEnhancing ||
     isRunningCommand ||
     isParsingCommand ||
     isValidatingParsedCommand ||
@@ -6166,6 +6257,21 @@ function App() {
         onDownloadJson={handleDownloadJsonFile}
       />
 
+      <ImageEnhancementSection
+        activeImageUrl={activeEnhancementImageUrl}
+        activeImageLabel={activeEnhancementImageLabel}
+        enhanceResult={enhanceResult}
+        enhancedImageUrl={enhancedImageUrl}
+        isBusy={isBusy}
+        isEnhancing={isEnhancing}
+        isApplied={isEnhancementApplied}
+        onApplyEnhancement={handleEnhanceImage}
+        onClearEnhancement={() => {
+          setEnhanceResult(null)
+          setStatusMessage('Enhancement Result view cleared.')
+        }}
+      />
+
       <CropResultSection
         isDeveloperMode={isDeveloperMode}
         cropResult={cropResult}
@@ -6201,7 +6307,7 @@ function App() {
       />
 
       <BeforeAfterComparisonSection
-        beforeImageUrl={objectCropImageUrl}
+        beforeImageUrl={beforeAfterComparisonBeforeImageUrl}
         afterImageUrl={beforeAfterComparisonAfterImageUrl}
         afterLabel={beforeAfterComparisonAfterLabel}
         afterDescription={beforeAfterComparisonAfterDescription}

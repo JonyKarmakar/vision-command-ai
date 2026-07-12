@@ -179,6 +179,19 @@ export type BlurResponse = {
   }
 }
 
+export type EnhanceResponse = {
+  filename: string
+  source?: 'uploads' | 'outputs'
+  enhanced_filename: string
+  enhanced_file_url: string
+  adjustments: {
+    brightness: number
+    contrast: number
+    saturation: number
+    sharpness: number
+  }
+}
+
 export type VideoDetectFramesCommandResponse = {
   extracted_frames: VideoMultiFrameExtractResponse
   detection: VideoMultiFrameDetectionResponse
