@@ -39,6 +39,10 @@ def _unsupported_command_message() -> str:
         "I could not map this command to a supported VisionCommand action yet.",
         [
             "detect objects",
+        "auto enhance image",
+        "improve brightness",
+        "increase contrast",
+        "sharpen image",
             "crop person",
             "crop bottle",
             "blur all people",
@@ -317,6 +321,62 @@ def parse_command(command: str):
             "action": "detect",
             "class_name": normalize_supported_requested_class_name(" ".join(class_words)),
         }
+
+    enhancement_terms = {
+        "enhance",
+        "brightness",
+        "brighten",
+        "brighter",
+        "contrast",
+        "saturation",
+        "saturate",
+        "sharpness",
+        "sharpen",
+        "sharper",
+    }
+
+    if any(term in normalized_command for term in enhancement_terms):
+        parsed_command = {
+            "action": "enhance_image",
+            "brightness": 1.0,
+            "contrast": 1.0,
+            "saturation": 1.0,
+            "sharpness": 1.0,
+        }
+
+        has_specific_adjustment = False
+
+        if (
+            "brightness" in words
+            or "brighten" in words
+            or "brighter" in words
+        ):
+            parsed_command["brightness"] = 1.12
+            has_specific_adjustment = True
+
+        if "contrast" in words:
+            parsed_command["contrast"] = 1.12
+            has_specific_adjustment = True
+
+        if "saturation" in words or "saturate" in words:
+            parsed_command["saturation"] = 1.12
+            has_specific_adjustment = True
+
+        if "sharpness" in words or "sharpen" in normalized_command or "sharper" in words:
+            parsed_command["sharpness"] = 1.45
+            has_specific_adjustment = True
+
+        if "auto" in words or not has_specific_adjustment:
+            parsed_command.update(
+                {
+                    "brightness": 1.1,
+                    "contrast": 1.12,
+                    "saturation": 1.08,
+                    "sharpness": 1.35,
+                }
+            )
+
+        return parsed_command
 
     if "detect" in normalized_command:
         return {

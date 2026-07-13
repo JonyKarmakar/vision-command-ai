@@ -38,8 +38,8 @@ export function GeneratedOutputHistoryHeader({
         <h2>{isDeveloperMode ? 'Output History' : 'Generated outputs'}</h2>
         <p className="small-note">
           {isDeveloperMode
-            ? 'Session trace of generated images from detection, zoom, crop, and blur actions. Clearing this history does not remove active result panels.'
-            : 'Review images created from assistant actions such as detection, zoom, crop, and blur.'}
+            ? 'Session trace of generated images from detection, zoom, crop, blur, and enhance actions. Clearing this history does not remove active result panels.'
+            : 'Review images created from assistant actions such as detection, zoom, crop, blur, and enhance.'}
         </p>
 
         {activeGeneratedImageSource && (

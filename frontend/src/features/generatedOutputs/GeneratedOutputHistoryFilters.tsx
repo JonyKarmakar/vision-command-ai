@@ -72,6 +72,7 @@ export function GeneratedOutputHistoryFilters({
           <option value="zoom">Zoom</option>
           <option value="crop">Crop</option>
           <option value="blur">Blur</option>
+          <option value="enhance">Enhance</option>
         </select>
       </label>
 

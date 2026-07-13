@@ -701,6 +701,23 @@ function App() {
         source_filename: result.filename,
       })
     }
+
+    if (data.result_type === 'enhance_image') {
+      const result = data.result as EnhanceResponse
+
+      if (!result.enhanced_filename || !result.enhanced_file_url) {
+        return
+      }
+
+      addGeneratedOutputHistoryItem({
+        action: 'enhance',
+        label: 'Enhanced command output',
+        filename: result.enhanced_filename,
+        file_url: result.enhanced_file_url,
+        source: result.source ?? 'uploads',
+        source_filename: result.filename,
+      })
+    }
   }
 
   const scrollToCommandOutputView = (resultType: string) => {
@@ -3526,6 +3543,14 @@ function App() {
         setCropResult(null)
       }
 
+      if (data.result_type === 'enhance_image') {
+        const result = data.result as EnhanceResponse
+
+        setEnhanceResult(result)
+        setCropResult(null)
+        setBlurResult(null)
+      }
+
       if (data.result_type === 'zoom_by_class') {
         const result = data.result as ZoomResponse
         addGeneratedOutputHistoryItem({
@@ -4270,6 +4295,14 @@ function App() {
         const result = data.result as BlurResponse
         setBlurResult(result)
         setCropResult(null)
+      }
+
+      if (data.result_type === 'enhance_image') {
+        const result = data.result as EnhanceResponse
+
+        setEnhanceResult(result)
+        setCropResult(null)
+        setBlurResult(null)
       }
 
       if (data.result_type === 'zoom_by_class') {

@@ -1080,6 +1080,37 @@ def execute_validated_parsed_command(
             result=result,
         )
 
+    if parsed_command["action"] == "enhance_image":
+        enhance_request = ImageEnhanceRequest(
+            brightness=float(parsed_command.get("brightness", 1.0)),
+            contrast=float(parsed_command.get("contrast", 1.0)),
+            saturation=float(parsed_command.get("saturation", 1.0)),
+            sharpness=float(parsed_command.get("sharpness", 1.0)),
+        )
+
+        result = (
+            enhance_generated_output_image(
+                filename=request.filename,
+                request=enhance_request,
+            )
+            if _is_generated_output_command(request)
+            else enhance_uploaded_image(
+                filename=request.filename,
+                request=enhance_request,
+            )
+        )
+
+        result_type = "enhance_image"
+        log_command_execution(request, parsed_command, result_type, parse_result)
+
+        return build_command_execution_response(
+            request=request,
+            parse_result=parse_result,
+            parsed_command=parsed_command,
+            result_type=result_type,
+            result=result,
+        )
+
     if parsed_command["action"] == "crop_by_class":
         class_name = parsed_command["class_name"]
 
@@ -2058,6 +2089,7 @@ SUPPORTED_COMMAND_RESULT_TYPES = {
     "crop_by_class",
     "blur_by_class",
     "blur_all_by_class",
+    "enhance_image",
     "zoom_by_class",
     "extract_frame",
     "extract_frames",
@@ -2085,7 +2117,7 @@ def normalize_command_log_filters(parser_mode=None, result_type=None):
     if result_type and result_type not in SUPPORTED_COMMAND_RESULT_TYPES:
         raise HTTPException(
             status_code=400,
-            detail="Supported result types are: annotated_detection, crop_by_class, blur_by_class, blur_all_by_class, zoom_by_class, extract_frame, extract_frames, detect_frames, track_video, trim_video",
+            detail="Supported result types are: annotated_detection, crop_by_class, blur_by_class, blur_all_by_class, enhance_image, zoom_by_class, extract_frame, extract_frames, detect_frames, track_video, trim_video",
         )
 
     return parser_mode, result_type

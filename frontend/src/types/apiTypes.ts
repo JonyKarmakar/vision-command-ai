@@ -522,8 +522,8 @@ export type CommandResponse = {
     action: string
     class_name: string | null
   }
-  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'zoom_by_class' | 'extract_frame' | 'extract_frames' | 'trim_video' | 'detect_frames' | 'track_video'
-  result: DetectionResponse | CropResponse | BlurResponse | ZoomResponse | VideoFrameExtractResponse | VideoMultiFrameExtractResponse | VideoTrimResponse | VideoDetectFramesCommandResponse | VideoTrackingResponse
+  result_type: 'annotated_detection' | 'crop_by_class' | 'blur_by_class' | 'blur_all_by_class' | 'enhance_image' | 'zoom_by_class' | 'extract_frame' | 'extract_frames' | 'trim_video' | 'detect_frames' | 'track_video'
+  result: DetectionResponse | CropResponse | BlurResponse | EnhanceResponse | ZoomResponse | VideoFrameExtractResponse | VideoMultiFrameExtractResponse | VideoTrimResponse | VideoDetectFramesCommandResponse | VideoTrackingResponse
 }
 
 export type CommandLog = {

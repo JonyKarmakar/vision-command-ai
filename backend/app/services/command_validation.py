@@ -18,6 +18,7 @@ SUPPORTED_ACTIONS = {
     "detect_frames",
     "track_video",
     "trim_video",
+    "enhance_image",
 }
 
 
@@ -80,6 +81,17 @@ def validate_parsed_command(parsed_command: dict):
 
     if action in {"crop_by_class", "blur_by_class", "blur_all_by_class", "zoom_by_class"}:
         _require_key(parsed_command, "class_name")
+
+    if action == "enhance_image":
+        for key in ("brightness", "contrast", "saturation", "sharpness"):
+            if key in parsed_command:
+                _require_number(parsed_command, key)
+
+                if parsed_command[key] < 0 or parsed_command[key] > 3:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"{key} must be between 0 and 3",
+                    )
 
     if parsed_command.get("class_name") is not None:
         parsed_command = _normalize_and_validate_class_name(parsed_command)
