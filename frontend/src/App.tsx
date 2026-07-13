@@ -56,6 +56,7 @@ import { CropResultSection } from './features/vision/CropResultSection'
 import { BlurResultSection } from './features/vision/BlurResultSection'
 import { BeforeAfterComparisonSection } from './features/vision/BeforeAfterComparisonSection'
 import { ImageEnhancementSection, type ImageEnhancementValues } from './features/vision/ImageEnhancementSection'
+import { BackgroundBlurSection, type BackgroundBlurValues } from './features/vision/BackgroundBlurSection'
 import type { GeneratedOutputHistoryItem } from './features/generatedOutputs/generatedOutputTypes'
 import type {
   UploadResponse,
@@ -71,6 +72,7 @@ import type {
   ZoomResponse,
   BlurResponse,
   EnhanceResponse,
+  BackgroundBlurResponse,
   VideoDetectFramesCommandResponse,
   VideoSampledDetectionResponse,
   VideoTrackingResponse,
@@ -263,6 +265,7 @@ function App() {
   const [cropResult, setCropResult] = useState<CropResponse | null>(null)
   const [blurResult, setBlurResult] = useState<BlurResponse | null>(null)
   const [enhanceResult, setEnhanceResult] = useState<EnhanceResponse | null>(null)
+  const [backgroundBlurResult, setBackgroundBlurResult] = useState<BackgroundBlurResponse | null>(null)
   const [generatedOutputHistory, setGeneratedOutputHistory] = useState<GeneratedOutputHistoryItem[]>([])
   const [isLoadingGeneratedOutputHistory, setIsLoadingGeneratedOutputHistory] = useState(false)
   const [
@@ -402,6 +405,8 @@ function App() {
   const [isBlurring, setIsBlurring] = useState(false)
   const [isEnhancing, setIsEnhancing] = useState(false)
   const [isEnhancementApplied, setIsEnhancementApplied] = useState(false)
+  const [isBackgroundBlurring, setIsBackgroundBlurring] = useState(false)
+  const [isBackgroundBlurApplied, setIsBackgroundBlurApplied] = useState(false)
   const [isRunningCommand, setIsRunningCommand] = useState(false)
   const [isParsingCommand, setIsParsingCommand] = useState(false)
   const [isValidatingParsedCommand, setIsValidatingParsedCommand] = useState(false)
@@ -2242,6 +2247,69 @@ function App() {
       setStatusMessage('Image enhancement failed.')
     } finally {
       setIsEnhancing(false)
+    }
+  }
+
+  const handleBackgroundBlurImage = async (values: BackgroundBlurValues) => {
+    const activeFilename = activeGeneratedImageSource?.filename ?? uploadResult?.stored_filename
+    const activeSource = activeGeneratedImageSource ? 'outputs' : 'uploads'
+
+    if (!activeFilename) {
+      setError('Please upload an image or select a generated image first.')
+      return
+    }
+
+    try {
+      setIsBackgroundBlurring(true)
+      setIsBackgroundBlurApplied(false)
+      setError(null)
+      setCommandResult(null)
+      setCropResult(null)
+      setBlurResult(null)
+      setEnhanceResult(null)
+      setStatusMessage('Applying detection-box background blur...')
+
+      const endpoint =
+        activeSource === 'outputs'
+          ? `/api/vision/background-blur-output/${encodeURIComponent(activeFilename)}`
+          : `/api/vision/background-blur/${encodeURIComponent(activeFilename)}`
+
+      const response = await fetch(
+        endpoint,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(values),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Background blur failed')
+      }
+
+      const data: BackgroundBlurResponse = await response.json()
+      setBackgroundBlurResult(data)
+      addGeneratedOutputHistoryItem({
+        action: 'background_blur',
+        label: 'Background blur output',
+        filename: data.background_blurred_filename,
+        file_url: data.background_blurred_file_url,
+        source: data.source ?? activeSource,
+        source_filename: data.filename,
+      })
+      setIsBackgroundBlurApplied(true)
+      window.setTimeout(() => {
+        setIsBackgroundBlurApplied(false)
+      }, 1800)
+      setStatusMessage('Background blur complete. Detection-box output is ready.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Background blur failed.')
+    } finally {
+      setIsBackgroundBlurring(false)
     }
   }
 
@@ -5050,6 +5118,10 @@ function App() {
     ? `/api${enhanceResult.enhanced_file_url}`
     : null
 
+  const backgroundBlurredImageUrl = backgroundBlurResult
+    ? `/api${backgroundBlurResult.background_blurred_file_url}`
+    : null
+
   const activeEnhancementImageUrl = activeGeneratedImageSource
     ? `/api/media/outputs/${encodeURIComponent(activeGeneratedImageSource.filename)}`
     : uploadedImageUrl
@@ -5062,7 +5134,7 @@ function App() {
     objectCropImageUrl ?? activeEnhancementImageUrl
 
   const beforeAfterComparisonAfterImageUrl =
-    blurredImageUrl ?? croppedImageUrl ?? enhancedImageUrl ?? annotatedImageUrl
+    blurredImageUrl ?? croppedImageUrl ?? enhancedImageUrl ?? backgroundBlurredImageUrl ?? annotatedImageUrl
 
   const beforeAfterComparisonAfterLabel = blurredImageUrl
     ? 'Privacy edit'
@@ -5070,9 +5142,11 @@ function App() {
       ? 'Crop result'
       : enhancedImageUrl
         ? 'Enhanced image'
-        : annotatedImageUrl
-          ? 'Detection preview'
-          : 'Generated result'
+        : backgroundBlurredImageUrl
+          ? 'Background blur'
+          : annotatedImageUrl
+            ? 'Detection preview'
+            : 'Generated result'
 
   const beforeAfterComparisonAfterDescription = blurredImageUrl
     ? 'Blurred image output'
@@ -5080,14 +5154,17 @@ function App() {
       ? 'Cropped image output'
       : enhancedImageUrl
         ? 'Enhanced image output'
-        : annotatedImageUrl
-          ? 'Annotated detection output'
-          : 'Latest generated image output'
+        : backgroundBlurredImageUrl
+          ? 'Detection-box background blur output'
+          : annotatedImageUrl
+            ? 'Annotated detection output'
+            : 'Latest generated image output'
 
   const beforeAfterComparisonAfterFilename =
     blurResult?.blurred_filename ??
     cropResult?.cropped_filename ??
     enhanceResult?.enhanced_filename ??
+    backgroundBlurResult?.background_blurred_filename ??
     detectionResult?.annotated_filename ??
     null
 
@@ -5116,6 +5193,7 @@ function App() {
     isCropping ||
     isBlurring ||
     isEnhancing ||
+    isBackgroundBlurring ||
     isRunningCommand ||
     isParsingCommand ||
     isValidatingParsedCommand ||
@@ -6302,6 +6380,21 @@ function App() {
         onClearEnhancement={() => {
           setEnhanceResult(null)
           setStatusMessage('Enhancement Result view cleared.')
+        }}
+      />
+
+      <BackgroundBlurSection
+        activeImageUrl={activeEnhancementImageUrl}
+        activeImageLabel={activeEnhancementImageLabel}
+        backgroundBlurResult={backgroundBlurResult}
+        backgroundBlurredImageUrl={backgroundBlurredImageUrl}
+        isBusy={isBusy}
+        isBackgroundBlurring={isBackgroundBlurring}
+        isApplied={isBackgroundBlurApplied}
+        onApplyBackgroundBlur={handleBackgroundBlurImage}
+        onClearBackgroundBlur={() => {
+          setBackgroundBlurResult(null)
+          setStatusMessage('Background Blur Result view cleared.')
         }}
       />
 

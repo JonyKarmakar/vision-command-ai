@@ -40,6 +40,13 @@ class ImageEnhanceRequest(BaseModel):
     sharpness: float = Field(1.0, ge=0.0, le=3.0)
 
 
+class BackgroundBlurRequest(BaseModel):
+    class_name: Optional[str] = None
+    confidence_threshold: float = Field(0.25, ge=0.0, le=1.0)
+    padding_ratio: float = Field(0.04, ge=0.0, le=0.5)
+    blur_radius: float = Field(18.0, ge=1.0, le=80.0)
+
+
 class CommandRequest(BaseModel):
     filename: str
     command: str
@@ -58,7 +65,7 @@ class PreparedCommandExecutionRequest(BaseModel):
 
 class GeneratedOutputHistoryItemRequest(BaseModel):
     id: str
-    action: Literal["annotated_detection", "zoom", "crop", "blur", "enhance"]
+    action: Literal["annotated_detection", "zoom", "crop", "blur", "enhance", "background_blur"]
     label: str
     filename: str
     file_url: str

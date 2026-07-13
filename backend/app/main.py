@@ -61,6 +61,7 @@ from app.services.database_service import (
 from app.schemas import (
     BlurAllByClassRequest,
     ImageEnhanceRequest,
+    BackgroundBlurRequest,
     BlurByClassRequest,
     CommandRequest,
     GeneratedOutputHistoryItemRequest,
@@ -642,6 +643,118 @@ def enhance_uploaded_image(filename: str, request: ImageEnhanceRequest):
 def enhance_generated_output_image(filename: str, request: ImageEnhanceRequest):
     image_path = OUTPUT_DIR / filename
     return _enhance_image_file(
+        filename=filename,
+        image_path=image_path,
+        request=request,
+        source="outputs",
+    )
+
+
+def _background_blur_image_file(
+    filename: str,
+    image_path: Path,
+    request: BackgroundBlurRequest,
+    source: str,
+):
+    if not image_path.exists() or not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    detections = run_yolo_detection(
+        image_path=image_path,
+        confidence_threshold=request.confidence_threshold,
+        class_filter=request.class_name,
+    )
+
+    if not detections:
+        target = f" for class '{request.class_name}'" if request.class_name else ""
+        raise HTTPException(
+            status_code=404,
+            detail=f"No foreground objects found{target}",
+        )
+
+    from PIL import ImageFilter
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    with Image.open(image_path).convert("RGB") as image:
+        width, height = image.size
+        background_blurred_image = image.filter(
+            ImageFilter.GaussianBlur(radius=request.blur_radius),
+        )
+
+        preserved_detections = []
+
+        for detection in detections:
+            bbox = detection["bbox"]
+            box_width = bbox["x2"] - bbox["x1"]
+            box_height = bbox["y2"] - bbox["y1"]
+            pad_x = int(box_width * request.padding_ratio)
+            pad_y = int(box_height * request.padding_ratio)
+
+            left = max(0, int(bbox["x1"]) - pad_x)
+            top = max(0, int(bbox["y1"]) - pad_y)
+            right = min(width, int(bbox["x2"]) + pad_x)
+            bottom = min(height, int(bbox["y2"]) + pad_y)
+
+            if right <= left or bottom <= top:
+                continue
+
+            sharp_region = image.crop((left, top, right, bottom))
+            background_blurred_image.paste(sharp_region, (left, top))
+
+            preserved_detections.append(
+                {
+                    **detection,
+                    "preserved_bbox": {
+                        "x1": left,
+                        "y1": top,
+                        "x2": right,
+                        "y2": bottom,
+                    },
+                }
+            )
+
+        if not preserved_detections:
+            raise HTTPException(
+                status_code=404,
+                detail="No valid foreground boxes found for background blur",
+            )
+
+        file_extension = image_path.suffix or ".png"
+        background_blurred_filename = f"background_blur_{image_path.stem}_{uuid4().hex}{file_extension}"
+        background_blurred_path = OUTPUT_DIR / background_blurred_filename
+        background_blurred_image.save(background_blurred_path)
+
+    return {
+        "filename": filename,
+        "source": source,
+        "background_blurred_filename": background_blurred_filename,
+        "background_blurred_file_url": f"/media/outputs/{background_blurred_filename}",
+        "confidence_threshold": request.confidence_threshold,
+        "class_name": request.class_name,
+        "detection_count": len(preserved_detections),
+        "preserved_detections": preserved_detections,
+        "blur_radius": request.blur_radius,
+        "padding_ratio": request.padding_ratio,
+        "method": "detection_box_background_blur",
+    }
+
+
+@app.post("/vision/background-blur/{filename}")
+def background_blur_uploaded_image(filename: str, request: BackgroundBlurRequest):
+    image_path = UPLOAD_DIR / filename
+    return _background_blur_image_file(
+        filename=filename,
+        image_path=image_path,
+        request=request,
+        source="uploads",
+    )
+
+
+@app.post("/vision/background-blur-output/{filename}")
+def background_blur_generated_output_image(filename: str, request: BackgroundBlurRequest):
+    image_path = OUTPUT_DIR / filename
+    return _background_blur_image_file(
         filename=filename,
         image_path=image_path,
         request=request,
