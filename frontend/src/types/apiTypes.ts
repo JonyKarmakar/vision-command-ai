@@ -192,6 +192,20 @@ export type EnhanceResponse = {
   }
 }
 
+export type BackgroundBlurResponse = {
+  filename: string
+  source?: 'uploads' | 'outputs'
+  background_blurred_filename: string
+  background_blurred_file_url: string
+  confidence_threshold: number
+  class_name: string | null
+  detection_count: number
+  preserved_detections: Detection[]
+  blur_radius: number
+  padding_ratio: number
+  method: string
+}
+
 export type VideoDetectFramesCommandResponse = {
   extracted_frames: VideoMultiFrameExtractResponse
   detection: VideoMultiFrameDetectionResponse

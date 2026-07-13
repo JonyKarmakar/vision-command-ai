@@ -73,6 +73,7 @@ export function GeneratedOutputHistoryFilters({
           <option value="crop">Crop</option>
           <option value="blur">Blur</option>
           <option value="enhance">Enhance</option>
+          <option value="background_blur">Background blur</option>
         </select>
       </label>
 
