@@ -39,6 +39,10 @@ def _unsupported_command_message() -> str:
         "I could not map this command to a supported VisionCommand action yet.",
         [
             "detect objects",
+        "blur background",
+        "blur background around objects",
+        "keep people sharp",
+        "stronger background blur",
         "auto enhance image",
         "improve brightness",
         "increase contrast",
@@ -414,6 +418,29 @@ def parse_command(command: str):
             "action": "crop_by_class",
             "class_name": normalize_supported_requested_class_name(" ".join(class_words)),
         }
+
+    background_blur_requested = (
+        ("background" in words and "blur" in words)
+        or ("background" in words and "blurry" in words)
+        or ("keep" in words and "sharp" in words and ("people" in words or "person" in words or "persons" in words))
+    )
+
+    if background_blur_requested:
+        parsed_command = {
+            "action": "background_blur",
+            "class_name": None,
+            "confidence_threshold": 0.25,
+            "padding_ratio": 0.04,
+            "blur_radius": 18.0,
+        }
+
+        if "people" in words or "person" in words or "persons" in words:
+            parsed_command["class_name"] = "person"
+
+        if "stronger" in words or "strong" in words or "heavy" in words or "more" in words:
+            parsed_command["blur_radius"] = 28.0
+
+        return parsed_command
 
     if "blur" in normalized_command:
         blur_all = "all" in words

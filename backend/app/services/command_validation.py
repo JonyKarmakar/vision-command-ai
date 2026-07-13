@@ -19,6 +19,7 @@ SUPPORTED_ACTIONS = {
     "track_video",
     "trim_video",
     "enhance_image",
+    "background_blur",
 }
 
 
@@ -92,6 +93,29 @@ def validate_parsed_command(parsed_command: dict):
                         status_code=400,
                         detail=f"{key} must be between 0 and 3",
                     )
+
+    if action == "background_blur":
+        for key in ("confidence_threshold", "padding_ratio", "blur_radius"):
+            if key in parsed_command:
+                _require_number(parsed_command, key)
+
+        if parsed_command.get("confidence_threshold", 0.25) < 0 or parsed_command.get("confidence_threshold", 0.25) > 1:
+            raise HTTPException(
+                status_code=400,
+                detail="confidence_threshold must be between 0 and 1",
+            )
+
+        if parsed_command.get("padding_ratio", 0.04) < 0 or parsed_command.get("padding_ratio", 0.04) > 0.5:
+            raise HTTPException(
+                status_code=400,
+                detail="padding_ratio must be between 0 and 0.5",
+            )
+
+        if parsed_command.get("blur_radius", 18.0) < 1 or parsed_command.get("blur_radius", 18.0) > 80:
+            raise HTTPException(
+                status_code=400,
+                detail="blur_radius must be between 1 and 80",
+            )
 
     if parsed_command.get("class_name") is not None:
         parsed_command = _normalize_and_validate_class_name(parsed_command)
