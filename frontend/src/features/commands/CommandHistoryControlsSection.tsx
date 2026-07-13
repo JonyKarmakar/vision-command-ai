@@ -79,6 +79,7 @@ export function CommandHistoryControlsSection({
           <option value="crop_by_class">crop_by_class</option>
           <option value="blur_by_class">blur_by_class</option>
           <option value="blur_all_by_class">blur_all_by_class</option>
+          <option value="enhance_image">enhance_image</option>
           <option value="zoom_by_class">zoom_by_class</option>
           <option value="extract_frame">extract_frame</option>
           <option value="extract_frames">extract_frames</option>
