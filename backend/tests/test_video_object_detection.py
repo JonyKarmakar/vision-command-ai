@@ -1,4 +1,6 @@
 import cv2
+from pathlib import Path
+from types import SimpleNamespace
 import numpy as np
 from fastapi.testclient import TestClient
 
@@ -17,6 +19,14 @@ def create_test_video(path, width=64, height=48, fps=5, frame_count=11):
         writer.write(frame)
 
     writer.release()
+
+
+def fake_ffmpeg_run(command, capture_output, text):
+    output_path = Path(command[-1])
+    input_path = Path(command[3])
+    output_path.write_bytes(input_path.read_bytes())
+
+    return SimpleNamespace(returncode=0, stderr="")
 
 
 def fake_detections(**kwargs):
@@ -48,6 +58,7 @@ def test_detect_video_objects_success(tmp_path, monkeypatch):
     monkeypatch.setattr(main, "VIDEO_DIR", test_video_dir)
     monkeypatch.setattr(main, "OUTPUT_DIR", test_output_dir)
     monkeypatch.setattr(main, "run_yolo_detection_with_inference_logging", fake_detections)
+    monkeypatch.setattr(main.subprocess, "run", fake_ffmpeg_run)
 
     video_path = test_video_dir / "sample.mp4"
     create_test_video(video_path)
@@ -67,6 +78,8 @@ def test_detect_video_objects_success(tmp_path, monkeypatch):
 
     assert data["filename"] == "sample.mp4"
     assert data["method"] == "video_object_detection"
+    assert data["annotated_video_filename"].startswith("annotated_video_sample_")
+    assert data["annotated_video_file_url"] == f"/media/outputs/{data['annotated_video_filename']}"
     assert data["sampling_strategy"] == "interval_seconds"
     assert data["interval_seconds"] == 1
     assert data["sample_interval_frames"] == 5
@@ -83,6 +96,8 @@ def test_detect_video_objects_success(tmp_path, monkeypatch):
 
     assert [frame["frame_index"] for frame in data["frames"]] == [0, 5, 10]
     assert [frame["timestamp_seconds"] for frame in data["frames"]] == [0, 1, 2]
+
+    assert (test_output_dir / data["annotated_video_filename"]).exists()
 
     for frame in data["frames"]:
         assert frame["frame_filename"].startswith("video_object_frame_sample_")

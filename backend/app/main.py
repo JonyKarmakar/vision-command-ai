@@ -1,3 +1,4 @@
+import subprocess
 import cv2
 from datetime import datetime, timezone
 from pathlib import Path
@@ -3285,6 +3286,7 @@ def detect_video_objects(filename: str, request: VideoObjectDetectionRequest):
     class_summary_by_name = {}
     total_detection_count = 0
 
+    annotated_detection_by_frame_index = {}
     frame_index = 0
 
     try:
@@ -3315,6 +3317,7 @@ def detect_video_objects(filename: str, request: VideoObjectDetectionRequest):
             frame_detection_count = len(detections)
             total_detection_count += frame_detection_count
             classes_in_frame = set()
+            annotated_detection_by_frame_index[frame_index] = detections
 
             for detection in detections:
                 class_name = detection["class_name"]
@@ -3363,6 +3366,134 @@ def detect_video_objects(filename: str, request: VideoObjectDetectionRequest):
             detail="No video frames could be processed",
         )
 
+    annotated_video_filename = f"annotated_video_{video_path.stem}_{uuid4().hex}.mp4"
+    annotated_video_path = OUTPUT_DIR / annotated_video_filename
+    raw_annotated_video_filename = f"raw_{annotated_video_filename}"
+    raw_annotated_video_path = OUTPUT_DIR / raw_annotated_video_filename
+
+    annotated_capture = cv2.VideoCapture(str(video_path))
+
+    if not annotated_capture.isOpened():
+        annotated_capture.release()
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded video is not readable",
+        )
+
+    video_width = int(annotated_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+    video_height = int(annotated_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    if video_width <= 0 or video_height <= 0:
+        annotated_capture.release()
+        raise HTTPException(
+            status_code=400,
+            detail="Could not read video dimensions",
+        )
+
+    video_writer = cv2.VideoWriter(
+        str(raw_annotated_video_path),
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        fps,
+        (video_width, video_height),
+    )
+
+    if not video_writer.isOpened():
+        annotated_capture.release()
+        video_writer.release()
+        raise HTTPException(
+            status_code=500,
+            detail="Could not create annotated video output",
+        )
+
+    try:
+        current_frame_index = 0
+
+        while True:
+            success, frame = annotated_capture.read()
+
+            if not success:
+                break
+
+            detections_for_frame = annotated_detection_by_frame_index.get(
+                current_frame_index,
+                [],
+            )
+
+            for detection in detections_for_frame:
+                bbox = detection["bbox"]
+                x1 = int(bbox["x1"])
+                y1 = int(bbox["y1"])
+                x2 = int(bbox["x2"])
+                y2 = int(bbox["y2"])
+                label = f"{detection['class_name']} {detection['confidence']:.2f}"
+
+                cv2.rectangle(
+                    frame,
+                    (x1, y1),
+                    (x2, y2),
+                    (0, 0, 255),
+                    2,
+                )
+
+                text_y = y1 - 8 if y1 >= 16 else y1 + 16
+                cv2.putText(
+                    frame,
+                    label,
+                    (x1, text_y),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 255),
+                    1,
+                    cv2.LINE_AA,
+                )
+
+            video_writer.write(frame)
+            current_frame_index += 1
+    finally:
+        annotated_capture.release()
+        video_writer.release()
+
+    if not raw_annotated_video_path.exists():
+        raise HTTPException(
+            status_code=500,
+            detail="Raw annotated video output was not created",
+        )
+
+    completed_process = subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(raw_annotated_video_path),
+            "-vcodec",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            str(annotated_video_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    try:
+        raw_annotated_video_path.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+    if completed_process.returncode != 0:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Annotated video conversion failed: {completed_process.stderr[-500:]}",
+        )
+
+    if not annotated_video_path.exists():
+        raise HTTPException(
+            status_code=500,
+            detail="Annotated video output was not created",
+        )
+
     class_summary = sorted(
         class_summary_by_name.values(),
         key=lambda item: (-item["detection_count"], item["class_name"]),
@@ -3372,6 +3503,8 @@ def detect_video_objects(filename: str, request: VideoObjectDetectionRequest):
         "filename": filename,
         "video_metadata": video_metadata,
         "method": "video_object_detection",
+        "annotated_video_filename": annotated_video_filename,
+        "annotated_video_file_url": f"/media/outputs/{annotated_video_filename}",
         "sampling_strategy": "interval_seconds",
         "interval_seconds": request.interval_seconds,
         "sample_interval_frames": sample_interval_frames,

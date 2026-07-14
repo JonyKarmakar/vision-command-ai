@@ -6297,3 +6297,73 @@ input[type="file"]::file-selector-button:hover {
     align-items: flex-start;
   }
 }
+
+.video-object-summary-note {
+  margin-top: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.video-object-summary-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.video-object-summary-item {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 0.85rem;
+  background: rgba(15, 23, 42, 0.32);
+  text-align: left;
+}
+
+.video-object-summary-item strong {
+  text-transform: capitalize;
+}
+
+.video-object-summary-details {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--muted-text);
+}
+
+@media (max-width: 720px) {
+  .video-object-summary-item {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.video-detection-controls-card {
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.video-detection-controls-grid {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) minmax(12rem, 0.8fr);
+  gap: 1rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.video-detection-controls-grid label {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--muted-text);
+  font-weight: 600;
+}
+
+.video-detection-controls-grid input,
+.video-detection-controls-grid select {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .video-detection-controls-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent, RefObject } from 'react'
 
 import type { VideoObjectDetectionResponse, VideoUploadResponse } from '../../types/apiTypes'
@@ -11,6 +11,9 @@ type VideoUploadFoundationSectionProps = {
   videoUploadResultRef: RefObject<HTMLElement | null>
   trimStartSeconds: number
   trimEndSeconds: number
+  confidenceThreshold: number
+  selectedClass: string
+  classOptions: string[]
   isBusy: boolean
   isUploadingVideo: boolean
   isTrimmingVideo: boolean
@@ -25,6 +28,8 @@ type VideoUploadFoundationSectionProps = {
   onVideoUpload: () => void
   onVideoTrim: () => void
   onDetectVideoObjects: () => void
+  onConfidenceThresholdChange: (value: number) => void
+  onSelectedClassChange: (value: string) => void
   onTrimStartSecondsChange: (value: number) => void
   onTrimEndSecondsChange: (value: number) => void
   onClearVideoUploadResult: () => void
@@ -46,6 +51,9 @@ export function VideoUploadFoundationSection({
   videoUploadResultRef,
   trimStartSeconds,
   trimEndSeconds,
+  confidenceThreshold,
+  selectedClass,
+  classOptions,
   isBusy,
   isUploadingVideo,
   isTrimmingVideo,
@@ -60,6 +68,8 @@ export function VideoUploadFoundationSection({
   onVideoUpload,
   onVideoTrim,
   onDetectVideoObjects,
+  onConfidenceThresholdChange,
+  onSelectedClassChange,
   onTrimStartSecondsChange,
   onTrimEndSecondsChange,
   onClearVideoUploadResult,
@@ -71,6 +81,11 @@ export function VideoUploadFoundationSection({
     () => (showUploadCard && selectedVideoFile ? URL.createObjectURL(selectedVideoFile) : null),
     [selectedVideoFile, showUploadCard],
   )
+
+  const [downloadedAnnotatedVideoFilename, setDownloadedAnnotatedVideoFilename] = useState<string | null>(null)
+
+  const isAnnotatedVideoDownloaded =
+    downloadedAnnotatedVideoFilename === videoObjectDetectionResult?.annotated_video_filename
 
   useEffect(() => {
     return () => {
@@ -251,34 +266,157 @@ export function VideoUploadFoundationSection({
             </div>
           </section>
 
+          <section className="card video-detection-controls-card">
+            <p className="eyebrow">Video analysis controls</p>
+            <h2>Video object detection settings</h2>
+            <p className="small-note">
+              These settings control Detect video objects for the uploaded video.
+            </p>
+
+            <div className="video-detection-controls-grid">
+              <label>
+                Confidence threshold: <strong>{confidenceThreshold}%</strong>
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  step="1"
+                  value={confidenceThreshold}
+                  onChange={(event) => onConfidenceThresholdChange(Number(event.target.value))}
+                  disabled={isBusy}
+                />
+              </label>
+
+              <label>
+                Class filter
+                <select
+                  value={selectedClass}
+                  onChange={(event) => onSelectedClassChange(event.target.value)}
+                  disabled={isBusy || classOptions.length === 0}
+                >
+                  <option value="all">
+                    {classOptions.length === 0
+                      ? 'Run detection once to see detected classes'
+                      : 'All detected classes'}
+                  </option>
+                  {classOptions.map((className) => (
+                    <option key={className} value={className}>
+                      {className}
+                    </option>
+                  ))}
+                </select>
+                {classOptions.length === 0 && (
+                  <span className="small-note">
+                    Class filtering becomes available after the first video object detection run.
+                  </span>
+                )}
+              </label>
+            </div>
+
+            <div className="button-row">
+              <button
+                className="secondary-button"
+                onClick={onDetectVideoObjects}
+                disabled={isBusy || !videoUploadResult}
+              >
+                {isDetectingVideoObjects ? 'Detecting video objects...' : 'Detect video objects'}
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  onConfidenceThresholdChange(30)
+                  onSelectedClassChange('all')
+                }}
+                disabled={isBusy || (confidenceThreshold === 30 && selectedClass === 'all')}
+              >
+                Reset detection settings
+              </button>
+            </div>
+          </section>
+
           {videoObjectDetectionResult && (
             <section className="card">
               <p className="eyebrow">Video analysis</p>
               <h2>Video object detection</h2>
               <p className="small-note">
-                Processed {videoObjectDetectionResult.processed_frame_count} sampled frame(s)
+                Processed {videoObjectDetectionResult.processed_frame_count} video frame(s)
                 across the uploaded video.
               </p>
 
               <div className="metadata-list">
                 <p><strong>Detections:</strong> {videoObjectDetectionResult.detection_count}</p>
-                <p><strong>Sampling interval:</strong> {videoObjectDetectionResult.interval_seconds}s</p>
-                <p><strong>Confidence:</strong> {Math.round(videoObjectDetectionResult.confidence_threshold * 100)}%</p>
+                <p>
+                  <strong>Processing mode:</strong>{' '}
+                  {videoObjectDetectionResult.interval_seconds < 0.1
+                    ? 'Frame-level video detection'
+                    : `Sampled every ${videoObjectDetectionResult.interval_seconds.toFixed(2)}s`}
+                </p>
+                <p><strong>Confidence threshold:</strong> {Math.round(videoObjectDetectionResult.confidence_threshold * 100)}%</p>
                 <p><strong>Class filter:</strong> {videoObjectDetectionResult.class_filter ?? 'All classes'}</p>
               </div>
 
-              {videoObjectDetectionResult.class_summary.length > 0 ? (
-                <div className="result-list">
-                  {videoObjectDetectionResult.class_summary.map((item) => (
-                    <div className="result-list-item" key={item.class_name}>
-                      <strong>{item.class_name}</strong>
-                      <span>
-                        {item.detection_count} detection(s) across {item.frame_count} frame(s)
-                        · highest confidence {Math.round(item.highest_confidence * 100)}%
-                      </span>
-                    </div>
-                  ))}
+              <div className="generated-video-preview">
+                <h3>Annotated video output</h3>
+                <p className="small-note">
+                  Bounding boxes are drawn on processed video frames where detections were available.
+                </p>
+
+                <video
+                  className="preview-video"
+                  src={`/api${videoObjectDetectionResult.annotated_video_file_url}`}
+                  controls
+                />
+
+                <div className="output-actions result-output-actions">
+                  <a
+                    href={`/api${videoObjectDetectionResult.annotated_video_file_url}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open annotated video
+                  </a>
+                  <a
+                    href={`/api${videoObjectDetectionResult.annotated_video_file_url}`}
+                    download={videoObjectDetectionResult.annotated_video_filename}
+                    onClick={() => {
+                      const downloadedFilename = videoObjectDetectionResult.annotated_video_filename
+                      setDownloadedAnnotatedVideoFilename(downloadedFilename)
+
+                      window.setTimeout(() => {
+                        setDownloadedAnnotatedVideoFilename((currentFilename) =>
+                          currentFilename === downloadedFilename ? null : currentFilename,
+                        )
+                      }, 2000)
+                    }}
+                  >
+                    {isAnnotatedVideoDownloaded ? 'Downloaded!' : 'Download annotated video'}
+                  </a>
                 </div>
+              </div>
+
+              {videoObjectDetectionResult.class_summary.length > 0 ? (
+                <>
+                  <p className="small-note video-object-summary-note">
+                    Object counts are based on frame-level YOLO detections. Low-confidence classes may include false positives.
+                  </p>
+
+                  <div className="video-object-summary-list">
+                    {videoObjectDetectionResult.class_summary.map((item) => (
+                      <div className="video-object-summary-item" key={item.class_name}>
+                        <strong>{item.class_name}</strong>
+                        <div className="video-object-summary-details">
+                          <span>
+                            Detected in {item.frame_count} of {videoObjectDetectionResult.processed_frame_count} processed frame(s)
+                          </span>
+                          <span>
+                            {item.detection_count} total box(es) · highest confidence {Math.round(item.highest_confidence * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <p className="small-note">No objects matched the current detection settings.</p>
               )}
