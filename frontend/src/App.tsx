@@ -74,6 +74,7 @@ import type {
   EnhanceResponse,
   BackgroundBlurResponse,
   VideoDetectFramesCommandResponse,
+  VideoObjectDetectionResponse,
   VideoSampledDetectionResponse,
   VideoTrackingResponse,
   CommandParseResponse,
@@ -240,6 +241,7 @@ function App() {
   const [videoMultiFrameResult, setVideoMultiFrameResult] = useState<VideoMultiFrameExtractResponse | null>(null)
   const [videoMultiFrameDetectionResult, setVideoMultiFrameDetectionResult] = useState<VideoMultiFrameDetectionResponse | null>(null)
   const [videoSampledDetectionResult, setVideoSampledDetectionResult] = useState<VideoSampledDetectionResponse | null>(null)
+  const [videoObjectDetectionResult, setVideoObjectDetectionResult] = useState<VideoObjectDetectionResponse | null>(null)
   const [videoTrackingResult, setVideoTrackingResult] = useState<VideoTrackingResponse | null>(null)
   const [videoResultOrder, setVideoResultOrder] = useState<VideoResultPanelKey[]>([])
 
@@ -398,6 +400,7 @@ function App() {
   const [isExtractingMultipleFrames, setIsExtractingMultipleFrames] = useState(false)
   const [isDetectingMultipleFrames, setIsDetectingMultipleFrames] = useState(false)
   const [isDetectingSampledVideo, setIsDetectingSampledVideo] = useState(false)
+  const [isDetectingVideoObjects, setIsDetectingVideoObjects] = useState(false)
   const [isTrackingVideo, setIsTrackingVideo] = useState(false)
   const [isDetectingFrame, setIsDetectingFrame] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
@@ -1576,6 +1579,7 @@ function App() {
     const file = event.target.files?.[0] || null
     setSelectedVideoFile(file)
     setVideoUploadResult(null)
+          setVideoObjectDetectionResult(null)
     setVideoTrimResult(null)
     setVideoFrameResult(null)
     setVideoMultiFrameResult(null)
@@ -1913,6 +1917,59 @@ function App() {
       setStatusMessage('Sampled video detection failed.')
     } finally {
       setIsDetectingSampledVideo(false)
+    }
+  }
+
+  const handleDetectVideoObjects = async () => {
+    if (!videoUploadResult) {
+      setError('Please upload a video first.')
+      return
+    }
+
+    if (sampledVideoIntervalSeconds <= 0) {
+      setError('Sampling interval must be greater than 0.')
+      return
+    }
+
+    try {
+      setIsDetectingVideoObjects(true)
+      setError(null)
+      setStatusMessage(`Detecting video objects every ${sampledVideoIntervalSeconds}s...`)
+
+      const response = await fetch(
+        `/api/video/detect-objects/${videoUploadResult.stored_filename}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            interval_seconds: sampledVideoIntervalSeconds,
+            confidence_threshold: confidenceThreshold / 100,
+            class_filter: selectedClass === 'all' ? null : selectedClass,
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Video object detection failed')
+      }
+
+      const data: VideoObjectDetectionResponse = await response.json()
+
+      setVideoObjectDetectionResult(data)
+      setVideoTrackingResult(null)
+      scrollToLoadedView(videoUploadResultRef)
+
+      setStatusMessage(
+        `Video object detection complete. Processed ${data.processed_frame_count} frame(s) and found ${data.detection_count} detection(s).`,
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStatusMessage('Video object detection failed.')
+    } finally {
+      setIsDetectingVideoObjects(false)
     }
   }
 
@@ -5222,6 +5279,7 @@ function App() {
     isExtractingMultipleFrames ||
     isDetectingMultipleFrames ||
     isDetectingSampledVideo ||
+    isDetectingVideoObjects ||
     isTrackingVideo ||
     isDetectingFrame ||
     isDetecting ||
@@ -5596,6 +5654,7 @@ function App() {
         showWorkspacePanels={false}
         selectedVideoFile={selectedVideoFile}
         videoUploadResult={videoUploadResult}
+        videoObjectDetectionResult={videoObjectDetectionResult}
         uploadedVideoUrl={uploadedVideoUrl}
         videoUploadResultRef={videoUploadResultRef}
         trimStartSeconds={trimStartSeconds}
@@ -5603,17 +5662,23 @@ function App() {
         isBusy={isBusy}
         isUploadingVideo={isUploadingVideo}
         isTrimmingVideo={isTrimmingVideo}
+        isDetectingVideoObjects={isDetectingVideoObjects}
         copiedParserLogJsonKey={copiedParserLogJsonKey}
         failedParserLogJsonKey={failedParserLogJsonKey}
         downloadedParserLogJsonKey={downloadedParserLogJsonKey}
         onVideoFileChange={handleVideoFileChange}
         onVideoUpload={handleVideoUpload}
         onVideoTrim={handleVideoTrim}
+        onDetectVideoObjects={handleDetectVideoObjects}
         onTrimStartSecondsChange={setTrimStartSeconds}
         onTrimEndSecondsChange={setTrimEndSeconds}
         onClearVideoUploadResult={() => {
           setVideoUploadResult(null)
           setStatusMessage('Video Upload Result view cleared.')
+        }}
+        onClearVideoObjectDetectionResult={() => {
+          setVideoObjectDetectionResult(null)
+          setStatusMessage('Video object detection result cleared.')
         }}
         onCopyJson={handleCopyParserLogJson}
         onDownloadJson={handleDownloadJsonFile}
@@ -6265,6 +6330,7 @@ function App() {
         showUploadCard={false}
         selectedVideoFile={selectedVideoFile}
         videoUploadResult={videoUploadResult}
+        videoObjectDetectionResult={videoObjectDetectionResult}
         uploadedVideoUrl={uploadedVideoUrl}
         videoUploadResultRef={videoUploadResultRef}
         trimStartSeconds={trimStartSeconds}
@@ -6272,17 +6338,23 @@ function App() {
         isBusy={isBusy}
         isUploadingVideo={isUploadingVideo}
         isTrimmingVideo={isTrimmingVideo}
+        isDetectingVideoObjects={isDetectingVideoObjects}
         copiedParserLogJsonKey={copiedParserLogJsonKey}
         failedParserLogJsonKey={failedParserLogJsonKey}
         downloadedParserLogJsonKey={downloadedParserLogJsonKey}
         onVideoFileChange={handleVideoFileChange}
         onVideoUpload={handleVideoUpload}
         onVideoTrim={handleVideoTrim}
+        onDetectVideoObjects={handleDetectVideoObjects}
         onTrimStartSecondsChange={setTrimStartSeconds}
         onTrimEndSecondsChange={setTrimEndSeconds}
         onClearVideoUploadResult={() => {
           setVideoUploadResult(null)
           setStatusMessage('Video Upload Result view cleared.')
+        }}
+        onClearVideoObjectDetectionResult={() => {
+          setVideoObjectDetectionResult(null)
+          setStatusMessage('Video object detection result cleared.')
         }}
         onCopyJson={handleCopyParserLogJson}
         onDownloadJson={handleDownloadJsonFile}

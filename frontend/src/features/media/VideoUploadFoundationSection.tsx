@@ -1,11 +1,12 @@
 import { useEffect, useMemo } from 'react'
 import type { ChangeEvent, RefObject } from 'react'
 
-import type { VideoUploadResponse } from '../../types/apiTypes'
+import type { VideoObjectDetectionResponse, VideoUploadResponse } from '../../types/apiTypes'
 
 type VideoUploadFoundationSectionProps = {
   selectedVideoFile: File | null
   videoUploadResult: VideoUploadResponse | null
+  videoObjectDetectionResult: VideoObjectDetectionResponse | null
   uploadedVideoUrl: string | null
   videoUploadResultRef: RefObject<HTMLElement | null>
   trimStartSeconds: number
@@ -13,6 +14,7 @@ type VideoUploadFoundationSectionProps = {
   isBusy: boolean
   isUploadingVideo: boolean
   isTrimmingVideo: boolean
+  isDetectingVideoObjects: boolean
   isDeveloperMode: boolean
   showUploadCard?: boolean
   showWorkspacePanels?: boolean
@@ -22,9 +24,11 @@ type VideoUploadFoundationSectionProps = {
   onVideoFileChange: (event: ChangeEvent<HTMLInputElement>) => void
   onVideoUpload: () => void
   onVideoTrim: () => void
+  onDetectVideoObjects: () => void
   onTrimStartSecondsChange: (value: number) => void
   onTrimEndSecondsChange: (value: number) => void
   onClearVideoUploadResult: () => void
+  onClearVideoObjectDetectionResult: () => void
   onCopyJson: (payload: unknown, key: string, successMessage: string) => Promise<void>
   onDownloadJson: (
     payload: unknown,
@@ -37,6 +41,7 @@ type VideoUploadFoundationSectionProps = {
 export function VideoUploadFoundationSection({
   selectedVideoFile,
   videoUploadResult,
+  videoObjectDetectionResult,
   uploadedVideoUrl,
   videoUploadResultRef,
   trimStartSeconds,
@@ -44,6 +49,7 @@ export function VideoUploadFoundationSection({
   isBusy,
   isUploadingVideo,
   isTrimmingVideo,
+  isDetectingVideoObjects,
   isDeveloperMode,
   showUploadCard = true,
   showWorkspacePanels = true,
@@ -53,9 +59,11 @@ export function VideoUploadFoundationSection({
   onVideoFileChange,
   onVideoUpload,
   onVideoTrim,
+  onDetectVideoObjects,
   onTrimStartSecondsChange,
   onTrimEndSecondsChange,
   onClearVideoUploadResult,
+  onClearVideoObjectDetectionResult,
   onCopyJson,
   onDownloadJson,
 }: VideoUploadFoundationSectionProps) {
@@ -118,6 +126,14 @@ export function VideoUploadFoundationSection({
         <div className="button-row">
           <button onClick={onVideoUpload} disabled={isBusy || !selectedVideoFile}>
             {isUploadingVideo ? 'Uploading video...' : 'Upload video'}
+          </button>
+
+          <button
+            className="secondary-button"
+            onClick={onDetectVideoObjects}
+            disabled={isBusy || !videoUploadResult}
+          >
+            {isDetectingVideoObjects ? 'Detecting video objects...' : 'Detect video objects'}
           </button>
         </div>
         </section>
@@ -234,6 +250,50 @@ export function VideoUploadFoundationSection({
               )}
             </div>
           </section>
+
+          {videoObjectDetectionResult && (
+            <section className="card">
+              <p className="eyebrow">Video analysis</p>
+              <h2>Video object detection</h2>
+              <p className="small-note">
+                Processed {videoObjectDetectionResult.processed_frame_count} sampled frame(s)
+                across the uploaded video.
+              </p>
+
+              <div className="metadata-list">
+                <p><strong>Detections:</strong> {videoObjectDetectionResult.detection_count}</p>
+                <p><strong>Sampling interval:</strong> {videoObjectDetectionResult.interval_seconds}s</p>
+                <p><strong>Confidence:</strong> {Math.round(videoObjectDetectionResult.confidence_threshold * 100)}%</p>
+                <p><strong>Class filter:</strong> {videoObjectDetectionResult.class_filter ?? 'All classes'}</p>
+              </div>
+
+              {videoObjectDetectionResult.class_summary.length > 0 ? (
+                <div className="result-list">
+                  {videoObjectDetectionResult.class_summary.map((item) => (
+                    <div className="result-list-item" key={item.class_name}>
+                      <strong>{item.class_name}</strong>
+                      <span>
+                        {item.detection_count} detection(s) across {item.frame_count} frame(s)
+                        · highest confidence {Math.round(item.highest_confidence * 100)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="small-note">No objects matched the current detection settings.</p>
+              )}
+
+              <div className="output-actions result-output-actions">
+                <button
+                  className="secondary-button"
+                  onClick={onClearVideoObjectDetectionResult}
+                  disabled={isBusy}
+                >
+                  Clear video object detection
+                </button>
+              </div>
+            </section>
+          )}
 
           <section className="card video-trim-card">
             <h2>Trim Video</h2>
