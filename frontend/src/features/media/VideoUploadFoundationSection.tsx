@@ -100,6 +100,7 @@ export function VideoUploadFoundationSection({
   )
 
   const [downloadedAnnotatedVideoFilename, setDownloadedAnnotatedVideoFilename] = useState<string | null>(null)
+  const [isVideoAnalysisReportDownloaded, setIsVideoAnalysisReportDownloaded] = useState(false)
 
   const isAnnotatedVideoDownloaded =
     downloadedAnnotatedVideoFilename === videoObjectDetectionResult?.annotated_video_filename
@@ -264,6 +265,135 @@ export function VideoUploadFoundationSection({
       points,
     }
   }, [videoKeyMoments, videoObjectDetectionResult, videoObjectTimeline])
+
+  const videoAnalysisMarkdownReport = useMemo(() => {
+    if (!videoUploadResult || !videoObjectDetectionResult) {
+      return null
+    }
+
+    const classSummaryMarkdown =
+      videoObjectDetectionResult.class_summary.length > 0
+        ? videoObjectDetectionResult.class_summary
+            .map(
+              (item) =>
+                `- ${item.class_name}: detected in ${item.frame_count} of ${videoObjectDetectionResult.processed_frame_count} processed frame(s); ${item.detection_count} total box(es); highest confidence ${Math.round(item.highest_confidence * 100)}%`,
+            )
+            .join('\n')
+        : '- No object classes matched the current detection settings.'
+
+    const activitySummaryMarkdown = videoActivitySummary
+      ? [
+          videoActivitySummary.headline,
+          '',
+          ...videoActivitySummary.points.map((point) => `- ${point}`),
+        ].join('\n')
+      : 'No activity summary was available.'
+
+    const timelineMarkdown =
+      videoObjectTimeline.length > 0
+        ? videoObjectTimeline
+            .map(
+              (item) =>
+                `- ${item.className}: ${formatVideoTimestamp(item.firstSeenSeconds)} to ${formatVideoTimestamp(item.lastSeenSeconds)}; seen in ${item.frameCount} frame(s); ${item.detectionCount} total box(es); highest confidence ${Math.round(item.highestConfidence * 100)}%`,
+            )
+            .join('\n')
+        : '- No object timeline was available.'
+
+    const keyMomentsMarkdown =
+      videoKeyMoments.length > 0
+        ? videoKeyMoments
+            .map(
+              (moment) =>
+                `- ${formatVideoTimestamp(moment.second)}: ${moment.classNames.join(', ')}; ${moment.detectionCount} box(es); highest confidence ${Math.round(moment.highestConfidence * 100)}%`,
+            )
+            .join('\n')
+        : '- No key moments were available.'
+
+    return [
+      '# Video Analysis Report',
+      '',
+      `Generated: ${new Date().toISOString()}`,
+      '',
+      '## Video Overview',
+      '',
+      `- Original filename: ${videoUploadResult.original_filename}`,
+      `- Stored filename: ${videoUploadResult.stored_filename}`,
+      `- Duration: ${videoUploadResult.metadata.duration_seconds ?? 'Unknown'} seconds`,
+      `- Resolution: ${videoUploadResult.metadata.width ?? 'Unknown'} x ${videoUploadResult.metadata.height ?? 'Unknown'}`,
+      `- FPS: ${videoUploadResult.metadata.fps ?? 'Unknown'}`,
+      `- Frame count: ${videoUploadResult.metadata.frame_count ?? 'Unknown'}`,
+      '',
+      '## Detection Settings',
+      '',
+      `- Processing mode: ${videoObjectDetectionResult.interval_seconds < 0.1 ? 'Frame-level video detection' : `Sampled every ${videoObjectDetectionResult.interval_seconds.toFixed(2)} seconds`}`,
+      `- Confidence threshold: ${Math.round(videoObjectDetectionResult.confidence_threshold * 100)}%`,
+      `- Class filter: ${videoObjectDetectionResult.class_filter ?? 'All classes'}`,
+      `- Processed frames: ${videoObjectDetectionResult.processed_frame_count}`,
+      `- Total detections: ${videoObjectDetectionResult.detection_count}`,
+      '',
+      '## Annotated Video Output',
+      '',
+      `- Annotated video filename: ${videoObjectDetectionResult.annotated_video_filename}`,
+      `- Annotated video URL: ${videoObjectDetectionResult.annotated_video_file_url}`,
+      '',
+      '## Object Summary',
+      '',
+      classSummaryMarkdown,
+      '',
+      '## Activity Summary',
+      '',
+      activitySummaryMarkdown,
+      '',
+      '## Object Timeline',
+      '',
+      timelineMarkdown,
+      '',
+      '## Key Moments',
+      '',
+      keyMomentsMarkdown,
+      '',
+      '## Limitations',
+      '',
+      '- This report is generated from object detection results and frontend summary logic.',
+      '- It does not identify people.',
+      '- It does not infer emotions, intentions, or private activities.',
+      '- It does not include persistent object tracking IDs.',
+      '- Low-confidence detections may include false positives.',
+      '',
+    ].join('\n')
+  }, [
+    videoActivitySummary,
+    videoKeyMoments,
+    videoObjectDetectionResult,
+    videoObjectTimeline,
+    videoUploadResult,
+  ])
+
+  const handleDownloadVideoAnalysisReport = () => {
+    if (!videoAnalysisMarkdownReport || !videoUploadResult) {
+      return
+    }
+
+    const blob = new Blob([videoAnalysisMarkdownReport], {
+      type: 'text/markdown;charset=utf-8',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const safeVideoName = videoUploadResult.original_filename
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase()
+
+    link.href = url
+    link.download = `video-analysis-report-${safeVideoName || 'video'}-${new Date().toISOString().slice(0, 10)}.md`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    setIsVideoAnalysisReportDownloaded(true)
+    window.setTimeout(() => setIsVideoAnalysisReportDownloaded(false), 2000)
+  }
 
   useEffect(() => {
     return () => {
@@ -618,6 +748,29 @@ export function VideoUploadFoundationSection({
                   <p className="small-note">
                     This summary is grounded in detected object classes, timestamps, and key moments. It does not identify people, infer emotions, or make private activity claims.
                   </p>
+                </section>
+              )}
+
+              {videoAnalysisMarkdownReport && (
+                <section className="video-analysis-report-panel">
+                  <div>
+                    <p className="eyebrow">Video report</p>
+                    <h3>Video analysis report</h3>
+                    <p className="small-note">
+                      Export the current video detection, annotated output, activity summary,
+                      object timeline, and key moments as a Markdown report.
+                    </p>
+                  </div>
+
+                  <div className="output-actions result-output-actions">
+                    <button
+                      className="secondary-button"
+                      onClick={handleDownloadVideoAnalysisReport}
+                      disabled={isBusy}
+                    >
+                      {isVideoAnalysisReportDownloaded ? 'Downloaded!' : 'Download Markdown report'}
+                    </button>
+                  </div>
                 </section>
               )}
 
