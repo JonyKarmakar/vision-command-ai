@@ -1,3 +1,4 @@
+import cv2
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -79,6 +80,7 @@ from app.schemas import (
     VideoFrameDetectionBatchRequest,
     VideoMultiFrameExtractRequest,
     VideoSampledDetectionRequest,
+    VideoObjectDetectionRequest,
     VideoTrackingRequest,
     ImageChatRequest,
     VideoChatRequest,
@@ -3213,6 +3215,173 @@ def calculate_center_distance(center_a: dict, center_b: dict):
         (center_a["x"] - center_b["x"]) ** 2
         + (center_a["y"] - center_b["y"]) ** 2
     ) ** 0.5
+
+
+@app.post("/video/detect-objects/{filename}")
+def detect_video_objects(filename: str, request: VideoObjectDetectionRequest):
+    video_path = VIDEO_DIR / filename
+
+    if not video_path.exists() or not video_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Uploaded video not found",
+        )
+
+    if request.interval_seconds <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Interval must be greater than 0",
+        )
+
+    if request.confidence_threshold < 0 or request.confidence_threshold > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="confidence_threshold must be between 0 and 1",
+        )
+
+    video_metadata = extract_video_metadata(video_path)
+
+    if not video_metadata["is_readable"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded video is not readable",
+        )
+
+    fps = video_metadata["fps"]
+    frame_count = video_metadata["frame_count"]
+    duration_seconds = video_metadata["duration_seconds"]
+
+    if fps is None or fps <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not read video FPS",
+        )
+
+    if frame_count is None or frame_count <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not read video frame count",
+        )
+
+    if duration_seconds is None or duration_seconds <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not determine video duration",
+        )
+
+    video_capture = cv2.VideoCapture(str(video_path))
+
+    if not video_capture.isOpened():
+        video_capture.release()
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded video is not readable",
+        )
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    sample_interval_frames = max(1, int(round(request.interval_seconds * fps)))
+    processed_frames = []
+    class_summary_by_name = {}
+    total_detection_count = 0
+
+    frame_index = 0
+
+    try:
+        while frame_index < frame_count:
+            video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+            success, frame = video_capture.read()
+
+            if not success:
+                frame_index += sample_interval_frames
+                continue
+
+            frame_filename = f"video_object_frame_{video_path.stem}_{frame_index}_{uuid4().hex}.jpg"
+            frame_path = OUTPUT_DIR / frame_filename
+            saved = cv2.imwrite(str(frame_path), frame)
+
+            if not saved or not frame_path.exists():
+                frame_index += sample_interval_frames
+                continue
+
+            detections = run_yolo_detection_with_inference_logging(
+                filename=frame_filename,
+                image_path=frame_path,
+                confidence_threshold=request.confidence_threshold,
+                class_filter=request.class_filter,
+                source_endpoint="video_object_detection",
+            )
+
+            frame_detection_count = len(detections)
+            total_detection_count += frame_detection_count
+            classes_in_frame = set()
+
+            for detection in detections:
+                class_name = detection["class_name"]
+                classes_in_frame.add(class_name)
+
+                class_summary = class_summary_by_name.setdefault(
+                    class_name,
+                    {
+                        "class_name": class_name,
+                        "frame_count": 0,
+                        "detection_count": 0,
+                        "highest_confidence": 0.0,
+                    },
+                )
+
+                class_summary["detection_count"] += 1
+                class_summary["highest_confidence"] = round(
+                    max(
+                        class_summary["highest_confidence"],
+                        detection["confidence"],
+                    ),
+                    4,
+                )
+
+            for class_name in classes_in_frame:
+                class_summary_by_name[class_name]["frame_count"] += 1
+
+            processed_frames.append(
+                {
+                    "frame_filename": frame_filename,
+                    "frame_file_url": f"/media/outputs/{frame_filename}",
+                    "timestamp_seconds": round(frame_index / fps, 2),
+                    "frame_index": frame_index,
+                    "detections": detections,
+                    "detection_count": frame_detection_count,
+                }
+            )
+
+            frame_index += sample_interval_frames
+    finally:
+        video_capture.release()
+
+    if not processed_frames:
+        raise HTTPException(
+            status_code=400,
+            detail="No video frames could be processed",
+        )
+
+    class_summary = sorted(
+        class_summary_by_name.values(),
+        key=lambda item: (-item["detection_count"], item["class_name"]),
+    )
+
+    return {
+        "filename": filename,
+        "video_metadata": video_metadata,
+        "method": "video_object_detection",
+        "sampling_strategy": "interval_seconds",
+        "interval_seconds": request.interval_seconds,
+        "sample_interval_frames": sample_interval_frames,
+        "confidence_threshold": request.confidence_threshold,
+        "class_filter": request.class_filter,
+        "processed_frame_count": len(processed_frames),
+        "detection_count": total_detection_count,
+        "class_summary": class_summary,
+        "frames": processed_frames,
+    }
 
 
 @app.post("/video/track-sampled/{filename}")

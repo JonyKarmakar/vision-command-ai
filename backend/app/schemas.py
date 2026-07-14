@@ -110,6 +110,13 @@ class VideoSampledDetectionRequest(BaseModel):
 
 
 
+class VideoObjectDetectionRequest(BaseModel):
+    interval_seconds: float = 1.0
+    confidence_threshold: float = 0.25
+    class_filter: Optional[str] = None
+
+
+
 class VideoTrackingRequest(BaseModel):
     start_seconds: float = 0
     end_seconds: Optional[float] = None

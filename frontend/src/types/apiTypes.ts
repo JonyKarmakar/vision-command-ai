@@ -228,6 +228,44 @@ export type VideoSampledDetectionResponse = {
   detection: VideoMultiFrameDetectionResponse
 }
 
+export type VideoObjectDetectionClassSummary = {
+  class_name: string
+  frame_count: number
+  detection_count: number
+  highest_confidence: number
+}
+
+export type VideoObjectDetectionFrame = {
+  frame_filename: string
+  frame_file_url: string
+  timestamp_seconds: number
+  frame_index: number
+  detections: Detection[]
+  detection_count: number
+}
+
+export type VideoObjectDetectionResponse = {
+  filename: string
+  video_metadata: {
+    is_readable: boolean
+    width: number | null
+    height: number | null
+    fps: number | null
+    frame_count: number | null
+    duration_seconds: number | null
+  }
+  method: string
+  sampling_strategy: string
+  interval_seconds: number
+  sample_interval_frames: number
+  confidence_threshold: number
+  class_filter: string | null
+  processed_frame_count: number
+  detection_count: number
+  class_summary: VideoObjectDetectionClassSummary[]
+  frames: VideoObjectDetectionFrame[]
+}
+
 export type VideoTrackSummary = {
   track_id: number
   class_name: string
