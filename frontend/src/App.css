@@ -6458,3 +6458,19 @@ input[type="file"]::file-selector-button:hover {
   color: var(--muted-text);
   line-height: 1.5;
 }
+
+
+.video-analysis-report-panel {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  border-radius: 1rem;
+  background: rgba(20, 83, 45, 0.14);
+  text-align: left;
+}
+
+.video-analysis-report-panel h3 {
+  margin: 0.2rem 0;
+}
