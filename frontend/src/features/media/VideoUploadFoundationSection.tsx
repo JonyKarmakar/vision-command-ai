@@ -3,6 +3,23 @@ import type { ChangeEvent, RefObject } from 'react'
 
 import type { VideoObjectDetectionResponse, VideoUploadResponse } from '../../types/apiTypes'
 
+function formatVideoTimestamp(seconds: number) {
+  if (!Number.isFinite(seconds)) {
+    return '0.0s'
+  }
+
+  const safeSeconds = Math.max(0, seconds)
+
+  if (safeSeconds < 60) {
+    return `${safeSeconds.toFixed(1)}s`
+  }
+
+  const minutes = Math.floor(safeSeconds / 60)
+  const remainingSeconds = safeSeconds - minutes * 60
+
+  return `${minutes}:${remainingSeconds.toFixed(1).padStart(4, '0')}`
+}
+
 type VideoUploadFoundationSectionProps = {
   selectedVideoFile: File | null
   videoUploadResult: VideoUploadResponse | null
@@ -86,6 +103,120 @@ export function VideoUploadFoundationSection({
 
   const isAnnotatedVideoDownloaded =
     downloadedAnnotatedVideoFilename === videoObjectDetectionResult?.annotated_video_filename
+
+  const videoObjectTimeline = useMemo(() => {
+    if (!videoObjectDetectionResult) {
+      return []
+    }
+
+    const timelineByClass = new Map<
+      string,
+      {
+        className: string
+        firstSeenSeconds: number
+        lastSeenSeconds: number
+        frameCount: number
+        detectionCount: number
+        highestConfidence: number
+      }
+    >()
+
+    for (const frame of videoObjectDetectionResult.frames) {
+      const classesInFrame = new Set<string>()
+
+      for (const detection of frame.detections) {
+        const existingTimeline = timelineByClass.get(detection.class_name) ?? {
+          className: detection.class_name,
+          firstSeenSeconds: frame.timestamp_seconds,
+          lastSeenSeconds: frame.timestamp_seconds,
+          frameCount: 0,
+          detectionCount: 0,
+          highestConfidence: 0,
+        }
+
+        existingTimeline.firstSeenSeconds = Math.min(
+          existingTimeline.firstSeenSeconds,
+          frame.timestamp_seconds,
+        )
+        existingTimeline.lastSeenSeconds = Math.max(
+          existingTimeline.lastSeenSeconds,
+          frame.timestamp_seconds,
+        )
+        existingTimeline.detectionCount += 1
+        existingTimeline.highestConfidence = Math.max(
+          existingTimeline.highestConfidence,
+          detection.confidence,
+        )
+
+        timelineByClass.set(detection.class_name, existingTimeline)
+        classesInFrame.add(detection.class_name)
+      }
+
+      for (const className of classesInFrame) {
+        const existingTimeline = timelineByClass.get(className)
+
+        if (existingTimeline) {
+          existingTimeline.frameCount += 1
+        }
+      }
+    }
+
+    return [...timelineByClass.values()].sort(
+      (firstItem, secondItem) =>
+        firstItem.firstSeenSeconds - secondItem.firstSeenSeconds ||
+        secondItem.detectionCount - firstItem.detectionCount,
+    )
+  }, [videoObjectDetectionResult])
+
+  const videoKeyMoments = useMemo(() => {
+    if (!videoObjectDetectionResult) {
+      return []
+    }
+
+    const momentBySecond = new Map<
+      number,
+      {
+        second: number
+        detectionCount: number
+        classNames: Set<string>
+        highestConfidence: number
+      }
+    >()
+
+    for (const frame of videoObjectDetectionResult.frames) {
+      if (frame.detection_count === 0) {
+        continue
+      }
+
+      const second = Math.floor(frame.timestamp_seconds)
+      const existingMoment = momentBySecond.get(second) ?? {
+        second,
+        detectionCount: 0,
+        classNames: new Set<string>(),
+        highestConfidence: 0,
+      }
+
+      existingMoment.detectionCount += frame.detection_count
+
+      for (const detection of frame.detections) {
+        existingMoment.classNames.add(detection.class_name)
+        existingMoment.highestConfidence = Math.max(
+          existingMoment.highestConfidence,
+          detection.confidence,
+        )
+      }
+
+      momentBySecond.set(second, existingMoment)
+    }
+
+    return [...momentBySecond.values()]
+      .sort((firstMoment, secondMoment) => firstMoment.second - secondMoment.second)
+      .slice(0, 8)
+      .map((moment) => ({
+        ...moment,
+        classNames: [...moment.classNames].sort(),
+      }))
+  }, [videoObjectDetectionResult])
 
   useEffect(() => {
     return () => {
@@ -419,6 +550,61 @@ export function VideoUploadFoundationSection({
                 </>
               ) : (
                 <p className="small-note">No objects matched the current detection settings.</p>
+              )}
+
+              {videoObjectTimeline.length > 0 && (
+                <section className="video-object-timeline-panel">
+                  <div>
+                    <p className="eyebrow">Video timeline</p>
+                    <h3>Object timeline</h3>
+                    <p className="small-note">
+                      First seen and last seen times are based on processed video frames.
+                    </p>
+                  </div>
+
+                  <div className="video-object-timeline-list">
+                    {videoObjectTimeline.map((item) => (
+                      <div className="video-object-timeline-item" key={item.className}>
+                        <strong>{item.className}</strong>
+                        <span>
+                          {formatVideoTimestamp(item.firstSeenSeconds)} to{' '}
+                          {formatVideoTimestamp(item.lastSeenSeconds)}
+                        </span>
+                        <span>
+                          Seen in {item.frameCount} frame(s) · {item.detectionCount} total box(es)
+                        </span>
+                        <span>
+                          Highest confidence {Math.round(item.highestConfidence * 100)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {videoKeyMoments.length > 0 && (
+                <section className="video-key-moments-panel">
+                  <div>
+                    <p className="eyebrow">Video timeline</p>
+                    <h3>Key moments</h3>
+                    <p className="small-note">
+                      A compact view of seconds where detections were present.
+                    </p>
+                  </div>
+
+                  <div className="video-key-moments-list">
+                    {videoKeyMoments.map((moment) => (
+                      <div className="video-key-moment-item" key={moment.second}>
+                        <strong>{formatVideoTimestamp(moment.second)}</strong>
+                        <span>{moment.classNames.join(', ')}</span>
+                        <span>
+                          {moment.detectionCount} box(es) · highest confidence{' '}
+                          {Math.round(moment.highestConfidence * 100)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
               )}
 
               <div className="output-actions result-output-actions">
