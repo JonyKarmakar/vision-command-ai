@@ -218,6 +218,53 @@ export function VideoUploadFoundationSection({
       }))
   }, [videoObjectDetectionResult])
 
+  const videoActivitySummary = useMemo(() => {
+    if (!videoObjectDetectionResult || videoObjectTimeline.length === 0) {
+      return null
+    }
+
+    const topClasses = [...videoObjectDetectionResult.class_summary].sort(
+      (firstClass, secondClass) =>
+        secondClass.frame_count - firstClass.frame_count ||
+        secondClass.detection_count - firstClass.detection_count,
+    )
+    const topClassNames = topClasses.slice(0, 4).map((item) => item.class_name)
+    const mainClass = topClasses[0]
+    const personTimeline = videoObjectTimeline.find((item) => item.className === 'person')
+    const sportsBallTimeline = videoObjectTimeline.find(
+      (item) => item.className === 'sports ball',
+    )
+    const firstMoment = videoKeyMoments[0]
+    const lastMoment = videoKeyMoments[videoKeyMoments.length - 1]
+
+    const headline =
+      personTimeline && sportsBallTimeline
+        ? 'The video appears to show people and a sports ball across the scene. The main visual pattern is people appearing through most of the clip, with the sports ball detected during part of the action.'
+        : personTimeline
+          ? 'The video appears to focus mainly on people. People are detected across much of the clip, based on the processed video frames.'
+          : `The video appears to contain ${topClassNames.join(', ')} based on object detections across the processed frames.`
+
+    const points = [
+      mainClass
+        ? `Most frequent detected class: ${mainClass.class_name}, seen in ${mainClass.frame_count} of ${videoObjectDetectionResult.processed_frame_count} processed frame(s).`
+        : 'No dominant object class was detected.',
+      topClassNames.length > 0
+        ? `Detected object classes include: ${topClassNames.join(', ')}.`
+        : 'No object classes were available for summary.',
+      personTimeline
+        ? `People appear from ${formatVideoTimestamp(personTimeline.firstSeenSeconds)} to ${formatVideoTimestamp(personTimeline.lastSeenSeconds)}.`
+        : 'No person class was detected in the processed frames.',
+      firstMoment && lastMoment
+        ? `Detections are present from ${formatVideoTimestamp(firstMoment.second)} to ${formatVideoTimestamp(lastMoment.second)} in the key moments view.`
+        : 'No key moments were available from the detection results.',
+    ]
+
+    return {
+      headline,
+      points,
+    }
+  }, [videoKeyMoments, videoObjectDetectionResult, videoObjectTimeline])
+
   useEffect(() => {
     return () => {
       if (selectedVideoPreviewUrl) {
@@ -550,6 +597,28 @@ export function VideoUploadFoundationSection({
                 </>
               ) : (
                 <p className="small-note">No objects matched the current detection settings.</p>
+              )}
+
+              {videoActivitySummary && (
+                <section className="video-activity-summary-panel">
+                  <div>
+                    <p className="eyebrow">Video understanding</p>
+                    <h3>Activity summary</h3>
+                    <p className="video-activity-summary-headline">
+                      {videoActivitySummary.headline}
+                    </p>
+                  </div>
+
+                  <div className="video-activity-summary-list">
+                    {videoActivitySummary.points.map((point) => (
+                      <p key={point}>{point}</p>
+                    ))}
+                  </div>
+
+                  <p className="small-note">
+                    This summary is grounded in detected object classes, timestamps, and key moments. It does not identify people, infer emotions, or make private activity claims.
+                  </p>
+                </section>
               )}
 
               {videoObjectTimeline.length > 0 && (
