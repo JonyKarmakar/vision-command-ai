@@ -255,6 +255,8 @@ export type VideoObjectDetectionResponse = {
     duration_seconds: number | null
   }
   method: string
+  annotated_video_filename: string
+  annotated_video_file_url: string
   sampling_strategy: string
   interval_seconds: number
   sample_interval_frames: number

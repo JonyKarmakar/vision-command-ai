@@ -242,6 +242,7 @@ function App() {
   const [videoMultiFrameDetectionResult, setVideoMultiFrameDetectionResult] = useState<VideoMultiFrameDetectionResponse | null>(null)
   const [videoSampledDetectionResult, setVideoSampledDetectionResult] = useState<VideoSampledDetectionResponse | null>(null)
   const [videoObjectDetectionResult, setVideoObjectDetectionResult] = useState<VideoObjectDetectionResponse | null>(null)
+  const [videoDetectedClassOptions, setVideoDetectedClassOptions] = useState<string[]>([])
   const [videoTrackingResult, setVideoTrackingResult] = useState<VideoTrackingResponse | null>(null)
   const [videoResultOrder, setVideoResultOrder] = useState<VideoResultPanelKey[]>([])
 
@@ -1931,10 +1932,15 @@ function App() {
       return
     }
 
+    const videoObjectDetectionIntervalSeconds =
+      videoUploadResult.metadata.fps && videoUploadResult.metadata.fps > 0
+        ? 1 / videoUploadResult.metadata.fps
+        : sampledVideoIntervalSeconds
+
     try {
       setIsDetectingVideoObjects(true)
       setError(null)
-      setStatusMessage(`Detecting video objects every ${sampledVideoIntervalSeconds}s...`)
+      setStatusMessage('Running frame-level video object detection...')
 
       const response = await fetch(
         `/api/video/detect-objects/${videoUploadResult.stored_filename}`,
@@ -1944,7 +1950,7 @@ function App() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            interval_seconds: sampledVideoIntervalSeconds,
+            interval_seconds: videoObjectDetectionIntervalSeconds,
             confidence_threshold: confidenceThreshold / 100,
             class_filter: selectedClass === 'all' ? null : selectedClass,
           }),
@@ -1959,6 +1965,15 @@ function App() {
       const data: VideoObjectDetectionResponse = await response.json()
 
       setVideoObjectDetectionResult(data)
+
+      if (selectedClass === 'all') {
+        setVideoDetectedClassOptions(
+          data.class_summary
+            .map((item) => item.class_name)
+            .sort((firstClass, secondClass) => firstClass.localeCompare(secondClass)),
+        )
+      }
+
       setVideoTrackingResult(null)
       scrollToLoadedView(videoUploadResultRef)
 
@@ -5659,6 +5674,9 @@ function App() {
         videoUploadResultRef={videoUploadResultRef}
         trimStartSeconds={trimStartSeconds}
         trimEndSeconds={trimEndSeconds}
+        confidenceThreshold={confidenceThreshold}
+        selectedClass={selectedClass}
+        classOptions={videoDetectedClassOptions}
         isBusy={isBusy}
         isUploadingVideo={isUploadingVideo}
         isTrimmingVideo={isTrimmingVideo}
@@ -5670,14 +5688,21 @@ function App() {
         onVideoUpload={handleVideoUpload}
         onVideoTrim={handleVideoTrim}
         onDetectVideoObjects={handleDetectVideoObjects}
+        onConfidenceThresholdChange={setConfidenceThreshold}
+        onSelectedClassChange={setSelectedClass}
         onTrimStartSecondsChange={setTrimStartSeconds}
         onTrimEndSecondsChange={setTrimEndSeconds}
         onClearVideoUploadResult={() => {
           setVideoUploadResult(null)
+          setVideoObjectDetectionResult(null)
+          setVideoDetectedClassOptions([])
+          setSelectedClass('all')
           setStatusMessage('Video Upload Result view cleared.')
         }}
         onClearVideoObjectDetectionResult={() => {
           setVideoObjectDetectionResult(null)
+          setVideoDetectedClassOptions([])
+          setSelectedClass('all')
           setStatusMessage('Video object detection result cleared.')
         }}
         onCopyJson={handleCopyParserLogJson}
@@ -6335,6 +6360,9 @@ function App() {
         videoUploadResultRef={videoUploadResultRef}
         trimStartSeconds={trimStartSeconds}
         trimEndSeconds={trimEndSeconds}
+        confidenceThreshold={confidenceThreshold}
+        selectedClass={selectedClass}
+        classOptions={videoDetectedClassOptions}
         isBusy={isBusy}
         isUploadingVideo={isUploadingVideo}
         isTrimmingVideo={isTrimmingVideo}
@@ -6346,14 +6374,21 @@ function App() {
         onVideoUpload={handleVideoUpload}
         onVideoTrim={handleVideoTrim}
         onDetectVideoObjects={handleDetectVideoObjects}
+        onConfidenceThresholdChange={setConfidenceThreshold}
+        onSelectedClassChange={setSelectedClass}
         onTrimStartSecondsChange={setTrimStartSeconds}
         onTrimEndSecondsChange={setTrimEndSeconds}
         onClearVideoUploadResult={() => {
           setVideoUploadResult(null)
+          setVideoObjectDetectionResult(null)
+          setVideoDetectedClassOptions([])
+          setSelectedClass('all')
           setStatusMessage('Video Upload Result view cleared.')
         }}
         onClearVideoObjectDetectionResult={() => {
           setVideoObjectDetectionResult(null)
+          setVideoDetectedClassOptions([])
+          setSelectedClass('all')
           setStatusMessage('Video object detection result cleared.')
         }}
         onCopyJson={handleCopyParserLogJson}
