@@ -276,6 +276,69 @@ export function VideoUploadFoundationSection({
       .slice(0, 6)
   }, [videoObjectDetectionResult])
 
+  const videoObjectPresenceStrips = useMemo(() => {
+    if (!videoObjectDetectionResult) {
+      return []
+    }
+
+    const segmentCount = 12
+    const frameTimestamps = videoObjectDetectionResult.frames.map((frame) => frame.timestamp_seconds)
+    const latestTimestamp = frameTimestamps.length > 0 ? Math.max(...frameTimestamps) : 0
+    const timelineDurationSeconds = Math.max(
+      videoUploadResult?.metadata.duration_seconds ?? 0,
+      latestTimestamp,
+      1,
+    )
+
+    const activeSegmentsByClass = new Map<string, Set<number>>()
+
+    for (const frame of videoObjectDetectionResult.frames) {
+      if (frame.detection_count === 0) {
+        continue
+      }
+
+      const segmentIndex = Math.min(
+        segmentCount - 1,
+        Math.max(0, Math.floor((frame.timestamp_seconds / timelineDurationSeconds) * segmentCount)),
+      )
+      const classesInFrame = new Set(frame.detections.map((detection) => detection.class_name))
+
+      for (const className of classesInFrame) {
+        const activeSegments = activeSegmentsByClass.get(className) ?? new Set<number>()
+        activeSegments.add(segmentIndex)
+        activeSegmentsByClass.set(className, activeSegments)
+      }
+    }
+
+    return [...videoObjectDetectionResult.class_summary]
+      .sort(
+        (firstClass, secondClass) =>
+          secondClass.frame_count - firstClass.frame_count ||
+          secondClass.detection_count - firstClass.detection_count,
+      )
+      .slice(0, 8)
+      .map((item) => {
+        const timeline = videoObjectTimeline.find(
+          (timelineItem) => timelineItem.className === item.class_name,
+        )
+        const activeSegments = activeSegmentsByClass.get(item.class_name) ?? new Set<number>()
+
+        return {
+          className: item.class_name,
+          coveragePercent:
+            videoObjectDetectionResult.processed_frame_count > 0
+              ? Math.round(
+                  (item.frame_count / videoObjectDetectionResult.processed_frame_count) * 100,
+                )
+              : 0,
+          firstSeenSeconds: timeline?.firstSeenSeconds ?? 0,
+          lastSeenSeconds: timeline?.lastSeenSeconds ?? 0,
+          activeSegmentCount: activeSegments.size,
+          segments: Array.from({ length: segmentCount }, (_, index) => activeSegments.has(index)),
+        }
+      })
+  }, [videoObjectDetectionResult, videoObjectTimeline, videoUploadResult])
+
   const videoActivitySummary = useMemo(() => {
     if (!videoObjectDetectionResult || videoObjectTimeline.length === 0) {
       return null
@@ -425,6 +488,16 @@ export function VideoUploadFoundationSection({
             .join('\n')
         : '- No keyframes were available.'
 
+    const objectPresenceMarkdown =
+      videoObjectPresenceStrips.length > 0
+        ? videoObjectPresenceStrips
+            .map(
+              (item) =>
+                `- ${item.className}: ${item.coveragePercent}% frame coverage; active in ${item.activeSegmentCount} of ${item.segments.length} timeline segment(s); ${formatVideoTimestamp(item.firstSeenSeconds)} to ${formatVideoTimestamp(item.lastSeenSeconds)}`,
+            )
+            .join('\n')
+        : '- No object presence strip was available.'
+
     const timelineMarkdown =
       videoObjectTimeline.length > 0
         ? videoObjectTimeline
@@ -488,6 +561,10 @@ export function VideoUploadFoundationSection({
       '',
       keyframeGalleryMarkdown,
       '',
+      '## Object Presence Strip',
+      '',
+      objectPresenceMarkdown,
+      '',
       '## Object Timeline',
       '',
       timelineMarkdown,
@@ -511,6 +588,7 @@ export function VideoUploadFoundationSection({
     videoKeyframes,
     videoKeyMoments,
     videoObjectDetectionResult,
+    videoObjectPresenceStrips,
     videoObjectTimeline,
     videoPrivacyReview,
     videoUploadResult,
@@ -960,6 +1038,53 @@ export function VideoUploadFoundationSection({
                 </section>
               )}
 
+              {videoObjectPresenceStrips.length > 0 && (
+                <section className="video-object-presence-strip-panel">
+                  <div>
+                    <p className="eyebrow">Video presence</p>
+                    <h3>Object presence strip</h3>
+                    <p className="small-note">
+                      A compact visual strip showing where detected classes appear across the video timeline.
+                    </p>
+                  </div>
+
+                  <div className="video-object-presence-strip-list">
+                    {videoObjectPresenceStrips.map((item) => (
+                      <article className="video-object-presence-strip-item" key={item.className}>
+                        <div className="video-object-presence-strip-label">
+                          <strong>{item.className}</strong>
+                          <span>{item.coveragePercent}% coverage</span>
+                        </div>
+
+                        <div
+                          className="video-object-presence-strip-track"
+                          aria-label={`${item.className} class presence across video timeline`}
+                        >
+                          {item.segments.map((isActive, index) => (
+                            <span
+                              className={`video-object-presence-strip-segment${
+                                isActive ? ' is-active' : ''
+                              }`}
+                              key={`${item.className}-${index}`}
+                              title={`Segment ${index + 1}: ${isActive ? 'detected' : 'not detected'}`}
+                            />
+                          ))}
+                        </div>
+
+                        <span className="video-object-presence-strip-time">
+                          {formatVideoTimestamp(item.firstSeenSeconds)} to{' '}
+                          {formatVideoTimestamp(item.lastSeenSeconds)}
+                        </span>
+                      </article>
+                    ))}
+                  </div>
+
+                  <p className="small-note">
+                    This strip shows class presence in processed frames. It does not assign tracking IDs or track individual objects.
+                  </p>
+                </section>
+              )}
+
               {videoAnalysisMarkdownReport && (
                 <section className="video-analysis-report-panel">
                   <div>
@@ -967,7 +1092,8 @@ export function VideoUploadFoundationSection({
                     <h3>Video analysis report</h3>
                     <p className="small-note">
                       Export the current video detection, annotated output, activity summary,
-                      privacy review, keyframe gallery, object timeline, and key moments as a Markdown report.
+                      privacy review, keyframe gallery, object presence strip, object timeline,
+                      and key moments as a Markdown report.
                     </p>
                   </div>
 
