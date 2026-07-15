@@ -219,6 +219,63 @@ export function VideoUploadFoundationSection({
       }))
   }, [videoObjectDetectionResult])
 
+  const videoKeyframes = useMemo(() => {
+    if (!videoObjectDetectionResult) {
+      return []
+    }
+
+    const bestFrameBySecond = new Map<
+      number,
+      {
+        frameFilename: string
+        frameFileUrl: string
+        timestampSeconds: number
+        detectionCount: number
+        classNames: string[]
+        highestConfidence: number
+      }
+    >()
+
+    for (const frame of videoObjectDetectionResult.frames) {
+      if (frame.detection_count === 0) {
+        continue
+      }
+
+      const second = Math.floor(frame.timestamp_seconds)
+      const classNames = [...new Set(frame.detections.map((detection) => detection.class_name))]
+        .sort()
+        .slice(0, 5)
+      const highestConfidence = frame.detections.reduce(
+        (highest, detection) => Math.max(highest, detection.confidence),
+        0,
+      )
+
+      const candidateFrame = {
+        frameFilename: frame.frame_filename,
+        frameFileUrl: frame.frame_file_url,
+        timestampSeconds: frame.timestamp_seconds,
+        detectionCount: frame.detection_count,
+        classNames,
+        highestConfidence,
+      }
+
+      const existingFrame = bestFrameBySecond.get(second)
+
+      if (
+        !existingFrame ||
+        candidateFrame.detectionCount > existingFrame.detectionCount ||
+        (candidateFrame.detectionCount === existingFrame.detectionCount &&
+          candidateFrame.highestConfidence > existingFrame.highestConfidence)
+      ) {
+        bestFrameBySecond.set(second, candidateFrame)
+      }
+    }
+
+    return [...bestFrameBySecond.values()]
+      .sort((firstFrame, secondFrame) => firstFrame.timestampSeconds - secondFrame.timestampSeconds)
+      .slice(0, 6)
+  }, [videoObjectDetectionResult])
+
   const videoActivitySummary = useMemo(() => {
     if (!videoObjectDetectionResult || videoObjectTimeline.length === 0) {
       return null
@@ -358,6 +415,16 @@ export function VideoUploadFoundationSection({
         ].join('\n')
       : 'No privacy review was available.'
 
+    const keyframeGalleryMarkdown =
+      videoKeyframes.length > 0
+        ? videoKeyframes
+            .map(
+              (frame) =>
+                `- ${formatVideoTimestamp(frame.timestampSeconds)}: ${frame.detectionCount} box(es); classes: ${frame.classNames.join(', ')}; highest confidence ${Math.round(frame.highestConfidence * 100)}%; frame URL: ${frame.frameFileUrl}`,
+            )
+            .join('\n')
+        : '- No keyframes were available.'
+
     const timelineMarkdown =
       videoObjectTimeline.length > 0
         ? videoObjectTimeline
@@ -417,6 +484,10 @@ export function VideoUploadFoundationSection({
       '',
       privacyReviewMarkdown,
       '',
+      '## Keyframe Gallery',
+      '',
+      keyframeGalleryMarkdown,
+      '',
       '## Object Timeline',
       '',
       timelineMarkdown,
@@ -429,6 +500,7 @@ export function VideoUploadFoundationSection({
       '',
       '- This report is generated from object detection results and frontend summary logic.',
       '- It does not identify people.',
+      '- It does not detect faces.',
       '- It does not infer emotions, intentions, or private activities.',
       '- It does not include persistent object tracking IDs.',
       '- Low-confidence detections may include false positives.',
@@ -436,6 +508,7 @@ export function VideoUploadFoundationSection({
     ].join('\n')
   }, [
     videoActivitySummary,
+    videoKeyframes,
     videoKeyMoments,
     videoObjectDetectionResult,
     videoObjectTimeline,
@@ -853,6 +926,40 @@ export function VideoUploadFoundationSection({
                 </section>
               )}
 
+              {videoKeyframes.length > 0 && (
+                <section className="video-keyframe-gallery-panel">
+                  <div>
+                    <p className="eyebrow">Video keyframes</p>
+                    <h3>Keyframe gallery</h3>
+                    <p className="small-note">
+                      Representative frames selected from detection-rich moments in the processed video.
+                    </p>
+                  </div>
+
+                  <div className="video-keyframe-gallery-grid">
+                    {videoKeyframes.map((frame) => (
+                      <article className="video-keyframe-card" key={frame.frameFilename}>
+                        <img
+                          src={`/api${frame.frameFileUrl}`}
+                          alt={`Detected video frame at ${formatVideoTimestamp(frame.timestampSeconds)}`}
+                        />
+
+                        <div className="video-keyframe-card-body">
+                          <strong>{formatVideoTimestamp(frame.timestampSeconds)}</strong>
+                          <span>{frame.detectionCount} detected box(es)</span>
+                          <span>{frame.classNames.join(', ')}</span>
+                          <span>Highest confidence {Math.round(frame.highestConfidence * 100)}%</span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+
+                  <p className="small-note">
+                    Keyframes are selected from processed frames with detections. They are representative evidence, not a full tracking sequence.
+                  </p>
+                </section>
+              )}
+
               {videoAnalysisMarkdownReport && (
                 <section className="video-analysis-report-panel">
                   <div>
@@ -860,7 +967,7 @@ export function VideoUploadFoundationSection({
                     <h3>Video analysis report</h3>
                     <p className="small-note">
                       Export the current video detection, annotated output, activity summary,
-                      object timeline, and key moments as a Markdown report.
+                      privacy review, keyframe gallery, object timeline, and key moments as a Markdown report.
                     </p>
                   </div>
 
