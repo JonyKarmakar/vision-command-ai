@@ -151,6 +151,7 @@ The completed E.3 workflow now supports:
 - review key moments
 - read grounded activity summary
 - export Markdown video analysis report
+- review video privacy sharing considerations
 
 ## Items from earlier draft plans that were not completed
 
@@ -160,7 +161,6 @@ The following ideas appeared in earlier draft plans but were not completed in th
 - object presence chart over time
 - persistent tracking summary with object IDs
 - motion or change summary
-- video privacy review
 - video understanding chat upgrade
 - E.3 demo guide
 - webcam or live-stream real-time detection
@@ -169,16 +169,28 @@ These items are not failures. They are deferred or optional future extensions.
 
 ## Deferred optional E.3 extensions
 
-The optional future E.3 extension roadmap is:
+The E.3 follow-up extension roadmap is:
 
 ### E.3.6 Video privacy review
 
-Potential scope:
+Status: Complete in PR #506
 
-- detect privacy-relevant classes
-- highlight person presence
-- recommend blur or careful sharing
-- avoid identity and sensitive attribute claims
+What was added:
+
+- privacy sharing review panel
+- person presence caution based on detected frames
+- privacy-relevant detected class summary
+- timeline evidence for person detections when available
+- Markdown report privacy review section
+- visible safety limitation note
+
+Safety boundaries:
+
+- does not identify people
+- does not detect faces
+- does not infer emotions
+- does not infer intent
+- does not make private activity claims
 
 ### E.3.7 Keyframe gallery
 

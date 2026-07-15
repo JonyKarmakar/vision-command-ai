@@ -266,6 +266,65 @@ export function VideoUploadFoundationSection({
     }
   }, [videoKeyMoments, videoObjectDetectionResult, videoObjectTimeline])
 
+  const videoPrivacyReview = useMemo(() => {
+    if (!videoObjectDetectionResult) {
+      return null
+    }
+
+    const privacyRelevantClassNames = new Set([
+      'person',
+      'cell phone',
+      'laptop',
+      'keyboard',
+      'book',
+      'tv',
+      'backpack',
+      'handbag',
+      'suitcase',
+    ])
+
+    const detectedPrivacyClasses = videoObjectDetectionResult.class_summary.filter((item) =>
+      privacyRelevantClassNames.has(item.class_name),
+    )
+
+    const personSummary = videoObjectDetectionResult.class_summary.find(
+      (item) => item.class_name === 'person',
+    )
+    const personTimeline = videoObjectTimeline.find((item) => item.className === 'person')
+    const hasPeople = Boolean(personSummary)
+
+    const reviewLevel = hasPeople
+      ? 'Review before sharing'
+      : detectedPrivacyClasses.length > 0
+        ? 'Check context before sharing'
+        : 'Low visible privacy risk'
+
+    const headline = hasPeople
+      ? 'People are visible in the detected video frames, so this video should be reviewed before external sharing.'
+      : detectedPrivacyClasses.length > 0
+        ? 'Some objects that may reveal context are visible, so review the video before sharing it outside the intended audience.'
+        : 'No people or common privacy-relevant object classes were detected in the processed frames.'
+
+    const points = [
+      personSummary
+        ? `People detected in ${personSummary.frame_count} of ${videoObjectDetectionResult.processed_frame_count} processed frame(s).`
+        : 'No person class was detected in the processed frames.',
+      personTimeline
+        ? `Person detections appear from ${formatVideoTimestamp(personTimeline.firstSeenSeconds)} to ${formatVideoTimestamp(personTimeline.lastSeenSeconds)}.`
+        : 'No person timeline was available.',
+      detectedPrivacyClasses.length > 0
+        ? `Privacy-relevant detected classes: ${detectedPrivacyClasses.map((item) => item.class_name).join(', ')}.`
+        : 'No common privacy-relevant classes were detected.',
+      'Review the original and annotated video before sharing because object detection may miss details or include false positives.',
+    ]
+
+    return {
+      reviewLevel,
+      headline,
+      points,
+    }
+  }, [videoObjectDetectionResult, videoObjectTimeline])
+
   const videoAnalysisMarkdownReport = useMemo(() => {
     if (!videoUploadResult || !videoObjectDetectionResult) {
       return null
@@ -288,6 +347,16 @@ export function VideoUploadFoundationSection({
           ...videoActivitySummary.points.map((point) => `- ${point}`),
         ].join('\n')
       : 'No activity summary was available.'
+
+    const privacyReviewMarkdown = videoPrivacyReview
+      ? [
+          `Review level: ${videoPrivacyReview.reviewLevel}`,
+          '',
+          videoPrivacyReview.headline,
+          '',
+          ...videoPrivacyReview.points.map((point) => `- ${point}`),
+        ].join('\n')
+      : 'No privacy review was available.'
 
     const timelineMarkdown =
       videoObjectTimeline.length > 0
@@ -344,6 +413,10 @@ export function VideoUploadFoundationSection({
       '',
       activitySummaryMarkdown,
       '',
+      '## Privacy Review',
+      '',
+      privacyReviewMarkdown,
+      '',
       '## Object Timeline',
       '',
       timelineMarkdown,
@@ -366,6 +439,7 @@ export function VideoUploadFoundationSection({
     videoKeyMoments,
     videoObjectDetectionResult,
     videoObjectTimeline,
+    videoPrivacyReview,
     videoUploadResult,
   ])
 
@@ -747,6 +821,34 @@ export function VideoUploadFoundationSection({
 
                   <p className="small-note">
                     This summary is grounded in detected object classes, timestamps, and key moments. It does not identify people, infer emotions, or make private activity claims.
+                  </p>
+                </section>
+              )}
+
+              {videoPrivacyReview && (
+                <section className="video-privacy-review-panel">
+                  <div className="video-privacy-review-header">
+                    <div>
+                      <p className="eyebrow">Video privacy</p>
+                      <h3>Privacy sharing review</h3>
+                      <p className="video-privacy-review-headline">
+                        {videoPrivacyReview.headline}
+                      </p>
+                    </div>
+
+                    <span className="video-privacy-review-badge">
+                      {videoPrivacyReview.reviewLevel}
+                    </span>
+                  </div>
+
+                  <div className="video-privacy-review-list">
+                    {videoPrivacyReview.points.map((point) => (
+                      <p key={point}>{point}</p>
+                    ))}
+                  </div>
+
+                  <p className="small-note">
+                    This review is based only on detected object classes and timestamps. It does not identify people, detect faces, infer emotions, or make private activity claims.
                   </p>
                 </section>
               )}
