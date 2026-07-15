@@ -158,7 +158,6 @@ The completed E.3 workflow now supports:
 The following ideas appeared in earlier draft plans but were not completed in the current E.3 implementation:
 
 - keyframe gallery
-- object presence chart over time
 - persistent tracking summary with object IDs
 - motion or change summary
 - video understanding chat upgrade
@@ -210,13 +209,21 @@ Clarification:
 
 Keyframes are representative evidence from processed frames. They are not persistent object tracks or full motion analysis.
 
-### E.3.8 Object presence chart
+### E.3.8 Object presence strip
 
-Potential scope:
+Status: Complete in PR #508
 
-- show class presence over time
-- simple visual timeline or chart
-- no complex tracking required
+What was added:
+
+- compact object presence strip panel
+- visual timeline segments for detected classes
+- frame coverage percentage per class
+- first seen and last seen timing
+- Markdown report Object Presence Strip section
+
+Clarification:
+
+The presence strip shows where object classes appear across processed frames. It does not assign persistent tracking IDs and does not track individual object identities.
 
 ### E.3.9 Tracking summary with persistent IDs
 
