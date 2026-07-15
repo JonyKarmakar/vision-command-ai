@@ -6537,3 +6537,53 @@ input[type="file"]::file-selector-button:hover {
     flex-direction: column;
   }
 }
+
+
+.video-keyframe-gallery-panel {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 1rem;
+  background: rgba(8, 47, 73, 0.16);
+  text-align: left;
+}
+
+.video-keyframe-gallery-panel h3 {
+  margin: 0.2rem 0;
+}
+
+.video-keyframe-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.85rem;
+}
+
+.video-keyframe-card {
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.9rem;
+  background: rgba(2, 6, 23, 0.32);
+}
+
+.video-keyframe-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.video-keyframe-card-body {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  color: var(--muted-text);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.video-keyframe-card-body strong {
+  color: var(--text-primary);
+}

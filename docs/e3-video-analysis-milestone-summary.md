@@ -194,12 +194,21 @@ Safety boundaries:
 
 ### E.3.7 Keyframe gallery
 
-Potential scope:
+Status: Complete in PR #507
 
-- show representative frames from detection results
-- prioritize frames with high detection count
-- show detection-rich moments
-- link keyframes to timestamps
+What was added:
+
+- keyframe gallery panel
+- representative frames selected from detection-rich processed frames
+- timestamp for each keyframe
+- detected box count for each keyframe
+- detected class list for each keyframe
+- highest confidence for each keyframe
+- Markdown report keyframe gallery section
+
+Clarification:
+
+Keyframes are representative evidence from processed frames. They are not persistent object tracks or full motion analysis.
 
 ### E.3.8 Object presence chart
 
