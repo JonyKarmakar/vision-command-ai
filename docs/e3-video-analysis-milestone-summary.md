@@ -241,14 +241,23 @@ Clarification:
 
 This is based on object-class detection changes across processed frames. It does not perform optical flow, estimate speed or direction, or assign persistent tracking IDs.
 
-### E.3.10 Tracking summary with persistent IDs
+### E.3.10 Tracking readiness summary
 
-Potential scope:
+Status: Complete in PR #510
 
-- track objects across frames
-- assign stable track IDs
-- summarize first seen and last seen per tracked object
-- distinguish this clearly from object-class timeline
+What was added:
+
+- class-level tracking readiness summary panel
+- tracking candidate list based on frame coverage and detection frequency
+- first seen and last seen evidence per candidate class
+- Markdown report Tracking Summary section
+- explicit note that stable tracking IDs are not assigned
+
+Clarification:
+
+This is Option A. It evaluates whether the current class-level detections are useful candidates for future tracking. It does not perform real object tracking, does not distinguish multiple objects of the same class, and does not assign persistent IDs.
+
+Option B remains future work. It should be implemented later as a serious backend tracking feature with persistent object IDs and track-level summaries.
 
 ### E.3.11 Video understanding chat upgrade
 
