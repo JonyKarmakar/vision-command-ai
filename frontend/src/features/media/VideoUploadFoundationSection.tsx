@@ -559,6 +559,77 @@ export function VideoUploadFoundationSection({
     }
   }, [videoObjectDetectionResult, videoObjectTimeline])
 
+  const videoTrackingReadinessSummary = useMemo(() => {
+    if (!videoObjectDetectionResult || videoObjectTimeline.length === 0) {
+      return null
+    }
+
+    const trackingCandidates = [...videoObjectTimeline]
+      .sort(
+        (firstItem, secondItem) =>
+          secondItem.frameCount - firstItem.frameCount ||
+          secondItem.detectionCount - firstItem.detectionCount,
+      )
+      .slice(0, 6)
+      .map((item) => {
+        const coveragePercent =
+          videoObjectDetectionResult.processed_frame_count > 0
+            ? Math.round((item.frameCount / videoObjectDetectionResult.processed_frame_count) * 100)
+            : 0
+        const averageBoxesPerActiveFrame =
+          item.frameCount > 0 ? Number((item.detectionCount / item.frameCount).toFixed(1)) : 0
+
+        const readinessLevel =
+          coveragePercent >= 60
+            ? 'Strong class-level tracking candidate'
+            : coveragePercent >= 20
+              ? 'Moderate class-level tracking candidate'
+              : 'Limited tracking evidence'
+
+        return {
+          className: item.className,
+          coveragePercent,
+          frameCount: item.frameCount,
+          detectionCount: item.detectionCount,
+          averageBoxesPerActiveFrame,
+          firstSeenSeconds: item.firstSeenSeconds,
+          lastSeenSeconds: item.lastSeenSeconds,
+          readinessLevel,
+        }
+      })
+
+    const strongCandidates = trackingCandidates.filter(
+      (item) => item.readinessLevel === 'Strong class-level tracking candidate',
+    )
+    const moderateCandidates = trackingCandidates.filter(
+      (item) => item.readinessLevel === 'Moderate class-level tracking candidate',
+    )
+
+    const headline =
+      strongCandidates.length > 0
+        ? `The video has strong class-level tracking candidates such as ${strongCandidates
+            .map((item) => item.className)
+            .join(' and ')} because they appear across many processed frames.`
+        : moderateCandidates.length > 0
+          ? `The video has moderate class-level tracking candidates such as ${moderateCandidates
+              .map((item) => item.className)
+              .join(' and ')}.`
+          : 'The current detections provide limited evidence for reliable tracking without a dedicated tracking model.'
+
+    const points = [
+      'This summary evaluates tracking readiness from class-level detections only.',
+      'It does not assign stable object IDs across frames.',
+      'It does not distinguish between multiple objects of the same class.',
+      'Option B remains future work: add a real backend tracker with persistent IDs and track-level summaries.',
+    ]
+
+    return {
+      headline,
+      points,
+      trackingCandidates,
+    }
+  }, [videoObjectDetectionResult, videoObjectTimeline])
+
   const videoAnalysisMarkdownReport = useMemo(() => {
     if (!videoUploadResult || !videoObjectDetectionResult) {
       return null
@@ -611,6 +682,19 @@ export function VideoUploadFoundationSection({
             )
             .join('\n')
         : '- No object presence strip was available.'
+
+    const trackingSummaryMarkdown = videoTrackingReadinessSummary
+      ? [
+          videoTrackingReadinessSummary.headline,
+          '',
+          ...videoTrackingReadinessSummary.points.map((point) => `- ${point}`),
+          '',
+          ...videoTrackingReadinessSummary.trackingCandidates.map(
+            (item) =>
+              `- ${item.className}: ${item.readinessLevel}; ${item.coveragePercent}% frame coverage; ${item.frameCount} active frame(s); ${item.detectionCount} total box(es); average ${item.averageBoxesPerActiveFrame} box(es) per active frame; ${formatVideoTimestamp(item.firstSeenSeconds)} to ${formatVideoTimestamp(item.lastSeenSeconds)}`,
+          ),
+        ].join('\n')
+      : 'No tracking readiness summary was available.'
 
     const motionChangeMarkdown = videoMotionChangeSummary
       ? [
@@ -690,6 +774,10 @@ export function VideoUploadFoundationSection({
       '',
       keyframeGalleryMarkdown,
       '',
+      '## Tracking Summary',
+      '',
+      trackingSummaryMarkdown,
+      '',
       '## Motion and Change Summary',
       '',
       motionChangeMarkdown,
@@ -724,6 +812,7 @@ export function VideoUploadFoundationSection({
     videoObjectDetectionResult,
     videoObjectPresenceStrips,
     videoObjectTimeline,
+    videoTrackingReadinessSummary,
     videoPrivacyReview,
     videoUploadResult,
   ])
@@ -1256,6 +1345,46 @@ export function VideoUploadFoundationSection({
                 </section>
               )}
 
+              {videoTrackingReadinessSummary && (
+                <section className="video-tracking-readiness-panel">
+                  <div>
+                    <p className="eyebrow">Video tracking</p>
+                    <h3>Tracking readiness summary</h3>
+                    <p className="video-tracking-readiness-headline">
+                      {videoTrackingReadinessSummary.headline}
+                    </p>
+                  </div>
+
+                  <div className="video-tracking-readiness-list">
+                    {videoTrackingReadinessSummary.trackingCandidates.map((item) => (
+                      <article className="video-tracking-readiness-item" key={item.className}>
+                        <div>
+                          <strong>{item.className}</strong>
+                          <span>{item.readinessLevel}</span>
+                        </div>
+                        <span>{item.coveragePercent}% frame coverage</span>
+                        <span>{item.frameCount} active frame(s)</span>
+                        <span>{item.detectionCount} total box(es)</span>
+                        <span>
+                          {formatVideoTimestamp(item.firstSeenSeconds)} to{' '}
+                          {formatVideoTimestamp(item.lastSeenSeconds)}
+                        </span>
+                      </article>
+                    ))}
+                  </div>
+
+                  <div className="video-tracking-readiness-notes">
+                    {videoTrackingReadinessSummary.points.map((point) => (
+                      <p key={point}>{point}</p>
+                    ))}
+                  </div>
+
+                  <p className="small-note">
+                    This is a tracking-readiness summary only. Real persistent object tracking with stable IDs remains a future backend feature.
+                  </p>
+                </section>
+              )}
+
               {videoAnalysisMarkdownReport && (
                 <section className="video-analysis-report-panel">
                   <div>
@@ -1263,8 +1392,8 @@ export function VideoUploadFoundationSection({
                     <h3>Video analysis report</h3>
                     <p className="small-note">
                       Export the current video detection, annotated output, activity summary,
-                      privacy review, keyframe gallery, motion/change summary, object presence strip,
-                      object timeline, and key moments as a Markdown report.
+                      privacy review, keyframe gallery, tracking summary, motion/change summary,
+                      object presence strip, object timeline, and key moments as a Markdown report.
                     </p>
                   </div>
 
