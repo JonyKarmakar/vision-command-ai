@@ -339,6 +339,120 @@ export function VideoUploadFoundationSection({
       })
   }, [videoObjectDetectionResult, videoObjectTimeline, videoUploadResult])
 
+  const videoMotionChangeSummary = useMemo(() => {
+    if (!videoObjectDetectionResult || videoObjectTimeline.length === 0) {
+      return null
+    }
+
+    const frameTimestamps = videoObjectDetectionResult.frames.map((frame) => frame.timestamp_seconds)
+    const latestTimestamp = frameTimestamps.length > 0 ? Math.max(...frameTimestamps) : 0
+    const timelineDurationSeconds = Math.max(
+      videoUploadResult?.metadata.duration_seconds ?? 0,
+      latestTimestamp,
+      1,
+    )
+
+    const segmentDefinitions = [
+      { label: 'Beginning', start: 0, end: timelineDurationSeconds / 3 },
+      {
+        label: 'Middle',
+        start: timelineDurationSeconds / 3,
+        end: (timelineDurationSeconds * 2) / 3,
+      },
+      {
+        label: 'End',
+        start: (timelineDurationSeconds * 2) / 3,
+        end: timelineDurationSeconds,
+      },
+    ]
+
+    const segmentClassNames = segmentDefinitions.map(() => new Set<string>())
+    const segmentDetectionCounts = segmentDefinitions.map(() => 0)
+
+    for (const frame of videoObjectDetectionResult.frames) {
+      if (frame.detection_count === 0) {
+        continue
+      }
+
+      const segmentIndex = Math.min(
+        segmentDefinitions.length - 1,
+        Math.max(0, Math.floor((frame.timestamp_seconds / timelineDurationSeconds) * 3)),
+      )
+
+      segmentDetectionCounts[segmentIndex] += frame.detection_count
+
+      for (const detection of frame.detections) {
+        segmentClassNames[segmentIndex].add(detection.class_name)
+      }
+    }
+
+    const segmentSummaries = segmentDefinitions.map((segment, index) => ({
+      label: segment.label,
+      timeRange: `${formatVideoTimestamp(segment.start)} to ${formatVideoTimestamp(segment.end)}`,
+      classNames: [...segmentClassNames[index]].sort(),
+      detectionCount: segmentDetectionCounts[index],
+    }))
+
+    const persistentClasses = videoObjectTimeline
+      .filter(
+        (item) =>
+          item.firstSeenSeconds <= timelineDurationSeconds * 0.15 &&
+          item.lastSeenSeconds >= timelineDurationSeconds * 0.85,
+      )
+      .map((item) => item.className)
+      .slice(0, 4)
+
+    const lateAppearingClasses = videoObjectTimeline
+      .filter((item) => item.firstSeenSeconds >= timelineDurationSeconds * 0.5)
+      .map((item) => item.className)
+      .slice(0, 4)
+
+    const briefClasses = videoObjectTimeline
+      .filter(
+        (item) =>
+          item.frameCount <= Math.max(2, videoObjectDetectionResult.processed_frame_count * 0.05),
+      )
+      .map((item) => item.className)
+      .slice(0, 4)
+
+    const uniqueSegmentClassSets = segmentSummaries.map((segment) => segment.classNames.join('|'))
+    const segmentPatternChanges = new Set(uniqueSegmentClassSets).size
+
+    const formatClassList = (classNames: string[]) => {
+      if (classNames.length <= 2) {
+        return classNames.join(' and ')
+      }
+
+      return `${classNames.slice(0, -1).join(', ')}, and ${classNames[classNames.length - 1]}`
+    }
+
+    const headline =
+      segmentPatternChanges <= 1
+        ? 'The detected object pattern stays mostly consistent across the processed video segments.'
+        : persistentClasses.length > 0
+          ? `The video has a stable detected presence of ${formatClassList(persistentClasses)} with some object-class changes across the timeline.`
+          : 'The detected object classes change across the beginning, middle, and end of the video.'
+
+    const points = [
+      persistentClasses.length > 0
+        ? `Persistent detected classes: ${formatClassList(persistentClasses)}.`
+        : 'No class was detected continuously across most of the video.',
+      lateAppearingClasses.length > 0
+        ? `Classes appearing later in the video include: ${formatClassList(lateAppearingClasses)}.`
+        : 'No clearly late-appearing classes were found from the object timeline.',
+      briefClasses.length > 0
+        ? `Briefly detected classes include: ${formatClassList(briefClasses)}.`
+        : 'No clearly brief object classes were found from the object timeline.',
+      'This is based on detection changes across frames, not optical flow, speed estimation, or persistent object tracking.',
+    ]
+
+    return {
+      headline,
+      points,
+      segmentSummaries,
+    }
+  }, [videoObjectDetectionResult, videoObjectTimeline, videoUploadResult])
+
   const videoActivitySummary = useMemo(() => {
     if (!videoObjectDetectionResult || videoObjectTimeline.length === 0) {
       return null
@@ -498,6 +612,21 @@ export function VideoUploadFoundationSection({
             .join('\n')
         : '- No object presence strip was available.'
 
+    const motionChangeMarkdown = videoMotionChangeSummary
+      ? [
+          videoMotionChangeSummary.headline,
+          '',
+          ...videoMotionChangeSummary.points.map((point) => `- ${point}`),
+          '',
+          ...videoMotionChangeSummary.segmentSummaries.map(
+            (segment) =>
+              `- ${segment.label} (${segment.timeRange}): ${
+                segment.classNames.length > 0 ? segment.classNames.join(', ') : 'no detected classes'
+              }; ${segment.detectionCount} detected box(es)`,
+          ),
+        ].join('\n')
+      : 'No motion or change summary was available.'
+
     const timelineMarkdown =
       videoObjectTimeline.length > 0
         ? videoObjectTimeline
@@ -561,6 +690,10 @@ export function VideoUploadFoundationSection({
       '',
       keyframeGalleryMarkdown,
       '',
+      '## Motion and Change Summary',
+      '',
+      motionChangeMarkdown,
+      '',
       '## Object Presence Strip',
       '',
       objectPresenceMarkdown,
@@ -587,6 +720,7 @@ export function VideoUploadFoundationSection({
     videoActivitySummary,
     videoKeyframes,
     videoKeyMoments,
+    videoMotionChangeSummary,
     videoObjectDetectionResult,
     videoObjectPresenceStrips,
     videoObjectTimeline,
@@ -1085,6 +1219,43 @@ export function VideoUploadFoundationSection({
                 </section>
               )}
 
+              {videoMotionChangeSummary && (
+                <section className="video-motion-change-summary-panel">
+                  <div>
+                    <p className="eyebrow">Video change</p>
+                    <h3>Motion and change summary</h3>
+                    <p className="video-motion-change-summary-headline">
+                      {videoMotionChangeSummary.headline}
+                    </p>
+                  </div>
+
+                  <div className="video-motion-change-segments">
+                    {videoMotionChangeSummary.segmentSummaries.map((segment) => (
+                      <article className="video-motion-change-segment" key={segment.label}>
+                        <strong>{segment.label}</strong>
+                        <span>{segment.timeRange}</span>
+                        <span>
+                          {segment.classNames.length > 0
+                            ? segment.classNames.join(', ')
+                            : 'No detected classes'}
+                        </span>
+                        <span>{segment.detectionCount} detected box(es)</span>
+                      </article>
+                    ))}
+                  </div>
+
+                  <div className="video-motion-change-summary-list">
+                    {videoMotionChangeSummary.points.map((point) => (
+                      <p key={point}>{point}</p>
+                    ))}
+                  </div>
+
+                  <p className="small-note">
+                    This summary compares detected object classes across processed frames. It does not perform optical flow, estimate speed or direction, or assign persistent tracking IDs.
+                  </p>
+                </section>
+              )}
+
               {videoAnalysisMarkdownReport && (
                 <section className="video-analysis-report-panel">
                   <div>
@@ -1092,8 +1263,8 @@ export function VideoUploadFoundationSection({
                     <h3>Video analysis report</h3>
                     <p className="small-note">
                       Export the current video detection, annotated output, activity summary,
-                      privacy review, keyframe gallery, object presence strip, object timeline,
-                      and key moments as a Markdown report.
+                      privacy review, keyframe gallery, motion/change summary, object presence strip,
+                      object timeline, and key moments as a Markdown report.
                     </p>
                   </div>
 

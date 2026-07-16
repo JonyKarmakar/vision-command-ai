@@ -159,7 +159,6 @@ The following ideas appeared in earlier draft plans but were not completed in th
 
 - keyframe gallery
 - persistent tracking summary with object IDs
-- motion or change summary
 - video understanding chat upgrade
 - E.3 demo guide
 - webcam or live-stream real-time detection
@@ -225,7 +224,24 @@ Clarification:
 
 The presence strip shows where object classes appear across processed frames. It does not assign persistent tracking IDs and does not track individual object identities.
 
-### E.3.9 Tracking summary with persistent IDs
+### E.3.9 Motion and change summary
+
+Status: Complete in PR #509
+
+What was added:
+
+- detection-based motion and change summary panel
+- beginning, middle, and end segment comparison
+- persistent detected class summary
+- late-appearing detected class summary
+- briefly detected class summary
+- Markdown report Motion and Change Summary section
+
+Clarification:
+
+This is based on object-class detection changes across processed frames. It does not perform optical flow, estimate speed or direction, or assign persistent tracking IDs.
+
+### E.3.10 Tracking summary with persistent IDs
 
 Potential scope:
 
@@ -234,7 +250,7 @@ Potential scope:
 - summarize first seen and last seen per tracked object
 - distinguish this clearly from object-class timeline
 
-### E.3.10 Video understanding chat upgrade
+### E.3.11 Video understanding chat upgrade
 
 Potential scope:
 
@@ -242,7 +258,7 @@ Potential scope:
 - answer questions using timeline, key moments, and activity summary
 - keep answers grounded in detected objects and timestamps
 
-### E.3.11 E.3 demo guide
+### E.3.12 E.3 demo guide
 
 Potential scope:
 
