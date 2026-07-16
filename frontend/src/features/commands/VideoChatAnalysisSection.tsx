@@ -16,12 +16,13 @@ type VideoChatAnalysisSectionProps = {
 }
 
 const videoChatExamples = [
-  'What happens in this video?',
-  'What objects appear in the sampled frames?',
-  'Should I blur anything for privacy?',
-  'What changed between frames?',
-  'What did I do to this video so far?',
+  'Summarize this video analysis',
+  'What objects appear and when?',
+  'What are the key moments?',
+  'What should I review for privacy?',
+  'Is this ready for real tracking?',
 ]
+
 
 export function VideoChatAnalysisSection({
   question,
@@ -46,7 +47,8 @@ export function VideoChatAnalysisSection({
           <h3>Ask about this video</h3>
           <p>
             Ask a natural question about the current video. VisionCommand AI answers from
-            upload metadata, sampled detections, tracking results, and workflow context.
+          upload metadata, object detections, timelines, key moments, privacy review,
+          tracking readiness, and workflow context.
           </p>
         </div>
 
@@ -74,7 +76,7 @@ export function VideoChatAnalysisSection({
         <textarea
           value={question}
           onChange={(event) => onQuestionChange(event.target.value)}
-          placeholder="Ask about the current video, for example: What objects appear in the sampled frames?"
+          placeholder="Ask about the current video, for example: What objects appear and when?"
           rows={3}
           disabled={isBusy || isLoading}
         />
@@ -113,9 +115,9 @@ export function VideoChatAnalysisSection({
           <div className="image-chat-grounding-note" role="note">
             <strong>Grounding note</strong>
             <p>
-              This answer is grounded in sampled detections, tracking results, and workflow context.
-              It does not identify people, infer emotions or recording location, or use full
-              raw-video understanding.
+              This answer is grounded in structured video detections, timelines, key moments,
+              tracking-readiness notes, and workflow context. It does not identify people,
+              detect faces, infer emotions or recording location, or claim raw-video understanding.
             </p>
           </div>
         </div>
