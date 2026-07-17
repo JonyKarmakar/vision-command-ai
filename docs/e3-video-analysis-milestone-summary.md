@@ -267,7 +267,7 @@ Potential scope:
 - answer questions using timeline, key moments, and activity summary
 - keep answers grounded in detected objects and timestamps
 
-### E.3.12 E.3 demo guide
+### E.3.13 E.3 demo guide
 
 Potential scope:
 
@@ -278,7 +278,7 @@ Potential scope:
 
 ## Recommended next step
 
-The recommended next step is E.3.11 E.3 demo guide.
+The final E.3 documentation step is complete in PR #512.
 
 Reason:
 
@@ -330,3 +330,13 @@ The completed PRs are:
 Milestone E.3 Professional Video Analysis Workflow is complete for the revised source-of-truth scope.
 
 Optional video extensions remain available for future work, but they should be treated as separate follow-up slices.
+
+## E.3 demo guide
+
+Status: Complete in PR #512
+
+The E.3 demo guide documents the complete professional video analysis workflow, including uploaded-video object detection, annotated video output, temporal summaries, privacy review, tracking readiness, Markdown report export, and video chat grounded in structured E.3 analysis context.
+
+The guide also records demo narration, safety boundaries, portfolio wording, validation steps, and troubleshooting notes.
+
+With PR #512, Milestone E.3 is complete.
