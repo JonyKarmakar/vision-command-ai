@@ -95,3 +95,22 @@ def test_plan_command_endpoint_accepts_llm_mock_mode():
     assert data["action"] == "blur_all_by_class"
     assert data["target_class"] == "person"
     assert data["target_scope"] == "all"
+
+
+def test_plan_command_endpoint_returns_command_skill_metadata():
+    response = client.post(
+        "/commands/plan",
+        json={
+            "command": "Blur all people",
+            "planner_mode": "rule_based",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["command_skill"]["id"] == "blur_by_class"
+    assert data["command_skill"]["execution_status"] == "implemented_command"
+    assert "required_context" in data["command_skill"]
+    assert "limitations" in data["command_skill"]

@@ -92,3 +92,29 @@ def test_plan_crop_without_class_needs_clarification():
     assert plan.requires_detection is True
     assert plan.needs_clarification is True
     assert plan.clarification_question == "Which object class should I use for this command?"
+
+
+def test_plan_blur_all_people_includes_command_skill_metadata():
+    plan = plan_command("Blur all people")
+
+    assert plan.command_skill is not None
+    assert plan.command_skill["id"] == "blur_by_class"
+    assert plan.command_skill["execution_status"] == "implemented_command"
+    assert "POST /commands/execute" in plan.command_skill["mapped_workflows"]
+
+
+def test_plan_video_summary_includes_manual_video_workflow_metadata():
+    plan = plan_command("Summarize this video")
+
+    assert plan.media_type == "video"
+    assert plan.action == "summarize"
+    assert plan.command_skill is not None
+    assert plan.command_skill["id"] == "video_object_analysis_workflow"
+    assert plan.command_skill["execution_status"] == "workflow_available_manual"
+
+
+def test_plan_unknown_command_has_no_command_skill_metadata():
+    plan = plan_command("Make it better somehow")
+
+    assert plan.action == "unknown"
+    assert plan.command_skill is None

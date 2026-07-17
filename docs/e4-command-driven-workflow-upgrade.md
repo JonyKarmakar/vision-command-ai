@@ -117,3 +117,28 @@ The frontend can load `GET /commands/skills` and display:
 This makes the command layer easier to inspect before E.4 starts using the registry for planning, routing, and multi-step workflow execution.
 
 This PR does not change command execution behavior.
+
+## E.4.3 Registry-aware command planning metadata
+
+Status: Implemented in PR #516
+
+Command planning and command plan preparation now include compact command skill metadata.
+
+Planning responses can include:
+
+- matched command skill ID
+- skill title
+- skill category
+- execution status
+- supported media
+- mapped actions
+- mapped workflows
+- required and optional context
+- outputs
+- limitations
+
+Prepare-execution responses also include the matched command skill metadata for ready and blocked plans.
+
+This makes it easier to understand whether a planned command maps to an implemented command, a manual workflow, or a partially implemented command-support behavior.
+
+This PR does not change command execution behavior and does not make manual workflows command-driven yet.
