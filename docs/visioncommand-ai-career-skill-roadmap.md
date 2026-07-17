@@ -936,3 +936,11 @@ VisionCommand AI should become a flagship project through controlled milestone g
 The goal is not to endlessly add random features.
 
 The goal is to build a project that can honestly support strong interview conversations for applied AI, computer vision, LLM engineering, full-stack AI, LLMOps, MLOps, and production-oriented AI software roles.
+
+## E.4 implementation status
+
+E.4 has started with the command skills registry.
+
+The registry is documented in `docs/e4-command-driven-workflow-upgrade.md` and exposed through backend command skill endpoints.
+
+This is the foundation for future command-driven workflow routing. It does not yet mean all image and video workflows are fully command-triggered.
