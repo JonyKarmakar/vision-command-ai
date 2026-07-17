@@ -6022,15 +6022,15 @@ const handleLoadCommandSkillsRegistry = async () => {
             }}
           />
 
-<CommandSkillsRegistrySection
-  commandSkillsRegistryResult={commandSkillsRegistryResult}
-  commandSkillsRegistryRef={commandSkillsRegistryRef}
-  isBusy={isBusy}
-  onClearCommandSkillsRegistry={() => {
-    setCommandSkillsRegistryResult(null)
-    setStatusMessage('Command Skills Registry view cleared.')
-  }}
-/>
+          <CommandSkillsRegistrySection
+            commandSkillsRegistryResult={commandSkillsRegistryResult}
+            commandSkillsRegistryRef={commandSkillsRegistryRef}
+            isBusy={isBusy}
+            onClearCommandSkillsRegistry={() => {
+              setCommandSkillsRegistryResult(null)
+              setStatusMessage('Command Skills Registry view cleared.')
+            }}
+          />
 
           <CommandPlanPreviewSection
             commandPlanResult={commandPlanResult}

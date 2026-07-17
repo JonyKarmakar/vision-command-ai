@@ -1,9 +1,11 @@
 import type { RefObject } from 'react'
+import type { CommandSkill } from '../../types/apiTypes'
 
 type CommandPlanResult = Record<string, unknown> & {
   action: string
   needs_clarification?: boolean
   clarification_question?: string | null
+  command_skill?: CommandSkill | null
 }
 
 type PreparedExecutionResult = {
@@ -11,6 +13,7 @@ type PreparedExecutionResult = {
   executable: boolean
   prepared_command: unknown | null
   warnings: string[]
+  command_skill?: CommandSkill | null
 }
 
 type CommandPlanPreviewSectionProps = {
@@ -41,6 +44,116 @@ type CommandPlanPreviewSectionProps = {
   onExecutePreparedCommand: () => void | Promise<void>
   onClearCommandPlanPreview: () => void
   onClearPreparedExecutionPreview: () => void
+}
+
+const formatSkillStatus = (status: string) => status.replace(/_/g, ' ')
+
+type CommandSkillMetadataPanelProps = {
+  title: string
+  skill?: CommandSkill | null
+}
+
+function CommandSkillMetadataPanel({ title, skill }: CommandSkillMetadataPanelProps) {
+  if (!skill) {
+    return (
+      <div className="real-llm-warning">
+        <strong>{title}</strong>
+        <p>No command skill metadata was matched for this plan.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="parser-evaluation-panel">
+      <h4>{title}</h4>
+
+      <div className="parser-evaluation-summary">
+        <div>
+          <span>Skill ID</span>
+          <strong>{skill.id}</strong>
+        </div>
+        <div>
+          <span>Title</span>
+          <strong>{skill.title}</strong>
+        </div>
+        <div>
+          <span>Category</span>
+          <strong>{formatSkillStatus(skill.category)}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>{formatSkillStatus(skill.execution_status)}</strong>
+        </div>
+      </div>
+
+      <div className="provider-mode-list">
+        <span>Supported media</span>
+        <div>
+          {skill.supported_media.map((media) => (
+            <strong key={media}>{media}</strong>
+          ))}
+        </div>
+      </div>
+
+      {skill.mapped_actions.length > 0 && (
+        <div className="provider-mode-list">
+          <span>Mapped actions</span>
+          <div>
+            {skill.mapped_actions.map((action) => (
+              <strong key={action}>{action}</strong>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="provider-mode-list">
+        <span>Mapped workflows</span>
+        <ul>
+          {skill.mapped_workflows.map((workflow) => (
+            <li key={workflow}>{workflow}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="provider-mode-list">
+        <span>Required context</span>
+        <ul>
+          {skill.required_context.map((contextItem) => (
+            <li key={contextItem}>{contextItem}</li>
+          ))}
+        </ul>
+      </div>
+
+      {skill.optional_context.length > 0 && (
+        <div className="provider-mode-list">
+          <span>Optional context</span>
+          <ul>
+            {skill.optional_context.map((contextItem) => (
+              <li key={contextItem}>{contextItem}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="provider-mode-list">
+        <span>Outputs</span>
+        <ul>
+          {skill.outputs.map((output) => (
+            <li key={output}>{output}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="provider-mode-list">
+        <span>Limitations</span>
+        <ul>
+          {skill.limitations.map((limitation) => (
+            <li key={limitation}>{limitation}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
 }
 
 export function CommandPlanPreviewSection({
@@ -136,6 +249,11 @@ export function CommandPlanPreviewSection({
 
           <p><strong>Original command:</strong> {commandText}</p>
           <p><strong>Planner mode:</strong> {selectedPlannerMode}</p>
+
+          <CommandSkillMetadataPanel
+            title="Matched Command Skill"
+            skill={commandPlanResult.command_skill}
+          />
 
           <div className="parse-field-list">
             {Object.entries(commandPlanResult).map(([key, value]) => (
@@ -240,6 +358,11 @@ export function CommandPlanPreviewSection({
 
           <p><strong>Status:</strong> {commandPlanExecutionPrepareResult.status}</p>
           <p><strong>Executable:</strong> {commandPlanExecutionPrepareResult.executable ? 'yes' : 'no'}</p>
+
+          <CommandSkillMetadataPanel
+            title="Prepared Execution Command Skill"
+            skill={commandPlanExecutionPrepareResult.command_skill}
+          />
 
           <div className="parse-field-list">
             <div className="parse-field">
