@@ -49,6 +49,7 @@ import { ParserComparisonSection } from './features/commands/ParserComparisonSec
 import { PlannerComparisonSection } from './features/commands/PlannerComparisonSection'
 import { ParserEvaluationSection } from './features/commands/ParserEvaluationSection'
 import { CommandHistorySummarySection } from './features/commands/CommandHistorySummarySection'
+import { CommandSkillsRegistrySection } from './features/commands/CommandSkillsRegistrySection'
 import { RecentCommandHistorySection } from './features/commands/RecentCommandHistorySection'
 import { DatabaseDashboardSection } from './features/dashboard/DatabaseDashboardSection'
 import { DetectionResultSection } from './features/vision/DetectionResultSection'
@@ -100,6 +101,7 @@ import type {
   CommandLog,
   CommandLogSummaryItem,
   CommandLogSummaryResponse,
+  CommandSkillsRegistryResponse,
   MediaFileLog,
   DatabaseStats,
   DetectionSummary,
@@ -369,6 +371,7 @@ function App() {
   const [includeRealLlmEvaluationInDashboard, setIncludeRealLlmEvaluationInDashboard] = useState(false)
   const [commandLogs, setCommandLogs] = useState<CommandLog[]>([])
   const [commandLogSummary, setCommandLogSummary] = useState<CommandLogSummaryResponse | null>(null)
+  const [commandSkillsRegistryResult, setCommandSkillsRegistryResult] = useState<CommandSkillsRegistryResponse | null>(null)
   const [isLoadingCommandLogSummary, setIsLoadingCommandLogSummary] = useState(false)
   const [hasLoadedCommandLogs, setHasLoadedCommandLogs] = useState(false)
   const [commandHistoryParserModeFilter, setCommandHistoryParserModeFilter] = useState('all')
@@ -420,6 +423,7 @@ function App() {
   const [isPreparingCommandPlanExecution, setIsPreparingCommandPlanExecution] = useState(false)
   const [isExecutingPreparedCommand, setIsExecutingPreparedCommand] = useState(false)
   const [isLoadingCommandEvaluation, setIsLoadingCommandEvaluation] = useState(false)
+  const [isLoadingCommandSkillsRegistry, setIsLoadingCommandSkillsRegistry] = useState(false)
   const [isLoadingParserComparison, setIsLoadingParserComparison] = useState(false)
   const [isLoadingPlannerComparison, setIsLoadingPlannerComparison] = useState(false)
   const [isLoadingParserAttemptLogs, setIsLoadingParserAttemptLogs] = useState(false)
@@ -444,6 +448,7 @@ function App() {
   const commandPlanExecutionPrepareRef = useRef<HTMLDivElement | null>(null)
   const parsedCommandValidationRef = useRef<HTMLDivElement | null>(null)
   const commandResultRef = useRef<HTMLDivElement | null>(null)
+  const commandSkillsRegistryRef = useRef<HTMLDivElement | null>(null)
   const uploadResultRef = useRef<HTMLElement | null>(null)
   const videoUploadResultRef = useRef<HTMLElement | null>(null)
   const detectionResultRef = useRef<HTMLHeadingElement | null>(null)
@@ -3391,6 +3396,32 @@ function App() {
   }
 
 
+const handleLoadCommandSkillsRegistry = async () => {
+  try {
+    setIsLoadingCommandSkillsRegistry(true)
+    setError(null)
+    setStatusMessage('Loading command skills registry...')
+
+    const response = await fetch('/api/commands/skills')
+
+    if (!response.ok) {
+      throw new Error(await getBackendErrorMessage(response, 'Could not load command skills registry'))
+    }
+
+    const data: CommandSkillsRegistryResponse = await response.json()
+    setCommandSkillsRegistryResult(data)
+    scrollToLoadedView(commandSkillsRegistryRef)
+    setStatusMessage(`Loaded command skills registry with ${data.skill_count} skill(s).`)
+  } catch (err) {
+    const message = getErrorMessage(err, 'Could not load command skills registry.')
+    setError(message)
+    setStatusMessage(message)
+  } finally {
+    setIsLoadingCommandSkillsRegistry(false)
+  }
+}
+
+
   const handleLoadPromptPreview = async () => {
     if (!commandText.trim()) {
       setError('Please type a command before previewing the LLM prompt.')
@@ -5901,6 +5932,7 @@ function App() {
               isLoadingParserComparison={isLoadingParserComparison}
               isLoadingPlannerComparison={isLoadingPlannerComparison}
               isLoadingParserAttemptLogs={isLoadingParserAttemptLogs}
+          isLoadingCommandSkillsRegistry={isLoadingCommandSkillsRegistry}
               onCommandHistoryParserModeFilterChange={(value) => {
                 setCommandHistoryParserModeFilter(value)
                 setCommandHistorySearch('')
@@ -5924,6 +5956,7 @@ function App() {
               onLoadParserComparison={handleLoadParserComparison}
               onLoadPlannerComparison={handleLoadPlannerComparison}
               onLoadParserAttemptLogs={handleLoadParserAttemptLogs}
+          onLoadCommandSkillsRegistry={handleLoadCommandSkillsRegistry}
             />
 
             <ParserObservabilityControlsSection
@@ -5988,6 +6021,16 @@ function App() {
               setStatusMessage('LLM Prompt Preview view cleared.')
             }}
           />
+
+<CommandSkillsRegistrySection
+  commandSkillsRegistryResult={commandSkillsRegistryResult}
+  commandSkillsRegistryRef={commandSkillsRegistryRef}
+  isBusy={isBusy}
+  onClearCommandSkillsRegistry={() => {
+    setCommandSkillsRegistryResult(null)
+    setStatusMessage('Command Skills Registry view cleared.')
+  }}
+/>
 
           <CommandPlanPreviewSection
             commandPlanResult={commandPlanResult}

@@ -12,6 +12,7 @@ type CommandHistoryControlsSectionProps = {
   isLoadingParserComparison: boolean
   isLoadingPlannerComparison: boolean
   isLoadingParserAttemptLogs: boolean
+isLoadingCommandSkillsRegistry: boolean
   onCommandHistoryParserModeFilterChange: (value: string) => void
   onCommandHistoryResultTypeFilterChange: (value: string) => void
   onCommandHistoryLimitChange: (value: string) => void
@@ -23,6 +24,7 @@ type CommandHistoryControlsSectionProps = {
   onLoadParserComparison: () => void | Promise<void>
   onLoadPlannerComparison: () => void | Promise<void>
   onLoadParserAttemptLogs: () => void | Promise<void>
+onLoadCommandSkillsRegistry: () => void | Promise<void>
 }
 
 export function CommandHistoryControlsSection({
@@ -39,6 +41,7 @@ export function CommandHistoryControlsSection({
   isLoadingParserComparison,
   isLoadingPlannerComparison,
   isLoadingParserAttemptLogs,
+isLoadingCommandSkillsRegistry,
   onCommandHistoryParserModeFilterChange,
   onCommandHistoryResultTypeFilterChange,
   onCommandHistoryLimitChange,
@@ -50,6 +53,7 @@ export function CommandHistoryControlsSection({
   onLoadParserComparison,
   onLoadPlannerComparison,
   onLoadParserAttemptLogs,
+onLoadCommandSkillsRegistry,
 }: CommandHistoryControlsSectionProps) {
   return (
     <>
@@ -183,6 +187,15 @@ export function CommandHistoryControlsSection({
       >
         {isLoadingParserAttemptLogs ? 'Loading logs...' : 'Load Local Parser Attempt Logs'}
       </button>
+
+<button
+  className="secondary-button"
+  onClick={() => void onLoadCommandSkillsRegistry()}
+  disabled={isBusy || isLoadingCommandSkillsRegistry}
+>
+  {isLoadingCommandSkillsRegistry ? 'Loading skills...' : 'Load Command Skills Registry'}
+</button>
+
     </>
   )
 }
