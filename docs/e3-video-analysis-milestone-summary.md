@@ -340,3 +340,11 @@ The E.3 demo guide documents the complete professional video analysis workflow, 
 The guide also records demo narration, safety boundaries, portfolio wording, validation steps, and troubleshooting notes.
 
 With PR #512, Milestone E.3 is complete.
+
+## Broader career skill roadmap
+
+A broader career-oriented roadmap is available in `docs/visioncommand-ai-career-skill-roadmap.md`.
+
+That document tracks implemented proof, partially demonstrated skills, deferred advanced features, and future milestones across computer vision, LLM engineering, LLMOps, MLOps, data engineering, cloud deployment, and full-stack AI software development.
+
+It also confirms that the next implementation milestone after E.3 is E.4 Command-driven workflow upgrade, while v1.0 readiness and portfolio release work remain postponed until after E.4.
