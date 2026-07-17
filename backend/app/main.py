@@ -27,6 +27,10 @@ from app.services.llm_prompt_builder import (
 )
 from app.services.command_validation import validate_parsed_command
 from app.services.command_parser import normalize_requested_class_name, parse_command
+from app.services.command_skills_registry import (
+    get_command_skill_by_id,
+    get_command_skills_registry,
+)
 from app.services.command_planner import plan_command_with_mode
 from app.services.command_plan_execution import prepare_command_plan_for_execution
 from app.services.storage_service import storage_service
@@ -1515,6 +1519,25 @@ def execute_validated_parsed_command(
         status_code=400,
         detail="Unsupported command action",
     )
+
+
+
+@app.get("/commands/skills")
+def list_command_skills():
+    return get_command_skills_registry()
+
+
+@app.get("/commands/skills/{skill_id}")
+def get_command_skill(skill_id: str):
+    skill = get_command_skill_by_id(skill_id)
+
+    if not skill:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Command skill '{skill_id}' not found.",
+        )
+
+    return skill
 
 
 @app.post("/commands/execute")
