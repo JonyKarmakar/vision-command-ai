@@ -598,6 +598,32 @@ export type CommandLogSummaryItem = {
   count: number
 }
 
+
+export type CommandSkill = {
+  id: string
+  title: string
+  category: string
+  execution_status: string
+  supported_media: string[]
+  user_examples: string[]
+  mapped_actions: string[]
+  mapped_workflows: string[]
+  required_context: string[]
+  optional_context: string[]
+  outputs: string[]
+  limitations: string[]
+}
+
+export type CommandSkillsRegistryResponse = {
+  version: string
+  milestone: string
+  status: string
+  description: string
+  skill_count: number
+  skills: CommandSkill[]
+  notes: string[]
+}
+
 export type CommandLogSummaryResponse = {
   status: string
   total_commands: number

@@ -93,3 +93,27 @@ The registry must not overclaim:
 - no open-vocabulary detection yet
 
 Future milestones can update the registry only after the features are implemented and tested.
+
+## E.4.2 Developer Mode registry view
+
+Status: Implemented in PR #515
+
+The command skills registry is now visible from Developer Mode.
+
+The frontend can load `GET /commands/skills` and display:
+
+- registry version
+- milestone status
+- total skill count
+- execution status summary
+- category summary
+- user examples
+- mapped actions
+- mapped workflows
+- required and optional context
+- outputs
+- limitations
+
+This makes the command layer easier to inspect before E.4 starts using the registry for planning, routing, and multi-step workflow execution.
+
+This PR does not change command execution behavior.
