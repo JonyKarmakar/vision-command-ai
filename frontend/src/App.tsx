@@ -1530,6 +1530,7 @@ function App() {
       videoMultiFrameResult ||
       videoMultiFrameDetectionResult ||
       videoSampledDetectionResult ||
+      videoObjectDetectionResult ||
       videoTrackingResult ||
       videoFrameDetectionResult ||
       detectionResult ||
@@ -2946,6 +2947,7 @@ function App() {
     videoFrameDetectionResult,
     videoMultiFrameDetectionResult,
     videoSampledDetectionResult,
+    videoObjectDetectionResult,
     videoTrackingResult,
     commandResult,
     generatedOutputHistory: generatedOutputHistory.slice(0, 10),
@@ -2965,6 +2967,7 @@ function App() {
       !videoFrameDetectionResult &&
       !videoMultiFrameDetectionResult &&
       !videoSampledDetectionResult &&
+      !videoObjectDetectionResult &&
       !videoTrackingResult &&
       !commandResult &&
       generatedOutputHistory.length === 0
@@ -5842,6 +5845,7 @@ function App() {
             videoFrameDetectionResult ||
             videoMultiFrameDetectionResult ||
             videoSampledDetectionResult ||
+            videoObjectDetectionResult ||
             videoTrackingResult
           ) && (
             <VideoChatAnalysisSection
@@ -5859,6 +5863,7 @@ function App() {
                 videoFrameDetectionResult ||
                 videoMultiFrameDetectionResult ||
                 videoSampledDetectionResult ||
+                videoObjectDetectionResult ||
                 videoTrackingResult
               )}
               error={videoChatError}
