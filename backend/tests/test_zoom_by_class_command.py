@@ -55,16 +55,16 @@ def test_prepare_zoom_plan_returns_executable_zoom_by_class():
         )
     )
 
-    assert result == {
-        "status": "ready",
-        "executable": True,
-        "prepared_command": {
-            "action": "zoom_by_class",
-            "class_name": "person",
-            "target_scope": "single",
-        },
-        "warnings": [],
+    assert result["status"] == "ready"
+    assert result["executable"] is True
+    assert result["prepared_command"] == {
+        "action": "zoom_by_class",
+        "class_name": "person",
+        "target_scope": "single",
     }
+    assert result["warnings"] == []
+    assert result["command_skill"]["id"] == "zoom_by_class"
+    assert result["command_skill"]["execution_status"] == "implemented_command"
 
 def test_prepare_zoom_plan_blocks_without_target_class():
     result = prepare_command_plan_for_execution(
@@ -82,12 +82,12 @@ def test_prepare_zoom_plan_blocks_without_target_class():
         )
     )
 
-    assert result == {
-        "status": "blocked",
-        "executable": False,
-        "prepared_command": None,
-        "warnings": ["zoom requires target_class before execution."],
-    }
+    assert result["status"] == "blocked"
+    assert result["executable"] is False
+    assert result["prepared_command"] is None
+    assert result["warnings"] == ["zoom requires target_class before execution."]
+    assert result["command_skill"]["id"] == "zoom_by_class"
+    assert result["command_skill"]["execution_status"] == "implemented_command"
 
 
 def test_execute_prepared_zoom_by_class_success(monkeypatch):

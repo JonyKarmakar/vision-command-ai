@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.schemas import CommandPlan
+from app.services.command_skills_registry import get_command_skill_by_id
 from app.services.llm_prompt_builder import build_command_planner_prompt
 from app.services.llm_provider import plan_command_with_provider
 from app.services.model_classes import (
@@ -168,6 +169,69 @@ def _infer_media_type(normalized_command: str, action: str) -> str:
     return "unknown"
 
 
+def _compact_command_skill(skill: Optional[dict]) -> Optional[dict]:
+    if not skill:
+        return None
+
+    return {
+        "id": skill["id"],
+        "title": skill["title"],
+        "category": skill["category"],
+        "execution_status": skill["execution_status"],
+        "supported_media": skill["supported_media"],
+        "mapped_actions": skill["mapped_actions"],
+        "mapped_workflows": skill["mapped_workflows"],
+        "required_context": skill["required_context"],
+        "optional_context": skill["optional_context"],
+        "outputs": skill["outputs"],
+        "limitations": skill["limitations"],
+    }
+
+
+def _registry_skill_id_for_plan(plan: CommandPlan) -> Optional[str]:
+    if plan.action == "detect" and plan.media_type == "image":
+        return "detect_objects"
+
+    if plan.action == "detect" and plan.media_type == "video":
+        return "video_object_analysis_workflow"
+
+    if plan.action == "annotate" and plan.media_type == "image":
+        return "detect_objects"
+
+    if plan.action == "crop_by_class":
+        return "crop_by_class"
+
+    if plan.action in {"blur_by_class", "blur_all_by_class"}:
+        return "blur_by_class"
+
+    if plan.action == "zoom":
+        return "zoom_by_class"
+
+    if plan.action == "extract_frames":
+        return "detect_video_frames" if plan.target_class else "extract_video_frame"
+
+    if plan.action == "track":
+        return "tracking_readiness_summary"
+
+    if plan.action == "summarize" and plan.media_type == "video":
+        return "video_object_analysis_workflow"
+
+    if plan.action == "summarize" and plan.media_type == "image":
+        return "detect_objects"
+
+    return None
+
+
+def attach_command_skill_metadata(plan: CommandPlan) -> CommandPlan:
+    skill_id = _registry_skill_id_for_plan(plan)
+
+    if not skill_id:
+        plan.command_skill = None
+        return plan
+
+    plan.command_skill = _compact_command_skill(get_command_skill_by_id(skill_id))
+    return plan
+
 def plan_command(command: str) -> CommandPlan:
     normalized_command = _normalize_command(command)
 
@@ -196,7 +260,8 @@ def plan_command(command: str) -> CommandPlan:
         needs_clarification = True
         clarification_question = "Which object class should I use for this command?"
 
-    return CommandPlan(
+    return attach_command_skill_metadata(
+        CommandPlan(
         media_type=media_type,
         action=action,
         target_class=target_class,
@@ -218,6 +283,7 @@ def plan_command(command: str) -> CommandPlan:
     )
 
 
+    )
 
 def validate_command_plan(plan_data: dict) -> CommandPlan:
     if not isinstance(plan_data, dict):
@@ -279,7 +345,7 @@ def validate_command_plan(plan_data: dict) -> CommandPlan:
         normalized_plan["clarification_question"] = None
 
     try:
-        return CommandPlan(**normalized_plan)
+        return attach_command_skill_metadata(CommandPlan(**normalized_plan))
     except ValidationError as error:
         raise HTTPException(
             status_code=502,

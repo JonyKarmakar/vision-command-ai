@@ -173,6 +173,7 @@ class CommandPlan(BaseModel):
     confidence: float = 0.0
     needs_clarification: bool = False
     clarification_question: Optional[str] = None
+    command_skill: Optional[dict[str, Any]] = None
 
 
 class CommandPlanExecutionPrepareRequest(BaseModel):
@@ -184,6 +185,7 @@ class CommandPlanExecutionPrepareResponse(BaseModel):
     executable: bool
     prepared_command: Optional[dict[str, Any]] = None
     warnings: list[str] = Field(default_factory=list)
+    command_skill: Optional[dict[str, Any]] = None
 
 class ImageChatRequest(BaseModel):
     question: str

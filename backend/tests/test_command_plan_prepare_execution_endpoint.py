@@ -129,3 +129,57 @@ def test_prepare_execution_maps_track_to_track_video_when_temporal_parameters_ex
         "class_name": "person",
     }
     assert data["warnings"] == []
+
+
+def test_prepare_execution_response_includes_command_skill_metadata():
+    response = client.post(
+        "/commands/plan/prepare-execution",
+        json={
+            "plan": {
+                "media_type": "image",
+                "action": "blur_all_by_class",
+                "target_class": "person",
+                "target_scope": "all",
+                "requires_detection": True,
+                "requires_tracking": False,
+                "parameters": {},
+                "confidence": 0.9,
+                "needs_clarification": False,
+                "clarification_question": None,
+            }
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["status"] == "ready"
+    assert data["command_skill"]["id"] == "blur_by_class"
+    assert data["command_skill"]["execution_status"] == "implemented_command"
+
+
+def test_prepare_execution_blocked_response_keeps_command_skill_metadata():
+    response = client.post(
+        "/commands/plan/prepare-execution",
+        json={
+            "plan": {
+                "media_type": "image",
+                "action": "crop_by_class",
+                "target_class": None,
+                "target_scope": "largest",
+                "requires_detection": True,
+                "requires_tracking": False,
+                "parameters": {},
+                "confidence": 0.5,
+                "needs_clarification": False,
+                "clarification_question": None,
+            }
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["status"] == "blocked"
+    assert data["command_skill"]["id"] == "crop_by_class"
+    assert data["command_skill"]["execution_status"] == "implemented_command"

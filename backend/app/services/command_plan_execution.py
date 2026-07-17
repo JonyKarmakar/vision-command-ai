@@ -1,15 +1,24 @@
+from typing import Optional
+
 from fastapi import HTTPException
 
 from app.schemas import CommandPlan
 from app.services.command_validation import validate_parsed_command
+from app.services.command_planner import attach_command_skill_metadata
+
+def _plan_skill_metadata(plan: CommandPlan):
+    enriched_plan = attach_command_skill_metadata(plan)
+    return enriched_plan.command_skill
 
 
-def _blocked(warnings: list[str]):
+
+def _blocked(warnings: list[str], command_skill: Optional[dict] = None):
     return {
         "status": "blocked",
         "executable": False,
         "prepared_command": None,
         "warnings": warnings,
+        "command_skill": command_skill,
     }
 
 
@@ -23,6 +32,7 @@ def _number_parameter(parameters: dict, key: str):
 
 
 def _prepare_temporal_command(plan: CommandPlan, action: str):
+    command_skill = _plan_skill_metadata(plan)
     parameters = plan.parameters or {}
 
     start_seconds = _number_parameter(parameters, "start_seconds")
@@ -32,7 +42,7 @@ def _prepare_temporal_command(plan: CommandPlan, action: str):
     if start_seconds is None or end_seconds is None:
         return _blocked([
             f"{plan.action} plans require numeric start_seconds and end_seconds parameters before execution."
-        ])
+        ], command_skill=command_skill)
 
     if interval_seconds is None:
         interval_seconds = 1.0
@@ -47,10 +57,10 @@ def _prepare_temporal_command(plan: CommandPlan, action: str):
     if plan.target_class:
         prepared_command["class_name"] = plan.target_class
 
-    return _ready(prepared_command)
+    return _ready(prepared_command, command_skill=command_skill)
 
 
-def _ready(prepared_command: dict):
+def _ready(prepared_command: dict, command_skill: Optional[dict] = None):
     try:
         validated_command = validate_parsed_command(prepared_command)
     except HTTPException as error:
@@ -62,29 +72,31 @@ def _ready(prepared_command: dict):
         "executable": True,
         "prepared_command": validated_command,
         "warnings": [],
+        "command_skill": command_skill,
     }
 
 
 def prepare_command_plan_for_execution(plan: CommandPlan):
+    command_skill = _plan_skill_metadata(plan)
     if plan.needs_clarification:
         warning = plan.clarification_question or "This plan needs clarification before execution."
-        return _blocked([warning])
+        return _blocked([warning], command_skill=command_skill)
 
     if plan.action == "unknown":
-        return _blocked(["Unknown planner action cannot be prepared for execution."])
+        return _blocked(["Unknown planner action cannot be prepared for execution."], command_skill=command_skill)
 
     if plan.action in {"crop_by_class", "blur_by_class", "blur_all_by_class"}:
         if not plan.target_class:
-            return _blocked([f"{plan.action} requires target_class before execution."])
+            return _blocked([f"{plan.action} requires target_class before execution."], command_skill=command_skill)
 
         return _ready({
             "action": plan.action,
             "class_name": plan.target_class,
-        })
+        }, command_skill=command_skill)
 
     if plan.action == "zoom":
         if not plan.target_class:
-            return _blocked(["zoom requires target_class before execution."])
+            return _blocked(["zoom requires target_class before execution."], command_skill=command_skill)
 
         prepared_command = {
             "action": "zoom_by_class",
@@ -94,7 +106,7 @@ def prepare_command_plan_for_execution(plan: CommandPlan):
         if plan.target_scope:
             prepared_command["target_scope"] = plan.target_scope
 
-        return _ready(prepared_command)
+        return _ready(prepared_command, command_skill=command_skill)
 
     if plan.action in {"detect", "annotate"}:
         prepared_command = {"action": "detect"}
@@ -102,7 +114,7 @@ def prepare_command_plan_for_execution(plan: CommandPlan):
         if plan.target_class:
             prepared_command["class_name"] = plan.target_class
 
-        return _ready(prepared_command)
+        return _ready(prepared_command, command_skill=command_skill)
 
     if plan.action == "extract_frames":
         return _prepare_temporal_command(plan, "extract_frames")
@@ -112,4 +124,4 @@ def prepare_command_plan_for_execution(plan: CommandPlan):
 
     return _blocked([
         f"Planner action '{plan.action}' is not connected to an executable command yet."
-    ])
+    ], command_skill=command_skill)
