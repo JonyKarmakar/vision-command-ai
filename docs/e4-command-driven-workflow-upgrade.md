@@ -283,3 +283,20 @@ The checklist uses existing prepare-execution data only:
 This improves the safety boundary after planning and preparation, especially when using registry example shortcuts.
 
 This PR does not change command execution behavior, routing, backend logic, model behavior, or prepared command execution.
+
+## E.4.12 Prepared execution manual confirmation gate
+
+Status: Implemented in PR #525
+
+Prepared Execution Preview now requires an explicit frontend confirmation before Execute Prepared Command becomes clickable.
+
+The confirmation gate:
+
+- resets whenever a new prepare-execution result is loaded
+- stays disabled when the prepared command is not technically executable
+- asks the developer to confirm checklist, warnings, active media, and prepared command review
+- enables the existing Execute Prepared Command button only after confirmation
+
+This is a frontend safety gate only.
+
+This PR does not change backend logic, command execution behavior, workflow routing, LLM behavior, or vision model behavior.
