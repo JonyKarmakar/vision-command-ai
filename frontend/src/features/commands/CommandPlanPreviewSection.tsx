@@ -22,6 +22,78 @@ type CommandExecutionSafetyHint = {
 }
 
 
+type PreparedExecutionDecisionChecklistItem = {
+  label: string
+  status: 'pass' | 'review' | 'blocked'
+  detail: string
+}
+
+const formatChecklistStatus = (status: PreparedExecutionDecisionChecklistItem['status']) => {
+  if (status === 'pass') {
+    return 'Ready'
+  }
+
+  if (status === 'blocked') {
+    return 'Blocked'
+  }
+
+  return 'Review'
+}
+
+const getPreparedExecutionDecisionChecklist = (
+  preparation: PreparedExecutionResult,
+): PreparedExecutionDecisionChecklistItem[] => {
+  const skill = preparation.command_skill
+  const hasPreparedCommand = Boolean(preparation.prepared_command)
+  const hasWarnings = preparation.warnings.length > 0
+  const isImplementedSkill = skill?.execution_status === 'implemented_command'
+
+  return [
+    {
+      label: 'Prepared command object',
+      status: hasPreparedCommand ? 'pass' : 'blocked',
+      detail: hasPreparedCommand
+        ? 'A prepared command object is available for inspection.'
+        : 'No prepared command object is available, so execution must stay blocked.',
+    },
+    {
+      label: 'Backend executable flag',
+      status: preparation.executable ? 'pass' : 'blocked',
+      detail: preparation.executable
+        ? 'The backend marked this prepared command as executable.'
+        : 'The backend blocked this prepared command before execution.',
+    },
+    {
+      label: 'Registry skill readiness',
+      status: !skill ? 'review' : isImplementedSkill ? 'pass' : 'review',
+      detail: !skill
+        ? 'No registry skill metadata was matched, so this command needs extra review.'
+        : isImplementedSkill
+          ? 'The matched registry skill is marked as an implemented command path.'
+          : 'The matched registry skill is not marked as a fully implemented command path.',
+    },
+    {
+      label: 'Warnings',
+      status: hasWarnings ? 'review' : 'pass',
+      detail: hasWarnings
+        ? 'Warnings are present and should be reviewed before any execution decision.'
+        : 'No prepare-execution warnings were returned.',
+    },
+    {
+      label: 'Manual confirmation',
+      status:
+        preparation.executable && hasPreparedCommand && isImplementedSkill
+          ? 'review'
+          : 'blocked',
+      detail:
+        preparation.executable && hasPreparedCommand && isImplementedSkill
+          ? 'Execution is technically available, but the developer should still confirm the active media and intended action manually.'
+          : 'Manual confirmation should not proceed to execution until the blocked or review items are resolved.',
+    },
+  ]
+}
+
+
 const getCommandExecutionSafetyHints = (
   preparation: PreparedExecutionResult,
 ): CommandExecutionSafetyHint[] => {
@@ -168,6 +240,43 @@ const getCommandSkillReadiness = (status: string) => {
 }
 
 
+
+type PreparedExecutionDecisionChecklistPanelProps = {
+  preparation: PreparedExecutionResult
+}
+
+function PreparedExecutionDecisionChecklistPanel({
+  preparation,
+}: PreparedExecutionDecisionChecklistPanelProps) {
+  const checklist = getPreparedExecutionDecisionChecklist(preparation)
+
+  return (
+    <div className="parser-evaluation-panel prepared-execution-decision-checklist">
+      <h4>Prepared Execution Decision Checklist</h4>
+
+      <p className="small-note">
+        Review this checklist before using Execute Prepared Command. It summarizes
+        whether the prepared command is technically available, blocked, or still
+        needs manual confirmation.
+      </p>
+
+      <div className="prepared-execution-checklist-list">
+        {checklist.map((item) => (
+          <div
+            className={`prepared-execution-checklist-item prepared-execution-checklist-item-${item.status}`}
+            key={item.label}
+          >
+            <div>
+              <strong>{item.label}</strong>
+              <p>{item.detail}</p>
+            </div>
+            <span>{formatChecklistStatus(item.status)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 type CommandExecutionSafetyHintsPanelProps = {
   preparation: PreparedExecutionResult
@@ -522,6 +631,10 @@ export function CommandPlanPreviewSection({
 
           <p><strong>Status:</strong> {commandPlanExecutionPrepareResult.status}</p>
           <p><strong>Executable:</strong> {commandPlanExecutionPrepareResult.executable ? 'yes' : 'no'}</p>
+
+<PreparedExecutionDecisionChecklistPanel
+  preparation={commandPlanExecutionPrepareResult}
+/>
 
 <CommandExecutionSafetyHintsPanel
   preparation={commandPlanExecutionPrepareResult}

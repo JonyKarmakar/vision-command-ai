@@ -265,3 +265,21 @@ The shortcut:
 This is still not command execution. It does not run commands, execute prepared commands, or add workflow routing.
 
 This PR does not change command execution behavior.
+
+## E.4.11 Prepared execution decision checklist
+
+Status: Implemented in PR #524
+
+Prepared Execution Preview now includes a decision checklist before the developer decides whether to execute a prepared command.
+
+The checklist uses existing prepare-execution data only:
+
+- prepared command object availability
+- backend executable flag
+- matched registry skill readiness
+- warning presence
+- manual confirmation requirement
+
+This improves the safety boundary after planning and preparation, especially when using registry example shortcuts.
+
+This PR does not change command execution behavior, routing, backend logic, model behavior, or prepared command execution.
