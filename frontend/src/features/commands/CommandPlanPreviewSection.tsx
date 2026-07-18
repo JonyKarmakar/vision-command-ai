@@ -16,6 +16,89 @@ type PreparedExecutionResult = {
   command_skill?: CommandSkill | null
 }
 
+type CommandExecutionSafetyHint = {
+  label: string
+  detail: string
+}
+
+
+const getCommandExecutionSafetyHints = (
+  preparation: PreparedExecutionResult,
+): CommandExecutionSafetyHint[] => {
+  const hints: CommandExecutionSafetyHint[] = []
+  const skill = preparation.command_skill
+
+  if (!skill) {
+    hints.push({
+      label: 'No matched skill metadata',
+      detail:
+        'The prepared command does not include registry metadata, so execution should be reviewed carefully before running.',
+    })
+  }
+
+  if (!preparation.executable || !preparation.prepared_command) {
+    hints.push({
+      label: 'Execution blocked',
+      detail:
+        'The prepared command is not executable yet. Review the warning message and provide the missing context before trying to run it.',
+    })
+  } else {
+    hints.push({
+      label: 'Prepared command available',
+      detail:
+        'The backend prepared an executable command object. Review the command action, target, and warnings before executing.',
+    })
+  }
+
+  if (preparation.warnings.length > 0) {
+    hints.push({
+      label: 'Warnings present',
+      detail: preparation.warnings.join(' '),
+    })
+  }
+
+  if (skill?.execution_status === 'implemented_command') {
+    hints.push({
+      label: 'Implemented command path',
+      detail:
+        'The matched registry skill is marked as an implemented command. Execution still depends on valid uploaded media and required context.',
+    })
+  }
+
+  if (skill?.execution_status === 'workflow_available_manual') {
+    hints.push({
+      label: 'Manual workflow only',
+      detail:
+        'The matched workflow exists in the product, but it is not fully connected to command execution yet. Prefer the manual UI workflow for now.',
+    })
+  }
+
+  if (skill?.execution_status === 'partially_implemented_command_support') {
+    hints.push({
+      label: 'Partially supported command',
+      detail:
+        'Some command support exists, but this skill may still require manual steps or future routing work before it is safe to treat as fully automated.',
+    })
+  }
+
+  if (skill && skill.execution_status !== 'implemented_command') {
+    hints.push({
+      label: 'Do not overclaim automation',
+      detail:
+        'This registry status should be presented as workflow visibility, not as a completed command automation feature.',
+    })
+  }
+
+  if (skill?.required_context.length) {
+    hints.push({
+      label: 'Required context',
+      detail: `Needs: ${skill.required_context.join(', ')}.`,
+    })
+  }
+
+  return hints
+}
+
 type CommandPlanPreviewSectionProps = {
   commandPlanResult: CommandPlanResult | null
   commandPlanExecutionPrepareResult: PreparedExecutionResult | null
@@ -85,6 +168,39 @@ const getCommandSkillReadiness = (status: string) => {
 }
 
 
+
+type CommandExecutionSafetyHintsPanelProps = {
+  preparation: PreparedExecutionResult
+}
+
+function CommandExecutionSafetyHintsPanel({
+  preparation,
+}: CommandExecutionSafetyHintsPanelProps) {
+  const hints = getCommandExecutionSafetyHints(preparation)
+
+  return (
+    <div className="parser-evaluation-panel">
+      <h4>Execution Safety Hints</h4>
+
+      <p className="small-note">
+        These hints explain whether this prepared command should be executed now,
+        blocked for more context, or treated as a manual or partial workflow.
+      </p>
+
+      <div className="provider-mode-list">
+        <span>Safety review</span>
+        <ul>
+          {hints.map((hint) => (
+            <li key={`${hint.label}-${hint.detail}`}>
+              <strong>{hint.label}</strong> {hint.detail}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
 type CommandSkillMetadataPanelProps = {
   title: string
   skill?: CommandSkill | null
@@ -106,14 +222,14 @@ function CommandSkillMetadataPanel({ title, skill }: CommandSkillMetadataPanelPr
     <div className="parser-evaluation-panel">
       <h4>{title}</h4>
 
-<div className="parser-provider-status-badge">
-  <span>Execution readiness</span>
-  <strong>{readiness.label}</strong>
-</div>
+      <div className="parser-provider-status-badge">
+        <span>Execution readiness</span>
+        <strong>{readiness.label}</strong>
+      </div>
 
-<p className="small-note">
-  {readiness.summary} {readiness.detail}
-</p>
+      <p className="small-note">
+        {readiness.summary} {readiness.detail}
+      </p>
 
       <div className="parser-evaluation-summary">
         <div>
@@ -406,6 +522,10 @@ export function CommandPlanPreviewSection({
 
           <p><strong>Status:</strong> {commandPlanExecutionPrepareResult.status}</p>
           <p><strong>Executable:</strong> {commandPlanExecutionPrepareResult.executable ? 'yes' : 'no'}</p>
+
+<CommandExecutionSafetyHintsPanel
+  preparation={commandPlanExecutionPrepareResult}
+/>
 
           <CommandSkillMetadataPanel
             title="Prepared Execution Command Skill"
