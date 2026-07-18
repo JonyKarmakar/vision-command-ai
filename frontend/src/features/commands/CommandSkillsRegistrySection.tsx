@@ -1,4 +1,4 @@
-import type { RefObject } from 'react'
+import { useState, type RefObject } from 'react'
 import type { CommandSkillsRegistryResponse } from '../../types/apiTypes'
 
 type CommandSkillsRegistrySectionProps = {
@@ -9,6 +9,14 @@ type CommandSkillsRegistrySectionProps = {
 }
 
 const formatSkillStatus = (status: string) => status.replace(/_/g, ' ')
+
+const ALL_COMMAND_SKILL_FILTER_VALUE = 'all'
+
+const getExecutionStatusOptions = (registry: CommandSkillsRegistryResponse) =>
+  Array.from(new Set(registry.skills.map((skill) => skill.execution_status))).sort()
+
+const getCategoryOptions = (registry: CommandSkillsRegistryResponse) =>
+  Array.from(new Set(registry.skills.map((skill) => skill.category))).sort()
 
 const getSkillsByStatus = (registry: CommandSkillsRegistryResponse) =>
   registry.skills.reduce<Record<string, number>>((summary, skill) => {
@@ -28,12 +36,34 @@ export function CommandSkillsRegistrySection({
   isBusy,
   onClearCommandSkillsRegistry,
 }: CommandSkillsRegistrySectionProps) {
+  const [selectedExecutionStatus, setSelectedExecutionStatus] = useState(
+    ALL_COMMAND_SKILL_FILTER_VALUE,
+  )
+  const [selectedCategory, setSelectedCategory] = useState(
+    ALL_COMMAND_SKILL_FILTER_VALUE,
+  )
+
   if (!commandSkillsRegistryResult) {
     return null
   }
 
   const statusSummary = getSkillsByStatus(commandSkillsRegistryResult)
   const categorySummary = getSkillsByCategory(commandSkillsRegistryResult)
+  const executionStatusOptions = getExecutionStatusOptions(commandSkillsRegistryResult)
+  const categoryOptions = getCategoryOptions(commandSkillsRegistryResult)
+  const filteredSkills = commandSkillsRegistryResult.skills.filter((skill) => {
+    const matchesStatus =
+      selectedExecutionStatus === ALL_COMMAND_SKILL_FILTER_VALUE ||
+      skill.execution_status === selectedExecutionStatus
+    const matchesCategory =
+      selectedCategory === ALL_COMMAND_SKILL_FILTER_VALUE ||
+      skill.category === selectedCategory
+
+    return matchesStatus && matchesCategory
+  })
+  const hasActiveFilters =
+    selectedExecutionStatus !== ALL_COMMAND_SKILL_FILTER_VALUE ||
+    selectedCategory !== ALL_COMMAND_SKILL_FILTER_VALUE
 
   return (
     <div className="parser-evaluation-panel" ref={commandSkillsRegistryRef}>
@@ -96,6 +126,60 @@ export function CommandSkillsRegistrySection({
         </div>
       </div>
 
+      <div className="provider-mode-list">
+        <span>Registry filters</span>
+
+        <div className="registry-filter-controls">
+          <label>
+            <span>Execution status</span>
+            <select
+              value={selectedExecutionStatus}
+              onChange={(event) => setSelectedExecutionStatus(event.target.value)}
+              disabled={isBusy}
+            >
+              <option value={ALL_COMMAND_SKILL_FILTER_VALUE}>All statuses</option>
+              {executionStatusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {formatSkillStatus(status)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Category</span>
+            <select
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+              disabled={isBusy}
+            >
+              <option value={ALL_COMMAND_SKILL_FILTER_VALUE}>All categories</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>
+                  {formatSkillStatus(category)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <button
+            className="secondary-button"
+            onClick={() => {
+              setSelectedExecutionStatus(ALL_COMMAND_SKILL_FILTER_VALUE)
+              setSelectedCategory(ALL_COMMAND_SKILL_FILTER_VALUE)
+            }}
+            disabled={isBusy || !hasActiveFilters}
+          >
+            Reset filters
+          </button>
+        </div>
+
+        <p className="small-note">
+          Showing {filteredSkills.length} of {commandSkillsRegistryResult.skill_count}
+          command skills.
+        </p>
+      </div>
+
       {commandSkillsRegistryResult.notes.length > 0 && (
         <div className="provider-mode-list">
           <span>Registry notes</span>
@@ -108,7 +192,16 @@ export function CommandSkillsRegistrySection({
       )}
 
       <div className="parser-evaluation-list">
-        {commandSkillsRegistryResult.skills.map((skill) => (
+        {filteredSkills.length === 0 && (
+          <div className="evaluation-item">
+            <div>
+              <strong>No command skills match the selected filters.</strong>
+              <p>Reset the filters to show the full command skills registry.</p>
+            </div>
+          </div>
+        )}
+
+        {filteredSkills.map((skill) => (
           <div className="evaluation-item" key={skill.id}>
             <div>
               <strong>{skill.title}</strong>
