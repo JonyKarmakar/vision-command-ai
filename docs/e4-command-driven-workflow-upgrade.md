@@ -142,3 +142,26 @@ Prepare-execution responses also include the matched command skill metadata for 
 This makes it easier to understand whether a planned command maps to an implemented command, a manual workflow, or a partially implemented command-support behavior.
 
 This PR does not change command execution behavior and does not make manual workflows command-driven yet.
+
+## E.4.4 Command skill metadata in plan previews
+
+Status: Implemented in PR #517
+
+Developer Mode now displays command skill metadata inside the Command Plan Preview and Prepared Execution Preview.
+
+The frontend shows:
+
+- matched command skill ID
+- skill title
+- category
+- execution status
+- supported media
+- mapped actions
+- mapped workflows
+- required and optional context
+- outputs
+- limitations
+
+This makes registry-aware planning easier to inspect before the project adds command-driven routing or multi-step workflow execution.
+
+This PR does not change command execution behavior.

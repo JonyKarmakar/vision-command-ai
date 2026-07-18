@@ -385,6 +385,7 @@ export type CommandPlanResponse = {
   confidence: number
   needs_clarification: boolean
   clarification_question: string | null
+  command_skill?: CommandSkill | null
 }
 
 export type CommandPlanExecutionPrepareResponse = {
@@ -392,6 +393,7 @@ export type CommandPlanExecutionPrepareResponse = {
   executable: boolean
   prepared_command: Record<string, unknown> | null
   warnings: string[]
+  command_skill?: CommandSkill | null
 }
 
 export type CommandPlanEvaluationSummaryEntry = {
