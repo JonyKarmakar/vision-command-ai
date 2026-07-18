@@ -3547,8 +3547,10 @@ const handleLoadCommandSkillsRegistry = async () => {
     }
   }
 
-  const handlePlanCommand = async () => {
-    if (!commandText.trim()) {
+  const handlePlanCommand = async (commandOverride?: string) => {
+    const commandToPlan = (commandOverride ?? commandText).trim()
+
+    if (!commandToPlan) {
       setError('Please type a command to plan.')
       return
     }
@@ -3557,7 +3559,8 @@ const handleLoadCommandSkillsRegistry = async () => {
       setIsPlanningCommand(true)
       setError(null)
       setCommandPlanResult(null)
-      setStatusMessage(`Planning command with ${selectedPlannerMode}: "${commandText}"...`)
+      setCommandPlanExecutionPrepareResult(null)
+      setStatusMessage(`Planning command with ${selectedPlannerMode}: "${commandToPlan}"...`)
 
       const response = await fetch('/api/commands/plan', {
         method: 'POST',
@@ -3565,7 +3568,7 @@ const handleLoadCommandSkillsRegistry = async () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          command: commandText,
+          command: commandToPlan,
           planner_mode: selectedPlannerMode,
         }),
       })
@@ -6028,7 +6031,19 @@ const handleLoadCommandSkillsRegistry = async () => {
             isBusy={isBusy}
             onSelectExampleCommand={(exampleCommand) => {
               setCommandText(exampleCommand)
+              setCommandParseResult(null)
+              setCommandClarificationMessage(null)
+              setCommandPlanResult(null)
+              setCommandPlanExecutionPrepareResult(null)
+              setError(null)
               setStatusMessage('Loaded registry example into the command input.')
+            }}
+            onPlanExampleCommand={(exampleCommand) => {
+              setCommandText(exampleCommand)
+              setCommandParseResult(null)
+              setCommandClarificationMessage(null)
+              setError(null)
+              void handlePlanCommand(exampleCommand)
             }}
             onClearCommandSkillsRegistry={() => {
               setCommandSkillsRegistryResult(null)

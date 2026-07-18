@@ -230,3 +230,20 @@ Each command skill example can be selected from the Command Skills Registry and 
 This helps test planner behavior from the registry without automatically running, parsing, planning, or executing the command.
 
 This PR does not change command execution behavior.
+
+## E.4.9 Registry example planning shortcut
+
+Status: Implemented in PR #522
+
+Developer Mode now lets a registry example be loaded and planned from the Command Skills Registry.
+
+The shortcut:
+
+- loads the selected example into the command input
+- clears stale command parse and prepare-execution state
+- sends the example to the command planning endpoint
+- opens the Command Plan Preview after planning
+
+This is a planning shortcut only. It does not run commands, prepare execution, execute prepared commands, or add workflow routing.
+
+This PR does not change command execution behavior.
