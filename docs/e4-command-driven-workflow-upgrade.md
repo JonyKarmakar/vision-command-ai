@@ -182,3 +182,22 @@ The labels clarify whether a matched skill is:
 This improves E.4 transparency before command routing or multi-step workflow execution is added.
 
 This PR does not change command execution behavior.
+
+## E.4.6 Command execution safety hints
+
+Status: Implemented in PR #519
+
+Developer Mode now shows execution safety hints inside the Prepared Execution Preview.
+
+The hints explain:
+
+- whether execution is blocked
+- whether a prepared command object exists
+- whether warnings are present
+- whether the matched skill is implemented, manual-only, or partially supported
+- what required context is expected
+- when not to overclaim automation
+
+This improves safety and transparency before command routing or multi-step workflow execution is added.
+
+This PR does not change command execution behavior.
