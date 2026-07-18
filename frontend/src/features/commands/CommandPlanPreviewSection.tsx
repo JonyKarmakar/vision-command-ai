@@ -1,4 +1,4 @@
-import type { RefObject } from 'react'
+import { useState, type RefObject } from 'react'
 import type { CommandSkill } from '../../types/apiTypes'
 
 type CommandPlanResult = Record<string, unknown> & {
@@ -449,6 +449,22 @@ export function CommandPlanPreviewSection({
   onClearCommandPlanPreview,
   onClearPreparedExecutionPreview,
 }: CommandPlanPreviewSectionProps) {
+  const [
+    confirmedPreparedExecutionResult,
+    setConfirmedPreparedExecutionResult,
+  ] = useState<PreparedExecutionResult | null>(null)
+
+  const isPreparedExecutionTechnicallyExecutable = Boolean(
+    commandPlanExecutionPrepareResult?.executable &&
+      commandPlanExecutionPrepareResult.prepared_command,
+  )
+  const hasConfirmedPreparedExecutionReview =
+    Boolean(commandPlanExecutionPrepareResult) &&
+    confirmedPreparedExecutionResult === commandPlanExecutionPrepareResult
+  const canExecutePreparedCommand =
+    isPreparedExecutionTechnicallyExecutable &&
+    hasConfirmedPreparedExecutionReview
+
   return (
     <>
       {commandPlanResult && (
@@ -613,8 +629,7 @@ export function CommandPlanPreviewSection({
               disabled={
                 isBusy ||
                 isExecutingPreparedCommand ||
-                !commandPlanExecutionPrepareResult.executable ||
-                !commandPlanExecutionPrepareResult.prepared_command
+                !canExecutePreparedCommand
               }
             >
               {isExecutingPreparedCommand ? 'Executing...' : 'Execute Prepared Command'}
@@ -631,6 +646,34 @@ export function CommandPlanPreviewSection({
 
           <p><strong>Status:</strong> {commandPlanExecutionPrepareResult.status}</p>
           <p><strong>Executable:</strong> {commandPlanExecutionPrepareResult.executable ? 'yes' : 'no'}</p>
+
+          <div className="prepared-execution-confirmation-gate">
+            <label>
+              <input
+                type="checkbox"
+                checked={hasConfirmedPreparedExecutionReview}
+                onChange={(event) =>
+                  setConfirmedPreparedExecutionResult(
+                    event.target.checked ? commandPlanExecutionPrepareResult : null,
+                  )
+                }
+                disabled={
+                  isBusy ||
+                  isExecutingPreparedCommand ||
+                  !isPreparedExecutionTechnicallyExecutable
+                }
+              />
+              <span>
+                I reviewed the decision checklist, warnings, active media, and
+                prepared command. Enable Execute Prepared Command.
+              </span>
+            </label>
+
+            <p className="small-note">
+              Execute Prepared Command stays disabled until this confirmation is
+              selected and the prepared command is technically executable.
+            </p>
+          </div>
 
 <PreparedExecutionDecisionChecklistPanel
   preparation={commandPlanExecutionPrepareResult}
