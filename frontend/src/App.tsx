@@ -3590,6 +3590,85 @@ const handleLoadCommandSkillsRegistry = async () => {
     }
   }
 
+const handlePlanAndPrepareExampleCommand = async (exampleCommand: string) => {
+  const commandToPlan = exampleCommand.trim()
+
+  if (!commandToPlan) {
+    setError('Please choose a registry example to plan and prepare.')
+    return
+  }
+
+  try {
+    setCommandText(commandToPlan)
+    setIsPlanningCommand(true)
+    setIsPreparingCommandPlanExecution(true)
+    setError(null)
+    setCommandParseResult(null)
+    setCommandClarificationMessage(null)
+    setCommandPlanResult(null)
+    setCommandPlanExecutionPrepareResult(null)
+    setStatusMessage(
+      `Planning and preparing registry example with ${selectedPlannerMode}: "${commandToPlan}"...`,
+    )
+
+    const planResponse = await fetch('/api/commands/plan', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        command: commandToPlan,
+        planner_mode: selectedPlannerMode,
+      }),
+    })
+
+    if (!planResponse.ok) {
+      throw new Error(await getBackendErrorMessage(planResponse, 'Command planning failed'))
+    }
+
+    const planData: CommandPlanResponse = await planResponse.json()
+    setCommandPlanResult(planData)
+
+    const prepareResponse = await fetch('/api/commands/plan/prepare-execution', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        plan: planData,
+      }),
+    })
+
+    if (!prepareResponse.ok) {
+      throw new Error(
+        await getBackendErrorMessage(
+          prepareResponse,
+          'Command plan execution preparation failed',
+        ),
+      )
+    }
+
+    const prepareData: CommandPlanExecutionPrepareResponse = await prepareResponse.json()
+    setCommandPlanExecutionPrepareResult(prepareData)
+    scrollToLoadedView(commandPlanExecutionPrepareRef)
+    setStatusMessage(
+      prepareData.executable
+        ? 'Registry example planned and prepared for inspection.'
+        : 'Registry example planned, but prepare-execution is blocked for inspection.',
+    )
+  } catch (err) {
+    const message = getErrorMessage(
+      err,
+      'Registry example plan-and-prepare failed.',
+    )
+    setError(message)
+    setStatusMessage(message)
+  } finally {
+    setIsPlanningCommand(false)
+    setIsPreparingCommandPlanExecution(false)
+  }
+}
+
   const handlePrepareCommandPlanExecution = async () => {
     if (!commandPlanResult) {
       setError('Please create a command plan before preparing execution.')
@@ -6044,6 +6123,9 @@ const handleLoadCommandSkillsRegistry = async () => {
               setCommandClarificationMessage(null)
               setError(null)
               void handlePlanCommand(exampleCommand)
+            }}
+            onPlanAndPrepareExampleCommand={(exampleCommand) => {
+              void handlePlanAndPrepareExampleCommand(exampleCommand)
             }}
             onClearCommandSkillsRegistry={() => {
               setCommandSkillsRegistryResult(null)
