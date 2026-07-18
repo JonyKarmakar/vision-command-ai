@@ -7,6 +7,7 @@ type CommandSkillsRegistrySectionProps = {
   isBusy: boolean
   onClearCommandSkillsRegistry: () => void
   onSelectExampleCommand: (commandText: string) => void
+  onPlanExampleCommand: (commandText: string) => void | Promise<void>
 }
 
 const formatSkillStatus = (status: string) => status.replace(/_/g, ' ')
@@ -37,6 +38,7 @@ export function CommandSkillsRegistrySection({
   isBusy,
   onClearCommandSkillsRegistry,
   onSelectExampleCommand,
+  onPlanExampleCommand,
 }: CommandSkillsRegistrySectionProps) {
   const [selectedExecutionStatus, setSelectedExecutionStatus] = useState(
     ALL_COMMAND_SKILL_FILTER_VALUE,
@@ -84,8 +86,8 @@ export function CommandSkillsRegistrySection({
       <p className="small-note">
         This registry separates implemented command skills from manual workflows that
         are planned for later E.4 command routing. It is a visibility layer, not a new
-        execution engine. Example commands can be loaded into the command input for
-        testing, but they do not run automatically.
+        execution engine. Example commands can be loaded into the command input or
+        planned for inspection, but they do not run or execute automatically.
       </p>
 
       <div className="parser-evaluation-summary">
@@ -233,15 +235,25 @@ export function CommandSkillsRegistrySection({
               <span>Examples</span>
               <div className="registry-example-command-list">
                 {skill.user_examples.map((example) => (
-                  <button
-                    type="button"
-                    className="secondary-button registry-example-command-button"
-                    key={example}
-                    onClick={() => onSelectExampleCommand(example)}
-                    disabled={isBusy}
-                  >
-                    Use example: {example}
-                  </button>
+                  <div className="registry-example-command-actions" key={example}>
+                    <button
+                      type="button"
+                      className="secondary-button registry-example-command-button"
+                      onClick={() => onSelectExampleCommand(example)}
+                      disabled={isBusy}
+                    >
+                      Use example: {example}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="secondary-button registry-example-command-button"
+                      onClick={() => void onPlanExampleCommand(example)}
+                      disabled={isBusy}
+                    >
+                      Plan example
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

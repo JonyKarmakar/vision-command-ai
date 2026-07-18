@@ -1565,6 +1565,14 @@ input[type="file"]::file-selector-button:hover {
   gap: 8px;
 }
 
+.registry-example-command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+
 .registry-example-command-button {
   max-width: 100%;
   text-align: left;
