@@ -218,3 +218,15 @@ The view also shows how many skills match the active filters and provides a rese
 This makes the registry easier to inspect as E.4 adds more command skills and workflow-routing metadata.
 
 This PR does not change command execution behavior.
+
+## E.4.8 Command plan examples from registry
+
+Status: Implemented in PR #521
+
+Developer Mode now lets registry examples populate the command input.
+
+Each command skill example can be selected from the Command Skills Registry and loaded into the command input for testing.
+
+This helps test planner behavior from the registry without automatically running, parsing, planning, or executing the command.
+
+This PR does not change command execution behavior.

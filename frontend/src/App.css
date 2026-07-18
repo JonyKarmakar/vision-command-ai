@@ -1559,6 +1559,18 @@ input[type="file"]::file-selector-button:hover {
   cursor: not-allowed;
 }
 
+.registry-example-command-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.registry-example-command-button {
+  max-width: 100%;
+  text-align: left;
+  white-space: normal;
+}
+
 @media (max-width: 900px) {
   .provider-status-grid {
     grid-template-columns: 1fr;
