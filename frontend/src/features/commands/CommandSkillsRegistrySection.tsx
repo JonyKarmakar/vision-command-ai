@@ -8,6 +8,7 @@ type CommandSkillsRegistrySectionProps = {
   onClearCommandSkillsRegistry: () => void
   onSelectExampleCommand: (commandText: string) => void
   onPlanExampleCommand: (commandText: string) => void | Promise<void>
+  onPlanAndPrepareExampleCommand: (commandText: string) => void | Promise<void>
 }
 
 const formatSkillStatus = (status: string) => status.replace(/_/g, ' ')
@@ -39,6 +40,7 @@ export function CommandSkillsRegistrySection({
   onClearCommandSkillsRegistry,
   onSelectExampleCommand,
   onPlanExampleCommand,
+  onPlanAndPrepareExampleCommand,
 }: CommandSkillsRegistrySectionProps) {
   const [selectedExecutionStatus, setSelectedExecutionStatus] = useState(
     ALL_COMMAND_SKILL_FILTER_VALUE,
@@ -252,6 +254,15 @@ export function CommandSkillsRegistrySection({
                       disabled={isBusy}
                     >
                       Plan example
+                    </button>
+
+                    <button
+                      type="button"
+                      className="secondary-button registry-example-command-button"
+                      onClick={() => void onPlanAndPrepareExampleCommand(example)}
+                      disabled={isBusy}
+                    >
+                      Plan and prepare example
                     </button>
                   </div>
                 ))}

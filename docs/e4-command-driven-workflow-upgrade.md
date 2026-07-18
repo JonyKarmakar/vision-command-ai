@@ -247,3 +247,21 @@ The shortcut:
 This is a planning shortcut only. It does not run commands, prepare execution, execute prepared commands, or add workflow routing.
 
 This PR does not change command execution behavior.
+
+## E.4.10 Registry example plan-and-prepare shortcut
+
+Status: Implemented in PR #523
+
+Developer Mode now lets a registry example be planned and prepared for inspection from the Command Skills Registry.
+
+The shortcut:
+
+- loads the selected example into the command input
+- clears stale parse, clarification, plan, and prepare-execution state
+- sends the example to the command planning endpoint
+- sends the returned plan to the prepare-execution endpoint
+- opens the Prepared Execution Preview for inspection
+
+This is still not command execution. It does not run commands, execute prepared commands, or add workflow routing.
+
+This PR does not change command execution behavior.
