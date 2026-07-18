@@ -201,3 +201,20 @@ The hints explain:
 This improves safety and transparency before command routing or multi-step workflow execution is added.
 
 This PR does not change command execution behavior.
+
+## E.4.7 Command Skills Registry filters
+
+Status: Implemented in PR #520
+
+Developer Mode now supports local filtering inside the Command Skills Registry.
+
+The registry can be filtered by:
+
+- execution status
+- category
+
+The view also shows how many skills match the active filters and provides a reset action.
+
+This makes the registry easier to inspect as E.4 adds more command skills and workflow-routing metadata.
+
+This PR does not change command execution behavior.
