@@ -165,3 +165,20 @@ The frontend shows:
 This makes registry-aware planning easier to inspect before the project adds command-driven routing or multi-step workflow execution.
 
 This PR does not change command execution behavior.
+
+## E.4.5 Command skill execution readiness labels
+
+Status: Implemented in PR #518
+
+Developer Mode now translates command skill execution status into readable readiness labels inside the Command Plan Preview and Prepared Execution Preview.
+
+The labels clarify whether a matched skill is:
+
+- executable now
+- available as a manual workflow
+- partially supported
+- tracked as future work
+
+This improves E.4 transparency before command routing or multi-step workflow execution is added.
+
+This PR does not change command execution behavior.

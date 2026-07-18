@@ -48,6 +48,43 @@ type CommandPlanPreviewSectionProps = {
 
 const formatSkillStatus = (status: string) => status.replace(/_/g, ' ')
 
+const getCommandSkillReadiness = (status: string) => {
+  if (status === 'implemented_command') {
+    return {
+      label: 'Executable now',
+      summary: 'This skill maps to an implemented command path.',
+      detail:
+        'The planner can prepare this command for the existing execution flow when the required context is present.',
+    }
+  }
+
+  if (status === 'workflow_available_manual') {
+    return {
+      label: 'Manual workflow available',
+      summary: 'This workflow exists in the product, but it is not command-driven yet.',
+      detail:
+        'The user can complete this through existing UI workflow steps, but E.4 routing has not connected it to one command yet.',
+    }
+  }
+
+  if (status === 'partially_implemented_command_support') {
+    return {
+      label: 'Partially supported',
+      summary: 'Some command support exists, but the workflow is not fully automated yet.',
+      detail:
+        'This skill may still need extra context, manual steps, or future routing work before it behaves like a complete command workflow.',
+    }
+  }
+
+  return {
+    label: 'Future work',
+    summary: 'This skill is tracked in the registry, but it is not ready for command execution yet.',
+    detail:
+      'The registry keeps this visible for roadmap planning without pretending that execution is already implemented.',
+  }
+}
+
+
 type CommandSkillMetadataPanelProps = {
   title: string
   skill?: CommandSkill | null
@@ -63,9 +100,20 @@ function CommandSkillMetadataPanel({ title, skill }: CommandSkillMetadataPanelPr
     )
   }
 
+  const readiness = getCommandSkillReadiness(skill.execution_status)
+
   return (
     <div className="parser-evaluation-panel">
       <h4>{title}</h4>
+
+<div className="parser-provider-status-badge">
+  <span>Execution readiness</span>
+  <strong>{readiness.label}</strong>
+</div>
+
+<p className="small-note">
+  {readiness.summary} {readiness.detail}
+</p>
 
       <div className="parser-evaluation-summary">
         <div>
