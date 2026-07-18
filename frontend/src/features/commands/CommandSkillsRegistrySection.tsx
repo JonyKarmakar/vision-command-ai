@@ -6,6 +6,7 @@ type CommandSkillsRegistrySectionProps = {
   commandSkillsRegistryRef: RefObject<HTMLDivElement | null>
   isBusy: boolean
   onClearCommandSkillsRegistry: () => void
+  onSelectExampleCommand: (commandText: string) => void
 }
 
 const formatSkillStatus = (status: string) => status.replace(/_/g, ' ')
@@ -35,6 +36,7 @@ export function CommandSkillsRegistrySection({
   commandSkillsRegistryRef,
   isBusy,
   onClearCommandSkillsRegistry,
+  onSelectExampleCommand,
 }: CommandSkillsRegistrySectionProps) {
   const [selectedExecutionStatus, setSelectedExecutionStatus] = useState(
     ALL_COMMAND_SKILL_FILTER_VALUE,
@@ -82,7 +84,8 @@ export function CommandSkillsRegistrySection({
       <p className="small-note">
         This registry separates implemented command skills from manual workflows that
         are planned for later E.4 command routing. It is a visibility layer, not a new
-        execution engine.
+        execution engine. Example commands can be loaded into the command input for
+        testing, but they do not run automatically.
       </p>
 
       <div className="parser-evaluation-summary">
@@ -228,9 +231,17 @@ export function CommandSkillsRegistrySection({
 
             <div className="provider-mode-list">
               <span>Examples</span>
-              <div>
+              <div className="registry-example-command-list">
                 {skill.user_examples.map((example) => (
-                  <strong key={example}>{example}</strong>
+                  <button
+                    type="button"
+                    className="secondary-button registry-example-command-button"
+                    key={example}
+                    onClick={() => onSelectExampleCommand(example)}
+                    disabled={isBusy}
+                  >
+                    Use example: {example}
+                  </button>
                 ))}
               </div>
             </div>

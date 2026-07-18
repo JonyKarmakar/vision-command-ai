@@ -6026,6 +6026,10 @@ const handleLoadCommandSkillsRegistry = async () => {
             commandSkillsRegistryResult={commandSkillsRegistryResult}
             commandSkillsRegistryRef={commandSkillsRegistryRef}
             isBusy={isBusy}
+            onSelectExampleCommand={(exampleCommand) => {
+              setCommandText(exampleCommand)
+              setStatusMessage('Loaded registry example into the command input.')
+            }}
             onClearCommandSkillsRegistry={() => {
               setCommandSkillsRegistryResult(null)
               setStatusMessage('Command Skills Registry view cleared.')
