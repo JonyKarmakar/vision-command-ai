@@ -6893,3 +6893,17 @@ input[type="file"]::file-selector-button:hover {
 .prepared-execution-confirmation-gate input {
   margin-top: 4px;
 }
+.command-execution-audit-summary {
+  border-style: solid;
+}
+
+.command-execution-audit-summary-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.command-execution-audit-summary-header h4 {
+  margin-bottom: 4px;
+}

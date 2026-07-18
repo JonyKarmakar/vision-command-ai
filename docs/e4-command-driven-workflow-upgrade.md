@@ -300,3 +300,25 @@ The confirmation gate:
 This is a frontend safety gate only.
 
 This PR does not change backend logic, command execution behavior, workflow routing, LLM behavior, or vision model behavior.
+
+## E.4.13 Command execution audit summary
+
+Status: Implemented in PR #526
+
+Prepared command execution now produces a frontend audit summary after Execute Prepared Command completes.
+
+The audit summary records:
+
+- execution timestamp
+- original command
+- planner mode
+- prepared action
+- final result type
+- active media filename and media source
+- matched registry skill metadata
+- prepare-execution warnings
+- manual confirmation state
+
+This is a frontend traceability summary only. It is not a database audit log.
+
+This PR does not change backend logic, command execution behavior, workflow routing, LLM behavior, or vision model behavior.

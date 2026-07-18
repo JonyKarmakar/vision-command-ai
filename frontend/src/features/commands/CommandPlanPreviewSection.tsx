@@ -16,6 +16,22 @@ type PreparedExecutionResult = {
   command_skill?: CommandSkill | null
 }
 
+export type CommandExecutionAuditSummary = {
+  executed_at: string
+  command: string
+  planner_mode: string
+  prepared_action: string
+  result_type: string
+  active_filename: string
+  active_media_source: string
+  command_skill_id: string | null
+  command_skill_title: string | null
+  command_skill_status: string | null
+  warning_count: number
+  warnings: string[]
+  manual_confirmation: 'confirmed_before_execution'
+}
+
 type CommandExecutionSafetyHint = {
   label: string
   detail: string
@@ -174,6 +190,7 @@ const getCommandExecutionSafetyHints = (
 type CommandPlanPreviewSectionProps = {
   commandPlanResult: CommandPlanResult | null
   commandPlanExecutionPrepareResult: PreparedExecutionResult | null
+  commandExecutionAuditSummary: CommandExecutionAuditSummary | null
   commandPlanPreviewRef: RefObject<HTMLDivElement | null>
   commandPlanExecutionPrepareRef: RefObject<HTMLDivElement | null>
   commandText: string
@@ -199,6 +216,7 @@ type CommandPlanPreviewSectionProps = {
   onExecutePreparedCommand: () => void | Promise<void>
   onClearCommandPlanPreview: () => void
   onClearPreparedExecutionPreview: () => void
+  onClearCommandExecutionAuditSummary: () => void
 }
 
 const formatSkillStatus = (status: string) => status.replace(/_/g, ' ')
@@ -240,6 +258,85 @@ const getCommandSkillReadiness = (status: string) => {
 }
 
 
+
+type CommandExecutionAuditSummaryPanelProps = {
+  summary: CommandExecutionAuditSummary
+  onClear: () => void
+}
+
+function CommandExecutionAuditSummaryPanel({
+  summary,
+  onClear,
+}: CommandExecutionAuditSummaryPanelProps) {
+  return (
+    <div className="parser-evaluation-panel command-execution-audit-summary">
+      <div className="command-execution-audit-summary-header">
+        <div>
+          <h4>Command Execution Audit Summary</h4>
+          <p className="small-note">
+            This frontend summary records what was executed from the prepared
+            command flow. It is not a database audit log.
+          </p>
+        </div>
+
+        <button className="secondary-button view-clear-button" onClick={onClear}>
+          Clear Audit Summary
+        </button>
+      </div>
+
+      <div className="parser-evaluation-summary">
+        <div>
+          <span>Executed at</span>
+          <strong>{summary.executed_at}</strong>
+        </div>
+        <div>
+          <span>Prepared action</span>
+          <strong>{summary.prepared_action}</strong>
+        </div>
+        <div>
+          <span>Result type</span>
+          <strong>{summary.result_type}</strong>
+        </div>
+        <div>
+          <span>Manual confirmation</span>
+          <strong>{summary.manual_confirmation.replace(/_/g, ' ')}</strong>
+        </div>
+      </div>
+
+      <div className="provider-mode-list">
+        <span>Execution context</span>
+        <ul>
+          <li>Command: {summary.command}</li>
+          <li>Planner mode: {summary.planner_mode}</li>
+          <li>Active media: {summary.active_filename}</li>
+          <li>Media source: {summary.active_media_source}</li>
+        </ul>
+      </div>
+
+      <div className="provider-mode-list">
+        <span>Registry skill</span>
+        <ul>
+          <li>Skill ID: {summary.command_skill_id ?? 'not matched'}</li>
+          <li>Title: {summary.command_skill_title ?? 'not matched'}</li>
+          <li>Status: {summary.command_skill_status ?? 'not matched'}</li>
+        </ul>
+      </div>
+
+      <div className="provider-mode-list">
+        <span>Prepare warnings</span>
+        {summary.warning_count > 0 ? (
+          <ul>
+            {summary.warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="small-note">No prepare-execution warnings were present.</p>
+        )}
+      </div>
+    </div>
+  )
+}
 
 type PreparedExecutionDecisionChecklistPanelProps = {
   preparation: PreparedExecutionResult
@@ -432,6 +529,7 @@ function CommandSkillMetadataPanel({ title, skill }: CommandSkillMetadataPanelPr
 export function CommandPlanPreviewSection({
   commandPlanResult,
   commandPlanExecutionPrepareResult,
+  commandExecutionAuditSummary,
   commandPlanPreviewRef,
   commandPlanExecutionPrepareRef,
   commandText,
@@ -448,6 +546,7 @@ export function CommandPlanPreviewSection({
   onExecutePreparedCommand,
   onClearCommandPlanPreview,
   onClearPreparedExecutionPreview,
+  onClearCommandExecutionAuditSummary,
 }: CommandPlanPreviewSectionProps) {
   const [
     confirmedPreparedExecutionResult,
@@ -682,6 +781,13 @@ export function CommandPlanPreviewSection({
 <CommandExecutionSafetyHintsPanel
   preparation={commandPlanExecutionPrepareResult}
 />
+
+          {commandExecutionAuditSummary && (
+            <CommandExecutionAuditSummaryPanel
+              summary={commandExecutionAuditSummary}
+              onClear={onClearCommandExecutionAuditSummary}
+            />
+          )}
 
           <CommandSkillMetadataPanel
             title="Prepared Execution Command Skill"

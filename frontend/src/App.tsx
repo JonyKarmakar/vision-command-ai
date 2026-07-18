@@ -36,7 +36,10 @@ import { CommandModeSelectorsSection } from './features/commands/CommandModeSele
 import { CommandHistoryControlsSection } from './features/commands/CommandHistoryControlsSection'
 import { ParserObservabilityControlsSection } from './features/commands/ParserObservabilityControlsSection'
 import { PromptPreviewPanelsSection } from './features/commands/PromptPreviewPanelsSection'
-import { CommandPlanPreviewSection } from './features/commands/CommandPlanPreviewSection'
+import {
+  CommandPlanPreviewSection,
+  type CommandExecutionAuditSummary,
+} from './features/commands/CommandPlanPreviewSection'
 import { ParsedCommandPreviewSection } from './features/commands/ParsedCommandPreviewSection'
 import { CommandResultSection } from './features/commands/CommandResultSection'
 import { LocalOllamaHelpSection } from './features/commands/LocalOllamaHelpSection'
@@ -342,6 +345,7 @@ function App() {
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
   const [commandPlanResult, setCommandPlanResult] = useState<CommandPlanResponse | null>(null)
   const [commandPlanExecutionPrepareResult, setCommandPlanExecutionPrepareResult] = useState<CommandPlanExecutionPrepareResponse | null>(null)
+  const [commandExecutionAuditSummary, setCommandExecutionAuditSummary] = useState<CommandExecutionAuditSummary | null>(null)
   const [parsedCommandValidationResult, setParsedCommandValidationResult] = useState<ParsedCommandValidationResponse | null>(null)
   const [commandPromptPreviewResult, setCommandPromptPreviewResult] = useState<CommandPromptPreviewResponse | null>(null)
   const [commandPlannerPromptPreviewResult, setCommandPlannerPromptPreviewResult] = useState<CommandPlannerPromptPreviewResponse | null>(null)
@@ -3560,6 +3564,7 @@ const handleLoadCommandSkillsRegistry = async () => {
       setError(null)
       setCommandPlanResult(null)
       setCommandPlanExecutionPrepareResult(null)
+      setCommandExecutionAuditSummary(null)
       setStatusMessage(`Planning command with ${selectedPlannerMode}: "${commandToPlan}"...`)
 
       const response = await fetch('/api/commands/plan', {
@@ -3679,6 +3684,7 @@ const handlePlanAndPrepareExampleCommand = async (exampleCommand: string) => {
       setIsPreparingCommandPlanExecution(true)
       setError(null)
       setCommandPlanExecutionPrepareResult(null)
+      setCommandExecutionAuditSummary(null)
       setStatusMessage('Preparing command plan for execution...')
 
       const response = await fetch('/api/commands/plan/prepare-execution', {
@@ -3783,6 +3789,22 @@ const handlePlanAndPrepareExampleCommand = async (exampleCommand: string) => {
       }
 
       const data: CommandResponse = await response.json()
+      setCommandExecutionAuditSummary({
+        executed_at: new Date().toISOString(),
+        command: commandText.trim() || 'prepared_command',
+        planner_mode: selectedPlannerMode,
+        prepared_action: preparedAction,
+        result_type: data.result_type,
+        active_filename: activeFilename,
+        active_media_source: activeMediaSource,
+        command_skill_id: commandPlanExecutionPrepareResult.command_skill?.id ?? null,
+        command_skill_title: commandPlanExecutionPrepareResult.command_skill?.title ?? null,
+        command_skill_status:
+          commandPlanExecutionPrepareResult.command_skill?.execution_status ?? null,
+        warning_count: commandPlanExecutionPrepareResult.warnings.length,
+        warnings: commandPlanExecutionPrepareResult.warnings,
+        manual_confirmation: 'confirmed_before_execution',
+      })
       updateCommandResultForExecutedCommand(data)
       scrollToCommandOutputView(data.result_type)
 
@@ -6136,6 +6158,7 @@ const handlePlanAndPrepareExampleCommand = async (exampleCommand: string) => {
           <CommandPlanPreviewSection
             commandPlanResult={commandPlanResult}
             commandPlanExecutionPrepareResult={commandPlanExecutionPrepareResult}
+            commandExecutionAuditSummary={commandExecutionAuditSummary}
             commandPlanPreviewRef={commandPlanPreviewRef}
             commandPlanExecutionPrepareRef={commandPlanExecutionPrepareRef}
             commandText={commandText}
@@ -6156,7 +6179,12 @@ const handlePlanAndPrepareExampleCommand = async (exampleCommand: string) => {
             }}
             onClearPreparedExecutionPreview={() => {
               setCommandPlanExecutionPrepareResult(null)
+              setCommandExecutionAuditSummary(null)
               setStatusMessage('Prepared Execution Preview view cleared.')
+            }}
+            onClearCommandExecutionAuditSummary={() => {
+              setCommandExecutionAuditSummary(null)
+              setStatusMessage('Command Execution Audit Summary cleared.')
             }}
           />
 
