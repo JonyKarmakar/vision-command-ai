@@ -89,39 +89,30 @@ Expected output:
 
 ## F.1 Analysis knowledge base design
 
-Status: Planned
+Status: Implemented in PR #530
 
 Purpose:
 
 Define a simple analysis memory model over existing generated outputs and analysis results.
 
-The design should explain:
+Design document:
 
-- what counts as a retrievable analysis item
-- which metadata should be searchable
-- how image and video outputs are represented
+- `docs/f1-analysis-memory-knowledge-base-design.md`
+
+The design explains:
+
+- what counts as a retrievable analysis memory item
+- how generated output records map into memory items
+- which fields are searchable
 - how source filenames and workflow lineage are preserved
-- how old results are limited or paginated
-- how local-first behavior works without PostgreSQL
-
-Initial retrievable item fields can include:
-
-- item ID
-- source filename
-- media type
-- result type
-- label
-- command text
-- created timestamp
-- summary text
-- detected classes
-- privacy notes
-- report text when available
-- file URL when available
+- how no-result behavior should work
+- how PostgreSQL unavailable behavior should work
+- how image chat, video chat, and analysis memory chat should remain separate at first
+- why deterministic retrieval comes before vector embeddings
 
 Boundary:
 
-This slice should be design and service-shape focused. It does not need semantic embeddings yet.
+This slice is design and service-shape focused. It does not add retrieval code, a public RAG endpoint, semantic embeddings, a vector database, frontend behavior, LLM behavior, or vision model behavior.
 
 ## F.2 Backend retrieval service over generated outputs
 
