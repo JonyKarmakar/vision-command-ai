@@ -322,3 +322,17 @@ The audit summary records:
 This is a frontend traceability summary only. It is not a database audit log.
 
 This PR does not change backend logic, command execution behavior, workflow routing, LLM behavior, or vision model behavior.
+
+## E.4.14 Command workflow demo guide
+
+Status: Implemented in PR #527
+
+The E.4 command workflow now has a dedicated demo guide:
+
+- `docs/e4-command-workflow-demo-guide.md`
+
+The guide documents the complete Developer Mode flow from command skills registry discovery through example loading, planning, prepare-execution, decision checklist review, manual confirmation, prepared command execution, and frontend audit summary review.
+
+The guide also documents safety boundaries, honest portfolio wording, manual or partial workflow behavior, troubleshooting, and what not to claim.
+
+This PR is documentation only. It does not change frontend behavior, backend behavior, command execution, routing, LLM behavior, or vision model behavior.
