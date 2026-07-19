@@ -336,3 +336,15 @@ The guide documents the complete Developer Mode flow from command skills registr
 The guide also documents safety boundaries, honest portfolio wording, manual or partial workflow behavior, troubleshooting, and what not to claim.
 
 This PR is documentation only. It does not change frontend behavior, backend behavior, command execution, routing, LLM behavior, or vision model behavior.
+
+## E.4.15 E.4 milestone summary
+
+Status: Implemented in PR #528
+
+The E.4 command workflow now has a dedicated milestone summary:
+
+- `docs/e4-command-workflow-milestone-summary.md`
+
+The summary documents what E.4 implemented, what it proves, what it does not prove yet, safety and honesty boundaries, deferred future work, and the recommended next step.
+
+This PR is documentation only. It does not declare v1.0 readiness and does not change frontend behavior, backend behavior, command execution, routing, LLM behavior, or vision model behavior.
