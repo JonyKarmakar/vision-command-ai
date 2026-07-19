@@ -28,6 +28,21 @@ The project currently demonstrates:
 
 The project should not yet be described as a complete v1.0 AI product.
 
+## Current active milestone: F LLM and RAG Expansion
+
+Milestone F starts after E.4 Command-driven Workflow Upgrade.
+
+The purpose of F is to add a practical RAG-style assistant layer over VisionCommand AI analysis memory.
+
+The first version should retrieve and answer over project-generated context such as generated output history, image analysis outputs, video analysis outputs, privacy reviews, tracking readiness summaries, Markdown reports, and workflow history.
+
+This milestone should strengthen evidence for LLM engineering, applied AI, AI software engineering, and LLMOps-oriented roles.
+
+Important boundary:
+
+F should not start as a large framework experiment. It should reuse existing project outputs first, keep local-first behavior, show retrieved sources, and avoid claims about raw multimodal reasoning, autonomous agents, internet search, or semantic vector retrieval unless those features are actually implemented.
+
+
 Current honest status:
 
 - strong full-stack AI/CV portfolio foundation
