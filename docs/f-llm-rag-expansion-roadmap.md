@@ -149,38 +149,51 @@ This is a backend service and test slice only. It does not add a public API endp
 
 ## F.3 RAG answer endpoint
 
-Status: Planned
+Status: Implemented in PR #532
 
 Purpose:
 
 Add an assistant endpoint that retrieves relevant analysis memory and answers with grounded context.
 
-Candidate endpoint:
+Implemented endpoint:
 
 - `POST /assistant/analysis-memory-chat`
 
-The endpoint should accept:
+Implemented service:
+
+- `backend/app/services/analysis_memory_chat.py`
+
+Implemented tests:
+
+- `backend/tests/test_analysis_memory_chat_endpoint.py`
+
+The endpoint accepts:
 
 - user question
 - response mode
 - optional media type filter
 - optional source filename filter
+- optional result type filter
+- optional action filter
 - optional limit
 - optional current workflow context
 
-The response should include:
+The response includes:
 
 - answer
 - responder type
 - prompt version
+- retrieval status
+- retrieval mode
+- retrieval version
 - retrieved item count
-- retrieved sources
+- retrieved source cards
 - grounding notes
 - limitations
 
 Boundary:
 
-The answer must be grounded in retrieved items. If nothing relevant is found, the assistant should say that clearly.
+This slice adds grounded rule-based answer generation over retrieved analysis memory. It does not add frontend behavior, real LLM answer generation, semantic embeddings, vector search, internet search, arbitrary document ingestion, or raw image/video reasoning.
 
 ## F.4 Frontend analysis memory chat panel
 
