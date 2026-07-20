@@ -32,6 +32,7 @@ import { CommandPresetsSection } from './features/commands/CommandPresetsSection
 import { CommandInputControlsSection } from './features/commands/CommandInputControlsSection'
 import { ImageChatAnalysisSection } from './features/commands/ImageChatAnalysisSection'
 import { VideoChatAnalysisSection } from './features/commands/VideoChatAnalysisSection'
+import { AnalysisMemoryChatSection } from './features/commands/AnalysisMemoryChatSection'
 import { CommandModeSelectorsSection } from './features/commands/CommandModeSelectorsSection'
 import { CommandHistoryControlsSection } from './features/commands/CommandHistoryControlsSection'
 import { ParserObservabilityControlsSection } from './features/commands/ParserObservabilityControlsSection'
@@ -101,6 +102,7 @@ import type {
   CommandResponse,
   ImageChatResponse,
   VideoChatResponse,
+  AnalysisMemoryChatResponse,
   CommandLog,
   CommandLogSummaryItem,
   CommandLogSummaryResponse,
@@ -342,6 +344,13 @@ function App() {
   const [videoChatResult, setVideoChatResult] = useState<VideoChatResponse | null>(null)
   const [isAskingVideoChat, setIsAskingVideoChat] = useState(false)
   const [videoChatError, setVideoChatError] = useState<string | null>(null)
+  const [analysisMemoryChatQuestion, setAnalysisMemoryChatQuestion] = useState('')
+  const [analysisMemoryChatResult, setAnalysisMemoryChatResult] = useState<AnalysisMemoryChatResponse | null>(null)
+  const [isAskingAnalysisMemoryChat, setIsAskingAnalysisMemoryChat] = useState(false)
+  const [analysisMemoryChatError, setAnalysisMemoryChatError] = useState<string | null>(null)
+  const [analysisMemoryMediaTypeFilter, setAnalysisMemoryMediaTypeFilter] = useState('all')
+  const [analysisMemorySourceFilenameFilter, setAnalysisMemorySourceFilenameFilter] = useState('')
+  const [analysisMemoryLimit, setAnalysisMemoryLimit] = useState('8')
   const [commandParseResult, setCommandParseResult] = useState<CommandParseResponse | null>(null)
   const [commandPlanResult, setCommandPlanResult] = useState<CommandPlanResponse | null>(null)
   const [commandPlanExecutionPrepareResult, setCommandPlanExecutionPrepareResult] = useState<CommandPlanExecutionPrepareResponse | null>(null)
@@ -3023,6 +3032,83 @@ function App() {
       setStatusMessage(message)
     } finally {
       setIsAskingVideoChat(false)
+    }
+  }
+
+
+
+  const buildAnalysisMemoryChatContext = () => ({
+    generatedOutputHistory: generatedOutputHistory.slice(0, 10),
+    activeGeneratedImageSource,
+    uploadResult: uploadResult
+      ? {
+          stored_filename: uploadResult.stored_filename,
+          file_url: uploadResult.file_url,
+        }
+      : null,
+    videoUploadResult: videoUploadResult
+      ? {
+          stored_filename: videoUploadResult.stored_filename,
+          file_url: videoUploadResult.file_url,
+        }
+      : null,
+  })
+
+  const handleAskAnalysisMemoryChat = async () => {
+    const trimmedQuestion = analysisMemoryChatQuestion.trim()
+
+    if (!trimmedQuestion) {
+      setAnalysisMemoryChatError('Write a question about analysis memory first.')
+      return
+    }
+
+    const sourceFilename = analysisMemorySourceFilenameFilter.trim()
+    const parsedLimit = Number.parseInt(analysisMemoryLimit, 10)
+    const safeLimit = Number.isFinite(parsedLimit) ? parsedLimit : 8
+
+    setIsAskingAnalysisMemoryChat(true)
+    setAnalysisMemoryChatError(null)
+    setStatusMessage(`Asking VisionCommand AI analysis memory: "${trimmedQuestion}"...`)
+
+    try {
+      const response = await fetch('/api/assistant/analysis-memory-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: trimmedQuestion,
+          response_mode: 'rule_based',
+          media_type: analysisMemoryMediaTypeFilter === 'all'
+            ? null
+            : analysisMemoryMediaTypeFilter,
+          source_filename: sourceFilename || null,
+          limit: safeLimit,
+          current_workflow_context: buildAnalysisMemoryChatContext(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        const detail = typeof data.detail === 'string'
+          ? data.detail
+          : 'Analysis memory chat request failed.'
+
+        throw new Error(detail)
+      }
+
+      setAnalysisMemoryChatResult(data as AnalysisMemoryChatResponse)
+      setStatusMessage('Analysis memory answer ready.')
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Analysis memory chat request failed.'
+
+      setAnalysisMemoryChatError(message)
+      setStatusMessage(message)
+    } finally {
+      setIsAskingAnalysisMemoryChat(false)
     }
   }
 
@@ -5859,6 +5945,8 @@ const handlePlanAndPrepareExampleCommand = async (exampleCommand: string) => {
             onSelectCommand={setCommandText}
           />
 
+
+
           {isDeveloperMode && (
             <div className="developer-mode-stack">
               <CommandModeSelectorsSection
@@ -6018,6 +6106,42 @@ const handlePlanAndPrepareExampleCommand = async (exampleCommand: string) => {
               }}
             />
           )}
+
+          <AnalysisMemoryChatSection
+            question={analysisMemoryChatQuestion}
+            response={analysisMemoryChatResult}
+            mediaTypeFilter={analysisMemoryMediaTypeFilter}
+            sourceFilenameFilter={analysisMemorySourceFilenameFilter}
+            limit={analysisMemoryLimit}
+            isDeveloperMode={isDeveloperMode}
+            isBusy={isBusy}
+            isLoading={isAskingAnalysisMemoryChat}
+            hasGeneratedOutputHistory={generatedOutputHistory.length > 0}
+            error={analysisMemoryChatError}
+            onQuestionChange={(nextQuestion) => {
+              setAnalysisMemoryChatQuestion(nextQuestion)
+              setAnalysisMemoryChatError(null)
+            }}
+            onMediaTypeFilterChange={(nextMediaType) => {
+              setAnalysisMemoryMediaTypeFilter(nextMediaType)
+              setAnalysisMemoryChatError(null)
+            }}
+            onSourceFilenameFilterChange={(nextSourceFilename) => {
+              setAnalysisMemorySourceFilenameFilter(nextSourceFilename)
+              setAnalysisMemoryChatError(null)
+            }}
+            onLimitChange={setAnalysisMemoryLimit}
+            onAskAnalysisMemory={handleAskAnalysisMemoryChat}
+            onSelectQuestion={(nextQuestion) => {
+              setAnalysisMemoryChatQuestion(nextQuestion)
+              setAnalysisMemoryChatError(null)
+            }}
+            onClearAnswer={() => {
+              setAnalysisMemoryChatResult(null)
+              setAnalysisMemoryChatError(null)
+              setStatusMessage('Analysis memory answer cleared.')
+            }}
+          />
 
           {isDeveloperMode && (
             <div className="developer-mode-stack">
