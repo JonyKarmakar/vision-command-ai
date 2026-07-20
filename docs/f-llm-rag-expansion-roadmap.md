@@ -234,26 +234,36 @@ This slice adds frontend access to the existing analysis memory chat endpoint. I
 
 ## F.5 RAG grounding and safety evaluation cases
 
-Status: Planned
+Status: Implemented in PR #534
 
 Purpose:
 
 Add backend tests and evaluation cases for retrieval and grounded answer behavior.
 
-Evaluation should cover:
+Implemented service:
 
-- relevant retrieval
+- `backend/app/services/analysis_memory_grounding_evaluation.py`
+
+Implemented tests:
+
+- `backend/tests/test_analysis_memory_grounding_evaluation.py`
+
+Evaluation covers:
+
+- relevant retrieval behavior
 - no-result behavior
 - privacy question behavior
-- source citation behavior
-- unsupported identity or emotion questions
-- stale or missing context
-- local fallback behavior
-- real LLM guarded behavior when available
+- retrieved source-card presence
+- unsupported identity questions
+- unsupported emotion questions
+- unsupported capture-location questions
+- missing persisted-memory fallback behavior
 
 Boundary:
 
-This does not need a full evaluation dashboard yet. It should create a reliable foundation for future LLMOps work.
+This slice creates a reliable evaluation foundation for future LLMOps work. It does not add a full evaluation dashboard, frontend behavior, endpoint behavior changes, real LLM answer generation, semantic embeddings, vector search, internet search, arbitrary document ingestion, or raw image/video reasoning.
+
+Real LLM analysis-memory evaluation remains deferred because the current `/assistant/analysis-memory-chat` endpoint intentionally supports the grounded `rule_based` response mode only.
 
 ## F.6 RAG demo guide
 
