@@ -116,33 +116,36 @@ This slice is design and service-shape focused. It does not add retrieval code, 
 
 ## F.2 Backend retrieval service over generated outputs
 
-Status: Planned
+Status: Implemented in PR #531
 
 Purpose:
 
 Add a backend retrieval service that searches stored analysis outputs.
 
-The first retrieval version can use deterministic search:
+Implemented service:
+
+- `backend/app/services/analysis_memory.py`
+
+Implemented tests:
+
+- `backend/tests/test_analysis_memory.py`
+
+The first retrieval version uses deterministic search:
 
 - keyword matching
-- class-name matching
+- class-name hints from stored metadata
 - media-type filtering
 - result-type filtering
 - source filename filtering
+- action filtering
 - recency ordering
 - limit handling
 
-Example questions it should support later:
-
-- Which outputs mention person?
-- Which videos had privacy concerns?
-- Find analyses related to dogs.
-- Show recent generated reports.
-- What did I analyze from this source file?
+The service can convert generated output records into analysis memory items and retrieve them with a deterministic score.
 
 Boundary:
 
-This should be retrieval over existing stored project outputs, not internet search and not arbitrary document ingestion.
+This is a backend service and test slice only. It does not add a public API endpoint, frontend behavior, LLM answer generation, semantic embeddings, vector search, internet search, or arbitrary document ingestion.
 
 ## F.3 RAG answer endpoint
 
