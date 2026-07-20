@@ -569,6 +569,39 @@ export type VideoChatResponse = {
   context_summary: Record<string, unknown>
 }
 
+
+export type AnalysisMemoryRetrievedSource = {
+  memory_id: string | null
+  source_record_id: string | null
+  source_record_type: string | null
+  media_type: string | null
+  source_filename: string | null
+  output_filename: string | null
+  file_url: string | null
+  label: string | null
+  action: string | null
+  result_type: string | null
+  created_at: string | null
+  summary_text: string | null
+  detected_classes: string[]
+  privacy_signals: string[]
+  workflow_signals: string[]
+  retrieval_score: number
+}
+
+export type AnalysisMemoryChatResponse = {
+  answer: string
+  responder_type: string
+  prompt_version: string
+  retrieval_status: string
+  retrieval_mode: string
+  retrieval_version: string
+  retrieved_item_count: number
+  retrieved_sources: AnalysisMemoryRetrievedSource[]
+  grounding_notes: string[]
+  limitations: string[]
+}
+
 export type CommandResponse = {
   command: string
   parser_mode: string

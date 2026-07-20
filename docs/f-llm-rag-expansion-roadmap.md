@@ -197,35 +197,40 @@ This slice adds grounded rule-based answer generation over retrieved analysis me
 
 ## F.4 Frontend analysis memory chat panel
 
-Status: Planned
+Status: Implemented in PR #533
 
 Purpose:
 
 Add a frontend panel where the user can ask questions across previous generated outputs and analysis results.
 
-The panel should show:
+Implemented component:
+
+- `frontend/src/features/commands/AnalysisMemoryChatSection.tsx`
+
+Updated frontend files:
+
+- `frontend/src/App.tsx`
+- `frontend/src/types/apiTypes.ts`
+- `frontend/src/App.css`
+
+The panel shows:
 
 - question input
 - example questions
-- answer
+- media type filter
+- optional source filename filter
+- retrieval limit selector
+- grounded answer
 - retrieved source count
 - retrieved source cards
 - grounding notes
-- responder type
-- prompt version in Developer Mode
-
-Example questions:
-
-- What have I analyzed so far?
-- Which outputs mention people?
-- Which results may need privacy review?
-- Compare the recent image and video outputs.
-- Find generated outputs from this source file.
-- Summarize the latest analysis reports.
+- limitations
+- responder type and prompt version
+- full response payload in Developer Mode
 
 Boundary:
 
-The panel should not replace image chat or video chat. It should answer across analysis memory.
+This slice adds frontend access to the existing analysis memory chat endpoint. It does not change backend behavior, real LLM answer generation, semantic embeddings, vector search, internet search, arbitrary document ingestion, or raw image/video reasoning.
 
 ## F.5 RAG grounding and safety evaluation cases
 
