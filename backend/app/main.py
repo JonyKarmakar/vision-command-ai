@@ -4021,6 +4021,23 @@ def get_parser_attempt_logs(limit: int = Query(20, ge=1, le=100)):
 
 
 
+
+@app.post("/assistant/analysis-memory-chat")
+def answer_analysis_memory_chat_endpoint(request: dict):
+    from app.services.analysis_memory_chat import answer_analysis_memory_chat
+
+    return answer_analysis_memory_chat(
+        question=request.get("question", ""),
+        response_mode=request.get("response_mode", "rule_based"),
+        media_type=request.get("media_type"),
+        source_filename=request.get("source_filename"),
+        result_type=request.get("result_type"),
+        action=request.get("action"),
+        limit=request.get("limit", 20),
+        current_workflow_context=request.get("current_workflow_context"),
+    )
+
+
 @app.post("/assistant/video-chat")
 def answer_video_chat_endpoint(request: VideoChatRequest):
     return answer_video_chat(
