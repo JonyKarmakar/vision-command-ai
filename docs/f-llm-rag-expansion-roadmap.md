@@ -267,24 +267,33 @@ Real LLM analysis-memory evaluation remains deferred because the current `/assis
 
 ## F.6 RAG demo guide
 
-Status: Planned
+Status: Implemented in PR #535
 
 Purpose:
 
 Document how to demo the analysis memory and RAG workflow.
 
-The guide should show:
+Implemented guide:
+
+- `docs/f6-analysis-memory-rag-demo-guide.md`
+
+The guide shows:
 
 - how to create image and video analysis outputs
 - how to persist or load generated output history
 - how to ask analysis-memory questions
+- how to use media and source filename filters
 - how to inspect retrieved sources
 - how to verify grounded answers
+- how to demo privacy behavior
+- how to demo identity, emotion, and capture-location safety boundaries
+- how to demo no-result behavior
+- how to run backend grounding evaluations
 - how to explain limitations honestly
 
 Boundary:
 
-The guide should not claim raw multimodal reasoning or autonomous agents.
+The guide does not claim raw multimodal reasoning, autonomous agents, vector search, semantic search, real LLM answer generation, internet search, arbitrary document ingestion, identity recognition, emotion inference, or capture-location inference.
 
 ## F.7 F milestone summary
 
