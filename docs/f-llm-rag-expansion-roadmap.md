@@ -297,20 +297,34 @@ The guide does not claim raw multimodal reasoning, autonomous agents, vector sea
 
 ## F.7 F milestone summary
 
-Status: Planned
+Status: Implemented in PR #536
 
 Purpose:
 
 Summarize what Milestone F implemented and decide whether the project is ready to move to production readiness and v1 packaging.
 
-The summary should document:
+Implemented summary:
+
+- `docs/f-milestone-summary.md`
+
+The summary documents:
 
 - completed F slices
-- what the RAG layer proves
+- what the analysis-memory RAG layer proves
 - what it does not prove
 - safety boundaries
-- deferred advanced LLM work
+- evaluation coverage
+- portfolio value
+- deferred advanced LLM and RAG work
 - recommendation for the next milestone
+
+Recommendation:
+
+VisionCommand AI should move next to Production Readiness and Portfolio Packaging instead of starting another large feature-expansion milestone.
+
+Boundary:
+
+This summary does not create a release, change application behavior, add new features, or claim production completion.
 
 ## Expected completed F capability
 
