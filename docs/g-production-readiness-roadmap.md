@@ -152,31 +152,28 @@ No secrets are committed. Old Render credentials are not revived.
 
 ## G.4 README rewrite
 
-Status: Planned
+Status: Implemented in PR #540
 
 Purpose:
 
 Turn the README into a professional portfolio entry point.
 
-The README should clearly explain:
+Implemented documentation:
 
-- what VisionCommand AI is
-- what problem it solves
-- core image, video, command, LLM, and RAG capabilities
-- architecture summary
-- quickstart
-- local Docker demo
-- local development setup
-- testing commands
-- historical Render deployment evidence
-- current deployment status
-- known limitations
-- future roadmap
-- portfolio positioning
+- `README.md`
+- `docs/g4-readme-current-portfolio-status.md`
+
+Implemented update:
+
+- README now leads with the local Docker demo path
+- old Render deployment is described as historical evidence, not a guaranteed active live demo
+- implemented image, video, command, LLM, analysis memory, persistence, Docker, and CI/CD capabilities are summarized
+- Docker quickstart, smoke checks, model artifact notes, local setup, testing, architecture, limitations, and portfolio positioning are documented
+- Milestone G status is reflected in the README
 
 Boundary:
 
-The README should not present the old Render URLs as guaranteed active production demos.
+The README does not present old Render URLs as guaranteed active production demos.
 
 ## G.5 Architecture and deployment diagrams
 
