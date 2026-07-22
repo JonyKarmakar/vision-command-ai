@@ -338,6 +338,12 @@ The project has been developed through small pull requests with explicit validat
 
 ## Architecture
 
+For visual architecture and deployment diagrams, see:
+
+```text
+docs/g5-architecture-and-deployment-diagrams.md
+```
+
 ```text
 React + TypeScript frontend
         |
@@ -447,6 +453,7 @@ docs/g-production-readiness-roadmap.md
 docs/g0-production-deployment-context-audit.md
 docs/g2-local-docker-demo-readiness.md
 docs/g3-environment-and-secrets-cleanup.md
+docs/g5-architecture-and-deployment-diagrams.md
 ```
 
 Demo and assistant docs:
@@ -523,10 +530,10 @@ Completed:
 Current slice:
 
 - G.4 README rewrite
+- G.5 Architecture and deployment diagrams
 
 Planned:
 
-- G.5 Architecture and deployment diagrams
 - G.6 Demo script and screenshot package
 - G.7 Final smoke checklist
 - G.8 Portfolio case study

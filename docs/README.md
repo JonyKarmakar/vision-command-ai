@@ -62,6 +62,14 @@ docs/architecture-overview.md
 
 Explains the frontend, backend, media-processing services, command intelligence layer, persistence layer, observability features, deployment setup, testing strategy, and CI/CD workflow.
 
+### Architecture and deployment diagrams
+
+```text
+docs/g5-architecture-and-deployment-diagrams.md
+```
+
+Provides current Mermaid diagrams for the full system architecture, local Docker setup, historical Render deployment, command execution flow, generated output history, and analysis-memory RAG-style flow.
+
 ### API and feature reference
 
 ```text
@@ -255,6 +263,7 @@ docs/
 ├── README.md
 ├── api-and-feature-reference.md
 ├── architecture-overview.md
+├── g5-architecture-and-deployment-diagrams.md
 ├── product-walkthrough.md
 ├── walkthrough-assets.md
 ├── deployment-hardening-plan.md
