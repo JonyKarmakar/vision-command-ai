@@ -177,23 +177,30 @@ The README does not present old Render URLs as guaranteed active production demo
 
 ## G.5 Architecture and deployment diagrams
 
-Status: Planned
+Status: Implemented in PR #541
 
 Purpose:
 
 Make the system visually understandable.
 
-Diagrams should include:
+Implemented documentation:
+
+- `docs/g5-architecture-and-deployment-diagrams.md`
+
+Implemented diagrams:
 
 - full system architecture
 - local Docker architecture
+- local Docker request flow
 - historical Render deployment architecture
-- analysis-memory RAG flow
+- command execution architecture
 - generated output history and analysis memory flow
+- analysis-memory RAG-style flow
+- deployment status view
 
 Boundary:
 
-Diagrams should show implemented behavior and clearly label historical or optional deployment paths.
+The diagrams show implemented behavior and clearly label historical or optional deployment paths.
 
 ## G.6 Demo script and screenshot package
 
