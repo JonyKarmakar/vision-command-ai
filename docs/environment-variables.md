@@ -1,5 +1,24 @@
 # VisionCommand AI Environment Variables
 
+## Milestone G Environment Guidance
+
+Current Milestone G decision:
+
+- local/Docker-first is the primary demo path
+- old Render deployment values are historical or optional future deployment references
+- backend secrets must stay backend-only
+- frontend variables are public and must not contain secrets
+- Docker Compose credentials are local demo values only
+- paid cloud deployment is not required for Milestone G
+
+For the current environment and secrets cleanup guide, see:
+
+```text
+docs/g3-environment-and-secrets-cleanup.md
+```
+
+---
+
 ## Purpose
 
 This document explains the environment variables used by VisionCommand AI for local development, Docker Compose, and future production deployment.

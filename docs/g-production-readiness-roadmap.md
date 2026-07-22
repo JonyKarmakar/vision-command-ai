@@ -128,28 +128,27 @@ This is local production-style demo readiness, not cloud deployment.
 
 ## G.3 Environment and secrets cleanup
 
-Status: Planned
+Status: Implemented in PR #539
 
 Purpose:
 
 Make local, Docker, and optional deployment setup safe and understandable.
 
-Work should review or improve:
+Implemented documentation:
 
-- `.env.example`
-- backend environment documentation
-- frontend environment documentation
-- Docker environment documentation
-- optional Render environment documentation
-- stale Render credential warnings
-- secret handling
-- `DATABASE_URL` behavior
-- `LLM_PROVIDER` behavior
-- local-only values versus deployment values
+- `docs/g3-environment-and-secrets-cleanup.md`
+
+Implemented cleanup:
+
+- backend `.env.example` now separates local non-Docker, Docker Compose, and production database values
+- frontend `.env.example` now clarifies that frontend variables are public and `VITE_BACKEND_URL` is used for Vite proxy behavior
+- optional Render config uses the current container model path
+- environment documentation links to the Milestone G environment guidance
+- safe and unsafe committed values are documented
 
 Boundary:
 
-No secrets should be committed. Old Render credentials should not be revived.
+No secrets are committed. Old Render credentials are not revived.
 
 ## G.4 README rewrite
 
