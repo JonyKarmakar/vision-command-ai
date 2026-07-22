@@ -105,25 +105,22 @@ This roadmap does not create a release or claim production completion.
 
 ## G.2 Local Docker demo hardening
 
-Status: Planned
+Status: Implemented in PR #538
 
 Purpose:
 
 Make local Docker the official reliable demo path.
 
-Work should verify or improve:
+Implemented documentation:
 
-- Docker Compose startup
-- backend health endpoint
-- frontend startup
-- frontend-to-backend API connectivity
-- PostgreSQL initialization
-- upload and output directory creation
-- generated output history behavior
-- analysis memory chat behavior
-- one image workflow
-- one video workflow if local resources allow
-- clean stop and restart behavior
+- `docs/g2-local-docker-demo-readiness.md`
+
+Implemented hardening:
+
+- backend Docker default model path uses `/app/storage/models/yolo26n.pt`
+- backend Docker startup creates storage folders, including `/app/storage/models`
+- backend Docker config sets `YOLO_CONFIG_DIR=/tmp/Ultralytics`
+- local Docker demo smoke path documents startup, health checks, frontend proxy checks, database checks, upload, detection, model inspection, and logs
 
 Boundary:
 

@@ -2,7 +2,8 @@ FROM python:3.9-slim
 
 ENV PYTHONUNBUFFERED=1 \
     STORAGE_ROOT=/app/storage \
-    MODEL_NAME=yolo26n.pt \
+    MODEL_NAME=/app/storage/models/yolo26n.pt \
+    YOLO_CONFIG_DIR=/tmp/Ultralytics \
     PORT=8000
 
 WORKDIR /app
@@ -22,8 +23,10 @@ COPY app ./app
 RUN mkdir -p /app/storage/uploads \
     /app/storage/outputs \
     /app/storage/videos \
-    /app/storage/logs
+    /app/storage/logs \
+    /app/storage/models \
+    /tmp/Ultralytics
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "mkdir -p /app/storage/uploads /app/storage/outputs /app/storage/videos /app/storage/logs /app/storage/models /tmp/Ultralytics && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
