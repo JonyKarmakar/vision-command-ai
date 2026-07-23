@@ -234,27 +234,35 @@ This is public project documentation. It keeps the walkthrough focused on produc
 
 ## G.7 Final smoke checklist
 
-Status: Planned
+Status: Implemented in PR #543
 
 Purpose:
 
 Create one final validation checklist before tagging or release decision.
 
-Checklist should cover:
+Implemented documentation:
 
-- backend tests
-- frontend build
-- frontend lint
-- Docker startup
-- backend health
-- frontend load
-- image upload
-- object detection
-- generated output history
-- analysis memory chat
-- command workflow
-- video workflow if resources allow
-- documentation links
+- `docs/g7-final-smoke-checklist.md`
+
+Checklist covers:
+
+- repository and branch checks
+- CI checks
+- local Docker startup
+- backend and frontend health checks
+- frontend load check
+- image workflow smoke check
+- command workflow smoke check
+- generated output history smoke check
+- analysis memory smoke check
+- video workflow smoke check
+- documentation link review
+- known limitation review
+- final decision record
+
+Boundary:
+
+This is the checklist definition. It does not claim that the final smoke test has already passed.
 
 ## G.8 Portfolio case study
 

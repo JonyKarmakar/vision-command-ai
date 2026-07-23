@@ -50,6 +50,14 @@ docs/g6-demo-walkthrough-package.md
 
 Defines the current public demo flow, product walkthrough, technical walkthrough, screenshot checklist, demo evidence checklist, validation notes, and known demo boundaries.
 
+### Final smoke checklist
+
+```text
+docs/g7-final-smoke-checklist.md
+```
+
+Defines the final local validation checklist to use before a release-readiness decision.
+
 ### Workspace recovery
 
 ```text
@@ -275,6 +283,7 @@ docs/
 ├── product-walkthrough.md
 ├── walkthrough-assets.md
 ├── g6-demo-walkthrough-package.md
+├── g7-final-smoke-checklist.md
 ├── deployment-hardening-plan.md
 ├── deployment-readiness-summary.md
 ├── deployment-smoke-test-checklist.md
