@@ -66,6 +66,14 @@ docs/g8-portfolio-case-study.md
 
 Presents VisionCommand AI as a professional project case study with product context, architecture, implemented workflows, engineering decisions, limitations, and future work.
 
+### v1 readiness decision
+
+```text
+docs/g9-v1-readiness-decision.md
+```
+
+Records the current readiness decision, recommended release path, safe claims, unsafe claims, and criteria before a future v1.0.0 release.
+
 ### Workspace recovery
 
 ```text
@@ -293,6 +301,7 @@ docs/
 ├── g6-demo-walkthrough-package.md
 ├── g7-final-smoke-checklist.md
 ├── g8-portfolio-case-study.md
+├── g9-v1-readiness-decision.md
 ├── deployment-hardening-plan.md
 ├── deployment-readiness-summary.md
 ├── deployment-smoke-test-checklist.md

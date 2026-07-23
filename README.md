@@ -457,6 +457,7 @@ docs/g5-architecture-and-deployment-diagrams.md
 docs/g6-demo-walkthrough-package.md
 docs/g7-final-smoke-checklist.md
 docs/g8-portfolio-case-study.md
+docs/g9-v1-readiness-decision.md
 ```
 
 Demo and assistant docs:
@@ -534,14 +535,18 @@ Completed:
 - G.5 Architecture and deployment diagrams
 - G.6 Demo and walkthrough package
 - G.7 Final smoke checklist
-
-Current slice:
-
 - G.8 Portfolio case study
-
-Planned:
-
 - G.9 v1 readiness decision
+
+Current release-readiness decision:
+
+- defer `v1.0.0`
+- recommend `v0.6.0` as the production-readiness milestone
+- run and record the final smoke checklist before any release tag
+
+Next possible step:
+
+- prepare `v0.6.0` release notes after final smoke validation
 
 ## Portfolio Positioning
 
