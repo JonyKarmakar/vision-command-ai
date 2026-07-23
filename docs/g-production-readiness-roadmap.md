@@ -296,31 +296,36 @@ This is public project documentation. It does not claim active production hostin
 
 ## G.9 v1 readiness decision
 
-Status: Planned
+Status: Implemented in PR #545
 
 Purpose:
 
 Decide whether the project is ready for v1.0.0 or should use another release tag first.
 
-Possible outcomes:
+Implemented documentation:
 
-- tag `v1.0.0`
-- tag `v0.6.0` as the production-readiness milestone
-- complete one small cleanup milestone before v1.0.0
+- `docs/g9-v1-readiness-decision.md`
 
-Current recommendation:
+Decision:
 
-Do not promise v1.0.0 before G is complete.
+- defer `v1.0.0`
+- recommend `v0.6.0` as the production-readiness milestone
+- do not create a release tag in this PR
+- run and record the G.7 final smoke checklist before any release tag
+
+Reason:
+
+Milestone G makes the project portfolio-ready as a local Docker demo with strong public documentation. However, v1.0.0 should wait until final smoke validation is executed and recorded as release evidence.
 
 ## After Milestone G
 
-After G, choose based on job timeline.
+After G, choose based on project needs and available time.
 
 Option 1:
 
-Release and apply for jobs.
+Prepare a public release package.
 
-This includes final project wording, portfolio case study material, GitHub pinned project polish, and public demo documentation.
+This includes final project wording, portfolio case study material, GitHub pinned project polish, public demo documentation, and release notes.
 
 Option 2:
 
