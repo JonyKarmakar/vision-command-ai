@@ -13,7 +13,7 @@ The goal is not to add another large AI feature immediately.
 The goal is to make the existing project:
 
 - reliable for local demo
-- clear for recruiters and interviewers
+- clear for technical reviewers and future maintainers
 - honest about deployment status
 - safe from overclaiming
 - easy to run from the repository
@@ -34,7 +34,7 @@ Secondary proof:
 
 Optional future path:
 
-- temporary free cloud demo before interviews if needed
+- optional temporary cloud demo only if manually revalidated
 
 Not planned now:
 
@@ -202,24 +202,35 @@ Boundary:
 
 The diagrams show implemented behavior and clearly label historical or optional deployment paths.
 
-## G.6 Demo script and screenshot package
+## G.6 Demo and walkthrough package
 
-Status: Planned
+Status: Implemented in PR #542
 
 Purpose:
 
-Prepare the project for interviews, LinkedIn, GitHub, and portfolio presentation.
+Prepare a professional public walkthrough package for reviewing and validating the project.
 
-Work should include:
+Implemented documentation:
 
-- 5-minute demo script
-- 10-minute technical demo script
+- `docs/g6-demo-walkthrough-package.md`
+
+Implemented content:
+
+- local Docker demo prerequisites
+- local validation checks
+- five-minute product walkthrough
+- ten-minute technical walkthrough
 - screenshot checklist
-- feature walkthrough
-- what to say
-- what not to say
-- backup demo plan if cloud is unavailable
-- backup demo plan if Docker fails during an interview
+- demo evidence checklist
+- recommended project explanation
+- what the demo proves
+- what the demo does not prove
+- troubleshooting notes
+- fallback validation notes
+
+Boundary:
+
+This is public project documentation. It keeps the walkthrough focused on product review, technical validation, and known project boundaries.
 
 ## G.7 Final smoke checklist
 
@@ -291,7 +302,7 @@ Option 1:
 
 Release and apply for jobs.
 
-This includes CV project wording, LinkedIn post, portfolio case study, GitHub pinned project polish, and interview preparation.
+This includes final project wording, portfolio case study material, GitHub pinned project polish, and public demo documentation.
 
 Option 2:
 

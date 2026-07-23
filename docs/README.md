@@ -42,6 +42,14 @@ Defines recommended screenshots, sample media references, expected outputs, nami
 
 Use this document before adding screenshots or sample media to the repository.
 
+### Demo and walkthrough package
+
+```text
+docs/g6-demo-walkthrough-package.md
+```
+
+Defines the current public demo flow, product walkthrough, technical walkthrough, screenshot checklist, demo evidence checklist, validation notes, and known demo boundaries.
+
 ### Workspace recovery
 
 ```text
@@ -266,6 +274,7 @@ docs/
 ├── g5-architecture-and-deployment-diagrams.md
 ├── product-walkthrough.md
 ├── walkthrough-assets.md
+├── g6-demo-walkthrough-package.md
 ├── deployment-hardening-plan.md
 ├── deployment-readiness-summary.md
 ├── deployment-smoke-test-checklist.md

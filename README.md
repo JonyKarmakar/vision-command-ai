@@ -454,6 +454,7 @@ docs/g0-production-deployment-context-audit.md
 docs/g2-local-docker-demo-readiness.md
 docs/g3-environment-and-secrets-cleanup.md
 docs/g5-architecture-and-deployment-diagrams.md
+docs/g6-demo-walkthrough-package.md
 ```
 
 Demo and assistant docs:
@@ -463,6 +464,7 @@ docs/local-ai-demo.md
 docs/image-chat-demo.md
 docs/video-chat-demo.md
 docs/f6-analysis-memory-rag-demo-guide.md
+docs/g6-demo-walkthrough-package.md
 ```
 
 Deployment and environment docs:
@@ -526,15 +528,15 @@ Completed:
 - G.1 Production readiness roadmap
 - G.2 Local Docker demo hardening
 - G.3 Environment and secrets cleanup
-
-Current slice:
-
 - G.4 README rewrite
 - G.5 Architecture and deployment diagrams
 
+Current slice:
+
+- G.6 Demo and walkthrough package
+
 Planned:
 
-- G.6 Demo script and screenshot package
 - G.7 Final smoke checklist
 - G.8 Portfolio case study
 - G.9 v1 readiness decision
