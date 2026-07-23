@@ -58,6 +58,14 @@ docs/g7-final-smoke-checklist.md
 
 Defines the final local validation checklist to use before a release-readiness decision.
 
+### Portfolio case study
+
+```text
+docs/g8-portfolio-case-study.md
+```
+
+Presents VisionCommand AI as a professional project case study with product context, architecture, implemented workflows, engineering decisions, limitations, and future work.
+
 ### Workspace recovery
 
 ```text
@@ -284,6 +292,7 @@ docs/
 ├── walkthrough-assets.md
 ├── g6-demo-walkthrough-package.md
 ├── g7-final-smoke-checklist.md
+├── g8-portfolio-case-study.md
 ├── deployment-hardening-plan.md
 ├── deployment-readiness-summary.md
 ├── deployment-smoke-test-checklist.md

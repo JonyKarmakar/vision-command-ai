@@ -266,23 +266,33 @@ This is the checklist definition. It does not claim that the final smoke test ha
 
 ## G.8 Portfolio case study
 
-Status: Planned
+Status: Implemented in PR #544
 
 Purpose:
 
-Create reusable job-application material.
+Create a professional public project case study for review and portfolio documentation.
 
-The case study should explain:
+Implemented documentation:
+
+- `docs/g8-portfolio-case-study.md`
+
+The case study explains:
 
 - why the project exists
 - what problem it solves
+- product concept
 - technical architecture
-- AI, CV, LLM, and RAG capabilities
-- production engineering practices
-- evaluation and safety
-- deployment lessons
+- image, video, command, LLM-aware, and RAG-style capabilities
+- production-readiness work
+- engineering decisions
+- validation and quality practices
+- deployment approach
 - limitations
 - future improvements
+
+Boundary:
+
+This is public project documentation. It does not claim active production hosting, real-time stream processing, identity recognition, or v1 readiness.
 
 ## G.9 v1 readiness decision
 
