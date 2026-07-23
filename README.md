@@ -455,6 +455,7 @@ docs/g2-local-docker-demo-readiness.md
 docs/g3-environment-and-secrets-cleanup.md
 docs/g5-architecture-and-deployment-diagrams.md
 docs/g6-demo-walkthrough-package.md
+docs/g7-final-smoke-checklist.md
 ```
 
 Demo and assistant docs:
@@ -530,14 +531,14 @@ Completed:
 - G.3 Environment and secrets cleanup
 - G.4 README rewrite
 - G.5 Architecture and deployment diagrams
+- G.6 Demo and walkthrough package
 
 Current slice:
 
-- G.6 Demo and walkthrough package
+- G.7 Final smoke checklist
 
 Planned:
 
-- G.7 Final smoke checklist
 - G.8 Portfolio case study
 - G.9 v1 readiness decision
 
