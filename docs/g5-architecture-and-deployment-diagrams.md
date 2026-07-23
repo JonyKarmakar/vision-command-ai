@@ -274,7 +274,7 @@ flowchart LR
     not_now --> no_active_prod_claim[No active production claim]
 ```
 
-## Interview explanation
+## Project explanation
 
 A concise explanation:
 
