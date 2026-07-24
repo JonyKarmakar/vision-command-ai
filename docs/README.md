@@ -58,6 +58,14 @@ docs/g7-final-smoke-checklist.md
 
 Defines the final local validation checklist to use before a release-readiness decision.
 
+### Final smoke result
+
+```text
+docs/g7-final-smoke-result-2026-07-24.md
+```
+
+Records the completed final local Docker smoke validation result for the v0.6.0 production-readiness milestone.
+
 ### Portfolio case study
 
 ```text
@@ -266,6 +274,7 @@ docs/releases/v0.4.0.md
 docs/releases/v0.5.0.md
 docs/releases/v0.5.1.md
 docs/releases/v0.5.2.md
+docs/releases/v0.6.0.md
 ```
 
 Use release notes to understand major completed milestones and how the project evolved.
