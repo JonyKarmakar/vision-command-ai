@@ -922,20 +922,7 @@ def save_generated_output_to_database(output_item: dict):
                     file_url = EXCLUDED.file_url,
                     source = EXCLUDED.source,
                     source_filename = EXCLUDED.source_filename,
-                    created_by =                    created_by,
-                    command_text,
-                    result_type,
-                    execution_mode,
-                    parser_mode,
-                    parser_type,
-                    planner_mode,
-                    created_at
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (id) DO UPDATE SET
-                    action = EXCLUDED.action,
-                    label = EXCLUDED.label,
-                    filename = EXCLUDED.created_by,
+                    created_by = EXCLUDED.created_by,
                     command_text = EXCLUDED.command_text,
                     result_type = EXCLUDED.result_type,
                     execution_mode = EXCLUDED.execution_mode,
